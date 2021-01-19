@@ -49,7 +49,7 @@ We are providing a series of tutorials to get your started
 * We are also welcoming any proposed changes or discussions about the class design pattern used in this project.
 
 ### Template Class Diagram:
-![alt text](utils/assets/class_diagram.png "Template Class diagram")
+![alt text](documents/assets/pics/class_diagram.png "Template Class diagram")
 
 ### Referenced Repos:
 1. [ERFNet](https://github.com/hagerrady13/ERFNet-PyTorch): A model for **Semantic Segmentation**, trained on Pascal Voc
