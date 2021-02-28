@@ -16,13 +16,13 @@ with open(os.path.join(_here, 'deepsky', 'version.py')) as f:
     exec(f.read(), version)
 
 setup(
-    name='dxray',
+    name='deepsky',
     version=version['__version__'],
     description=('A Smart X-ray Simulation and Reconstruction Framework'),
     long_description='Smart X-ray Simulation and Reconstruction Framework, developed by Zhihua Liang at University of Antwerp. This project was started at Feb 18th, 2020.',
     author='Zhihua Liang',
     author_email='zhihua.liang@uantwerpen.be',
-    url='https://github.com/magicknight/dxray',
+    url='https://github.com/magicknight/deepsky',
     license='MIT',
     packages=find_packages(exclude=("configs", "tests")),
     #   no dependencies in this example
