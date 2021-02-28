@@ -5,13 +5,21 @@ from logging import Formatter
 from logging.handlers import RotatingFileHandler
 
 import json
+import toml
 from easydict import EasyDict
 from pprint import pprint
+import argparse
 
-from utils.dirs import create_dirs
+from dxray.utils.dirs import create_dirs
 
 
 def setup_logging(log_dir):
+    """setup logging
+
+    Args:
+        log_dir (string): log dir
+
+    """
     log_file_format = "[%(levelname)s] - %(asctime)s - %(name)s - : %(message)s in %(pathname)s:%(lineno)d"
     log_console_format = "[%(levelname)s]: %(message)s"
 
@@ -55,7 +63,26 @@ def get_config_from_json(json_file):
             exit(-1)
 
 
-def process_config(json_file):
+def get_config_from_toml(toml_file):
+    """
+    Get the config from a toml file
+    :param json_file: the path of the config file
+    :return: config(namespace), config(dictionary)
+    """
+
+    # parse the configurations from the config json file provided
+    with open(toml_file, 'r') as config_file:
+        try:
+            config_dict = toml.load(config_file)
+            # EasyDict allows to access dict values as attributes (works recursively).
+            config = EasyDict(config_dict)
+            return config, config_dict
+        except ValueError:
+            print("INVALID JSON file format.. Please provide a good toml file")
+            exit(-1)
+
+
+def process_config(config_file):
     """
     Get the json file
     Processing it with EasyDict to be accessible as attributes
@@ -66,31 +93,72 @@ def process_config(json_file):
     :param json_file: the path of the config file
     :return: config object(namespace)
     """
-    config, _ = get_config_from_json(json_file)
+    # get ext, go toml or json
+    _, config_file_ext = os.path.splitext(config_file)
+    if config_file_ext == '.toml':
+        config, _ = get_config_from_toml(config_file)
+    elif config_file_ext == '.json':
+        config, _ = get_config_from_json(config_file)
+    else:
+        print("INVALID config file extension.. Please provide a good config file in toml or json")
+        exit(-1)
     print(" THE Configuration of your experiment ..")
     pprint(config)
 
-    # making sure that you have provided the exp_name.
+    summary = config.summary
+    settings = config.settings
+
+    # making sure that you have provided the name.
     try:
         print(" *************************************** ")
-        print("The experiment name is {}".format(config.exp_name))
+        print("The experiment name is {}".format(summary.name))
         print(" *************************************** ")
     except AttributeError:
-        print("ERROR!!..Please provide the exp_name in json file..")
+        print("ERROR!!..Please provide the experiment name in json file..")
         exit(-1)
 
     # create some important directories to be used for that experiment.
-    config.summary_dir = os.path.join("experiments", config.exp_name, "summaries/")
-    config.checkpoint_dir = os.path.join("experiments", config.exp_name, "checkpoints/")
-    config.out_dir = os.path.join("experiments", config.exp_name, "out/")
-    config.log_dir = os.path.join("experiments", config.exp_name, "logs/")
-    create_dirs([config.summary_dir, config.checkpoint_dir, config.out_dir, config.log_dir])
+    if 'project_root' not in settings:
+        settings.project_root = os.path.join('.', "experiments")
+    settings.summary_dir = os.path.join(settings.project_root, summary.name, "summaries/")
+    settings.checkpoint_dir = os.path.join(settings.project_root, summary.name, "checkpoints/")
+    settings.out_dir = os.path.join(settings.project_root, summary.name, "out/")
+    settings.log_dir = os.path.join(settings.project_root, summary.name, "logs/")
+    create_dirs([settings.summary_dir, settings.checkpoint_dir, settings.out_dir, settings.log_dir])
 
     # setup logging in the project
-    setup_logging(config.log_dir)
+    setup_logging(settings.log_dir)
 
-    logging.getLogger().info("Hi, This is root.")
+    logging.getLogger().info("Hi, This is dxray.")
     logging.getLogger().info("After the configurations are successfully processed and dirs are created.")
     logging.getLogger().info("The pipeline of the project will begin now.")
-
     return config
+
+
+def get_config():
+    """
+    -Get the args
+    -Capture the config file
+    -Process the json config passed
+    -Merge configs
+    """
+    # parse the path of the json config file
+    arg_parser = argparse.ArgumentParser(description="")
+    arg_parser.add_argument(
+        'config',
+        metavar='config_json_file',
+        default='None',
+        help='The Configuration file in json format')
+    args = arg_parser.parse_args()
+
+    # parse the config json file
+    config = process_config(args.config)
+    return config
+
+
+config = get_config()
+logger = logging.getLogger()
+
+
+if __name__ == "__main__":
+    process_config('configs/abnormal_dataset.toml')

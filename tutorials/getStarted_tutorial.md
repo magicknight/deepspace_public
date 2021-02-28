@@ -4,27 +4,25 @@ Here we will walk through the process of starting a new PyTorch project using ou
 #### 1. Main Building blocks:
 Let's start by reviewing the folder structure of the project.
 ```
-├── agents
-|  └── example.py
-├── configs
-|  └── example_exp_0.py
-├── data
-├── datasets
-|  └── example.py
-├── experiments
-├── graphs
-|  └── models
-|  |  └── custome_layers
-|  |  |  └── example.py
-|  |  └── example.py
-|  └── losses
-|  |  └── example.py
-├── pretrained_weights
-├── tutorials
-├── utils
-|  └── assets
-├── main.py
-└── run.sh
+|-- tutorials/
+|-- configs/
+|   |-- defect/
+|   |-- json/
+|-- data/
+|-- deepsky/
+|   |-- datasets/
+|   |-- config/
+|   |-- graphs/
+|   |   |-- models/
+|   |   |   |-- custom_layers/
+|   |   |-- losses/
+|   |-- utils/
+|   |-- agents/
+|-- pretrained_weights/
+|-- documents/
+|   |-- assets/
+|   |   |-- pics/
+|-- experiments/
 ```
 
 #### Agent:
