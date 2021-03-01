@@ -7,18 +7,18 @@ import torch
 from torch.backends import cudnn
 from torch.autograd import Variable
 
-from graphs.models.erfnet import ERF
-from graphs.models.erfnet_imagenet import ERFNet
-from datasets.voc2012 import VOCDataLoader
-from graphs.losses.cross_entropy import CrossEntropyLoss
+from deepsky.graphs.models.erfnet import ERF
+from deepsky.graphs.models.erfnet_imagenet import ERFNet
+from deepsky.datasets.voc2012 import VOCDataLoader
+from deepsky.graphs.losses.cross_entropy import CrossEntropyLoss
 
 from torch.optim import lr_scheduler
 
 from tensorboardX import SummaryWriter
-from utils.metrics import AverageMeter, IOUMetric
-from utils.misc import print_cuda_statistics
+from deepsky.utils.metrics import AverageMeter, IOUMetric
+from deepsky.utils.misc import print_cuda_statistics
 
-from agents.base import BaseAgent
+from deepsky.agents.base import BaseAgent
 
 cudnn.benchmark = True
 
@@ -51,7 +51,7 @@ class ERFNetAgent(BaseAgent):
                                           eps=self.config.eps,
                                           weight_decay=self.config.weight_decay)
         # Define Scheduler
-        lambda1 = lambda epoch: pow((1 - ((epoch - 1) / self.config.max_epoch)), 0.9)
+        def lambda1(epoch): return pow((1 - ((epoch - 1) / self.config.max_epoch)), 0.9)
         self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
         # initialize my counters
         self.current_epoch = 0
@@ -120,7 +120,7 @@ class ERFNetAgent(BaseAgent):
             self.optimizer.load_state_dict(checkpoint['optimizer'])
 
             self.logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
-                  .format(self.config.checkpoint_dir, checkpoint['epoch'], checkpoint['iteration']))
+                             .format(self.config.checkpoint_dir, checkpoint['epoch'], checkpoint['iteration']))
         except OSError as e:
             self.logger.info("No checkpoint exists from '{}'. Skipping...".format(self.config.checkpoint_dir))
             self.logger.info("**First time to train**")

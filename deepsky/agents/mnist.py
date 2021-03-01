@@ -14,14 +14,14 @@ from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn.functional as F
 
-from agents.base import BaseAgent
+from deepsky.agents.base import BaseAgent
 
-from graphs.models.mnist import Mnist
-from datasets.mnist import MnistDataLoader
+from deepsky.graphs.models.mnist import Mnist
+from deepsky.datasets.mnist import MnistDataLoader
 
 from tensorboardX import SummaryWriter
-from utils.metrics import AverageMeter, AverageMeterList
-from utils.misc import print_cuda_statistics
+from deepsky.utils.metrics import AverageMeter, AverageMeterList
+from deepsky.utils.misc import print_cuda_statistics
 
 cudnn.benchmark = True
 
@@ -114,6 +114,7 @@ class MnistAgent(BaseAgent):
             self.validate()
 
             self.current_epoch += 1
+
     def train_one_epoch(self):
         """
         One epoch of training
@@ -131,7 +132,7 @@ class MnistAgent(BaseAgent):
             if batch_idx % self.config.log_interval == 0:
                 self.logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     self.current_epoch, batch_idx * len(data), len(self.data_loader.train_loader.dataset),
-                           100. * batch_idx / len(self.data_loader.train_loader), loss.item()))
+                    100. * batch_idx / len(self.data_loader.train_loader), loss.item()))
             self.current_iteration += 1
 
     def validate(self):
@@ -154,6 +155,7 @@ class MnistAgent(BaseAgent):
         self.logger.info('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(self.data_loader.test_loader.dataset),
             100. * correct / len(self.data_loader.test_loader.dataset)))
+
     def finalize(self):
         """
         Finalizes all the operations of the 2 Main classes of the process, the operator and the data loader
