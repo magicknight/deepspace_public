@@ -3,7 +3,7 @@ Mnist tutorial main model
 """
 import torch.nn as nn
 import torch.nn.functional as F
-from ..weights_initializer import weights_init
+from deepsky.graphs.weights_initializer import weights_init
 
 
 class Mnist(nn.Module):

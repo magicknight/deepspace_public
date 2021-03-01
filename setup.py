@@ -18,8 +18,8 @@ with open(os.path.join(_here, 'deepsky', 'version.py')) as f:
 setup(
     name='deepsky',
     version=version['__version__'],
-    description=('A Smart X-ray Simulation and Reconstruction Framework'),
-    long_description='Smart X-ray Simulation and Reconstruction Framework, developed by Zhihua Liang at University of Antwerp. This project was started at Feb 18th, 2020.',
+    description=('DeepSky is a Artificial Intellegence Framework'),
+    long_description='Deep Learning Framework, developed by Zhihua Liang at University of Antwerp. This project was started at Feb 18th, 2020.',
     author='Zhihua Liang',
     author_email='zhihua.liang@uantwerpen.be',
     url='https://github.com/magicknight/deepsky',
@@ -36,5 +36,5 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6'],
+        'Programming Language :: Python :: 3.8'],
 )

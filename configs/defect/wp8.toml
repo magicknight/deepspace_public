@@ -1,17 +1,19 @@
 [summary]
     # name of this experiment
-    name = 'defect_detection_autoencoder'
+    name = 'wp8_defect_detection'
     author = 'Zhihua Liang'
-    discription = 'Defect detection for POL 2020'
+    discription = 'Defect detection for wp8 ai product flanders'
 [settings]
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
     # root directory of the dataset
-    dataset_root = '/home/zhihua/data/anomaly/simulation/bunny'
-    # CAD object path
-    mesh_file_path = '/home/zhihua/data/mesh/common/bunny/bunny_watertight.stl'
+    dataset_root = '/home/zhihua/data/anomaly/wp8/png'
+    # bin object path
+    bin_file_path = '/mnt/data/anomaly/wp8/cyl8.bin'
+    # bin file shape
+    bin_shape = [760,810,815]
     # agent name
-    agent = 'bunny'
+    agent = 'wp8'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
     # retry times to break the object
