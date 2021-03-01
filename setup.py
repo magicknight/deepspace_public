@@ -12,17 +12,17 @@ else:
         long_description = f.read()
 
 version = {}
-with open(os.path.join(_here, 'deepsky', 'version.py')) as f:
+with open(os.path.join(_here, 'deepspace', 'version.py')) as f:
     exec(f.read(), version)
 
 setup(
-    name='deepsky',
+    name='deepspace',
     version=version['__version__'],
-    description=('DeepSky is a Artificial Intellegence Framework'),
+    description=('DeepSpace is a Artificial Intellegence Framework'),
     long_description='Deep Learning Framework, developed by Zhihua Liang at University of Antwerp. This project was started at Feb 18th, 2020.',
     author='Zhihua Liang',
     author_email='zhihua.liang@uantwerpen.be',
-    url='https://github.com/magicknight/deepsky',
+    url='https://github.com/magicknight/deepspace',
     license='MIT',
     packages=find_packages(exclude=("configs", "tests")),
     #   no dependencies in this example

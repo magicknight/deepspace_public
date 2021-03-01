@@ -14,14 +14,14 @@ from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn.functional as F
 
-from deepsky.agents.base import BaseAgent
+from deepspace.agents.base import BaseAgent
 
-from deepsky.graphs.models.mnist import Mnist
-from deepsky.datasets.mnist import MnistDataLoader
+from deepspace.graphs.models.mnist import Mnist
+from deepspace.datasets.mnist import MnistDataLoader
 
 from tensorboardX import SummaryWriter
-from deepsky.utils.metrics import AverageMeter, AverageMeterList
-from deepsky.utils.misc import print_cuda_statistics
+from deepspace.utils.metrics import AverageMeter, AverageMeterList
+from deepspace.utils.misc import print_cuda_statistics
 
 cudnn.benchmark = True
 

@@ -8,7 +8,7 @@ Main
 -Run the agent
 """
 import importlib
-from deepsky.config import config, logger
+from deepspace.config import config, logger
 
 
 def main():

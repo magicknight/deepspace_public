@@ -7,18 +7,18 @@ import torch
 from torch.backends import cudnn
 from torch.autograd import Variable
 
-from deepsky.graphs.models.erfnet import ERF
-from deepsky.graphs.models.erfnet_imagenet import ERFNet
-from deepsky.datasets.voc2012 import VOCDataLoader
-from deepsky.graphs.losses.cross_entropy import CrossEntropyLoss
+from deepspace.graphs.models.erfnet import ERF
+from deepspace.graphs.models.erfnet_imagenet import ERFNet
+from deepspace.datasets.voc2012 import VOCDataLoader
+from deepspace.graphs.losses.cross_entropy import CrossEntropyLoss
 
 from torch.optim import lr_scheduler
 
 from tensorboardX import SummaryWriter
-from deepsky.utils.metrics import AverageMeter, IOUMetric
-from deepsky.utils.misc import print_cuda_statistics
+from deepspace.utils.metrics import AverageMeter, IOUMetric
+from deepspace.utils.misc import print_cuda_statistics
 
-from deepsky.agents.base import BaseAgent
+from deepspace.agents.base import BaseAgent
 
 cudnn.benchmark = True
 

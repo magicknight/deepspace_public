@@ -1,10 +1,10 @@
-# DeepSky is a Artificial Intellegence Framework
+# DeepSpace is a Artificial Intellegence Framework
 
 
 
-[<img src="documents/assets/pics/deepSky.png" alt=“GitHub”/>]()
+[<img src="documents/assets/pics/deepspace.png" alt=“GitHub”/>]()
 
-# DeepSky training framework
+# DeepSpace training framework
 
 Implement your projects the smart way.
 

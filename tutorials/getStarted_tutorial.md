@@ -9,7 +9,7 @@ Let's start by reviewing the folder structure of the project.
 |   |-- defect/
 |   |-- json/
 |-- data/
-|-- deepsky/
+|-- deepspace/
 |   |-- datasets/
 |   |-- config/
 |   |-- graphs/
