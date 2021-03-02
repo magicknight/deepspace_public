@@ -11,7 +11,7 @@
     # CAD object path
     mesh_file_path = '/home/zhihua/data/mesh/common/bunny/bunny_watertight.stl'
     # agent name
-    agent = 'bunny'
+    agent = 'defect'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
     # retry times to break the object
@@ -38,4 +38,5 @@
     data_mode = 'image'
     # source distance from the origin point
     async_loading = true
+    # validate 
 
