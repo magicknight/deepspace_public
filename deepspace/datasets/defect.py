@@ -14,6 +14,17 @@ from deepspace.config import config, logger
 
 
 def get_paths(mode):
+    """return paths of images
+
+    Args:
+        mode (string): dataloader mode, like 'train', 'test', 'validate'
+
+    Raises:
+        Exception: proper mode 
+
+    Returns:
+        list: items list, and masks list if in test mode
+    """
     assert mode in ['train', 'val', 'validate', 'test', 'inference']
     root = Path(config.settings.dataset_root)
     items = []
