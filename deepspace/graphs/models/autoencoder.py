@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-from deepspace.graphs.models.custom_layers.gdn import GDN
+from deepspace.graphs.layers.gdn import GDN
 
 # https://arxiv.org/pdf/1611.01704.pdf
 # A simplfied version without quantization

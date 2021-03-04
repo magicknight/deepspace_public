@@ -4,7 +4,6 @@ A file for all models' weight initialization functions
 import torch
 from torch import nn
 import numpy as np
-import graphs
 import math
 
 
@@ -31,7 +30,7 @@ def weights_init_normal(m):
 
 
 def init_model_weights(m):
-    ### initialize
+    # initialize
     for m in m.modules():
         if isinstance(m, nn.Conv2d):
             n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels

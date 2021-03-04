@@ -8,13 +8,14 @@ Main
 -Run the agent
 """
 import importlib
-from deepspace.config import config, logger
+from deepspace.config.config import config, logger
 
 
 def main():
     # Create the Agent then run it..
-    agent_class = importlib.import_module(config.agent, package=None)
-    agent = agent_class(config)
+    agent_class = importlib.import_module('.agents', package='deepspace')
+    agent_class = getattr(getattr(agent_class, config.settings.agent_module), config.settings.agent_name)
+    agent = agent_class()
     agent.run()
     agent.finalize()
 
