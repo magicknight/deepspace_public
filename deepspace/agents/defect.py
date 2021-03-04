@@ -46,6 +46,9 @@ class DefectAgent(BaseAgent):
         # define loss
         self.loss = SSIM(channel=config.settings.image_channels)
 
+        # define metrics
+        self.metrics = ssim if config.settings.loss == 'ssim' else ms_ssim
+
         # Create instance from the optimizer
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=config.settings.learning_rate,
@@ -163,7 +166,7 @@ class DefectAgent(BaseAgent):
             self.train_one_epoch()
 
             ssim_score, valid_loss = self.validate()
-            self.scheduler.step(valid_loss)
+            self.scheduler.step()
 
             is_best = ssim_score > self.best_metric
             if is_best:
@@ -184,12 +187,12 @@ class DefectAgent(BaseAgent):
         self.model.train()
         # Initialize your average meters
         epoch_loss = AverageMeter()
-        metrics = ssim if config.settings.loss == 'ssim' else ms_ssim
 
         for images in tqdm_batch:
             if self.cuda:
-                images = images.cuda()
-            images = Variable(images)
+                images = images.to(self.device, dtype=torch.float32)
+            # images = Variable(images)
+            self.optimizer.zero_grad()
             # model
             pred = self.model(images)
             # loss
@@ -198,17 +201,19 @@ class DefectAgent(BaseAgent):
                 raise ValueError('Loss is nan during training...')
 
             # optimizer
-            self.optimizer.zero_grad()
             cur_loss.backward()
             self.optimizer.step()
 
             epoch_loss.update(cur_loss.item())
-            mean_ssim += metrics(pred, images)
+            # must with no grad or the memory will increase like crazy
+            with torch.no_grad():
+                mean_ssim += self.metrics(pred, images)
 
             self.current_iteration += 1
             # exit(0)
 
         mean_ssim /= len(self.data_loader.train_loader.dataset)
+        mean_ssim.detach().cpu().numpy()
         self.summary_writer.add_scalar("epoch-training/loss", epoch_loss.val, self.current_iteration)
         self.summary_writer.add_scalar("epoch_training/mean_ssim", mean_ssim, self.current_iteration)
         tqdm_batch.close()
@@ -228,28 +233,26 @@ class DefectAgent(BaseAgent):
         self.model.eval()
 
         epoch_loss = AverageMeter()
-        metrics = ssim if config.loss == 'ssim' else ms_ssim
         mean_ssim = 0.0
 
         with torch.no_grad():
             for images in tqdm_batch:
                 if self.cuda:
-                    images = images.cuda()
-                images = Variable(images)
+                    images = images.to(self.device, dtype=torch.float32)
+                # images = Variable(images)
                 # model
                 pred = self.model(images)
-                # save the reconstructed image
-                self.save_validate_images(pred)
-                # if index == 20:
-                #     imageio((outputs*255).squeeze(0).detach().cpu().numpy().astype('uint8').transpose(1, 2, 0)).save('recons_%s.png' % (opts.loss_type))
                 # loss
                 cur_loss = self.loss(pred, images)
 
                 if np.isnan(float(cur_loss.item())):
                     raise ValueError('Loss is nan during Validation.')
 
-                mean_ssim += metrics(pred, images)
+                mean_ssim += self.metrics(pred, images)
                 epoch_loss.update(cur_loss.item())
+                # save the reconstructed image
+                pred = pred.squeeze().detach().cpu().numpy()
+                self.save_validate_images(pred)
 
             mean_ssim /= len(self.data_loader.valid_loader.dataset)
 
@@ -283,5 +286,5 @@ class DefectAgent(BaseAgent):
         """
         root = Path(config.settings.out_dir)
         images = to_uint8(images)
-        paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_' + str(index) + '.png') for index in images.shape[0]]
+        paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_' + str(index) + '.png') for index in range(images.shape[0])]
         save_images(images, paths)

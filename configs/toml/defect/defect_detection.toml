@@ -20,7 +20,7 @@
     # if async loading into cuda memory
     async_loading = true    
     # angle range
-    batch_size = 1
+    batch_size = 256
     # random seed
     seed = 0
     # model parameters
@@ -37,7 +37,7 @@
     # weight decay
     weight_decay = 0
     # max epoches to for training.
-    max_epoch = 20
+    max_epoch = 200
     # validate every x epoches
     validate_step = 2
     # checkpoint file name
@@ -45,7 +45,7 @@
     # dataloader name
     data_loader = 'defect_image_dataloader'
     # workers for dataloader
-    data_loader_workers = 2
+    data_loader_workers = 8
     # data resolution
     image_resolution = [512, 512]
     # channels

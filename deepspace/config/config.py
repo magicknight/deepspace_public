@@ -10,7 +10,7 @@ from easydict import EasyDict
 from pprint import pprint
 import argparse
 
-from dxray.utils.dirs import create_dirs
+from deepspace.utils.dirs import create_dirs
 
 
 def setup_logging(log_dir):
