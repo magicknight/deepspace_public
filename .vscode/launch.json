@@ -7,7 +7,7 @@
         {
             "name": "Python: 当前文件",
             "args": [
-                "configs/defect/defect_detection.toml"
+                "configs/toml/defect/defect_detection.toml"
             ],
             "type": "python",
             "request": "launch",

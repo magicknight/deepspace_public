@@ -28,7 +28,7 @@ def get_paths(mode):
     if mode == 'train':
         image_path = root / 'train' / 'good'
     elif mode == 'val' or mode == 'validate':
-        image_path = root / 'train' / 'good'
+        image_path = root / 'validate' / 'good'
     elif mode == 'test' or mode == 'inference':
         image_path = root / 'test'
         ground_truth_path = root / 'ground_truth'
@@ -53,6 +53,13 @@ class DefectImages:
 
     def __getitem__(self, index):
         if self.mode == 'train':
+            img_path = self.imgs[index]
+            image = imageio.imread(img_path)
+            if self.transform is not None:
+                image = self.transform(image)
+            return image
+
+        if self.mode == 'validate':
             img_path = self.imgs[index]
             image = imageio.imread(img_path)
             if self.transform is not None:

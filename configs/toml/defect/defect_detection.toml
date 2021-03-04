@@ -20,9 +20,12 @@
     # if async loading into cuda memory
     async_loading = true    
     # angle range
-    batch_size = 8
+    batch_size = 1
     # random seed
     seed = 0
+    # model parameters
+    model_c = 32
+    model_m = 32
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     learning_rate = 0.001
     # betas for Adam optimizer

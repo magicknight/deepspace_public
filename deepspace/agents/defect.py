@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import shutil
 import random
+from pathlib import Path
 
 import torch
 from torch import nn
@@ -25,6 +26,7 @@ from deepspace.graphs.losses.ssim import SSIM, ssim, MS_SSIM, ms_ssim
 
 from deepspace.utils.metrics import AverageMeter, AverageMeterList
 from deepspace.utils.misc import print_cuda_statistics
+from deepspace.utils.data import to_uint8, save_images
 from deepspace.config.config import config, logger
 
 cudnn.benchmark = True
@@ -36,7 +38,7 @@ class DefectAgent(BaseAgent):
         super().__init__(config)
 
         # define models
-        self.model = AutoEncoder(in_chan=config.settings.image_channels, out_chan=config.settings.image_channels)
+        self.model = AutoEncoder(C=config.settings.model_c, M=config.settings.model_m, in_chan=config.settings.image_channels, out_chan=config.settings.image_channels)
 
         # define data_loader
         self.data_loader = DefectDataLoader()
@@ -157,7 +159,7 @@ class DefectAgent(BaseAgent):
         """
         for epoch in range(self.current_epoch, config.settings.max_epoch):
             self.current_epoch = epoch
-            self.scheduler.step(epoch)
+            # self.scheduler.step(epoch)
             self.train_one_epoch()
 
             ssim_score, valid_loss = self.validate()
@@ -186,7 +188,7 @@ class DefectAgent(BaseAgent):
 
         for images in tqdm_batch:
             if self.cuda:
-                images = images.pin_memory().cuda()
+                images = images.cuda()
             images = Variable(images)
             # model
             pred = self.model(images)
@@ -230,12 +232,14 @@ class DefectAgent(BaseAgent):
         mean_ssim = 0.0
 
         with torch.no_grad():
-            for index, images in enumerate(tqdm_batch):
+            for images in tqdm_batch:
                 if self.cuda:
-                    images = images.pin_memory().cuda()
+                    images = images.cuda()
                 images = Variable(images)
                 # model
                 pred = self.model(images)
+                # save the reconstructed image
+                self.save_validate_images(pred)
                 # if index == 20:
                 #     imageio((outputs*255).squeeze(0).detach().cpu().numpy().astype('uint8').transpose(1, 2, 0)).save('recons_%s.png' % (opts.loss_type))
                 # loss
@@ -269,3 +273,15 @@ class DefectAgent(BaseAgent):
         self.summary_writer.export_scalars_to_json("{}all_scalars.json".format(self.config.summary_dir))
         self.summary_writer.close()
         self.data_loader.finalize()
+
+    def save_validate_images(self, images):
+        """helper function to save recunstructed images
+
+        Args:
+            images (numpy array): a numpy array represents the images. shape: N x H x W
+            paths (string or Path): image paths
+        """
+        root = Path(config.settings.out_dir)
+        images = to_uint8(images)
+        paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_' + str(index) + '.png') for index in images.shape[0]]
+        save_images(images, paths)
