@@ -312,3 +312,25 @@ class MS_SSIM(torch.nn.Module):
             weights=self.weights,
             K=self.K,
         )
+
+
+class MS_SSIM_Loss(MS_SSIM):
+    """loss class for MS_SSIM
+
+    Args:
+        MS_SSIM (class): MS_SSIM class
+    """
+
+    def forward(self, img1, img2):
+        return 100*(1 - super(MS_SSIM_Loss, self).forward(img1, img2))
+
+
+class SSIM_Loss(SSIM):
+    """loss class for SSIM
+
+    Args:
+        SSIM (class): SSIM class
+    """
+
+    def forward(self, img1, img2):
+        return 100*(1 - super(SSIM_Loss, self).forward(img1, img2))

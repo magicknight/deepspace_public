@@ -2,6 +2,7 @@
 Defect detection agent
 """
 import numpy as np
+from numpy.testing._private.utils import requires_memory
 
 from tqdm import tqdm
 import shutil
@@ -22,7 +23,7 @@ from deepspace.agents.base import BaseAgent
 
 from deepspace.graphs.models.autoencoder import AutoEncoder
 from deepspace.datasets.defect import DefectDataLoader
-from deepspace.graphs.losses.ssim import SSIM, ssim, MS_SSIM, ms_ssim
+from deepspace.graphs.losses.ssim import SSIM_Loss, ssim, MS_SSIM_Loss, ms_ssim
 
 from deepspace.utils.metrics import AverageMeter, AverageMeterList
 from deepspace.utils.misc import print_cuda_statistics
@@ -36,34 +37,6 @@ class DefectAgent(BaseAgent):
 
     def __init__(self):
         super().__init__(config)
-
-        # define models
-        self.model = AutoEncoder(C=config.settings.model_c, M=config.settings.model_m, in_chan=config.settings.image_channels, out_chan=config.settings.image_channels)
-
-        # define data_loader
-        self.data_loader = DefectDataLoader()
-
-        # define loss
-        self.loss = SSIM(channel=config.settings.image_channels)
-
-        # define metrics
-        self.metrics = ssim if config.settings.loss == 'ssim' else ms_ssim
-
-        # Create instance from the optimizer
-        self.optimizer = torch.optim.Adam(self.model.parameters(),
-                                          lr=config.settings.learning_rate,
-                                          betas=(config.settings.betas[0], config.settings.betas[1]),
-                                          eps=config.settings.eps,
-                                          weight_decay=config.settings.weight_decay)
-
-        # Define Scheduler
-        def lambda1(epoch): return pow((1 - ((epoch - 1) / config.settings.max_epoch)), 0.9)
-        self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
-
-        # initialize counter
-        self.current_epoch = 0
-        self.current_iteration = 0
-        self.best_metric = 0
 
         # set cuda flag
         config.settings.cuda = config.settings.device == 'gpu'
@@ -85,8 +58,35 @@ class DefectAgent(BaseAgent):
             torch.manual_seed(config.settings.seed)
             logger.info("Program will run on *****CPU*****\n")
 
+        # define models
+        self.model = AutoEncoder(C=config.settings.model_c, M=config.settings.model_m, in_chan=config.settings.image_channels, out_chan=config.settings.image_channels)
         self.model = self.model.to(self.device)
+
+        # define data_loader
+        self.data_loader = DefectDataLoader()
+
+        # define loss
+        self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True) if config.settings.loss == 'ssim' else MS_SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
         self.loss = self.loss.to(self.device)
+
+        # define metrics
+        self.metrics = ssim if config.settings.loss == 'ssim' else ms_ssim
+
+        # Create instance from the optimizer
+        self.optimizer = torch.optim.Adam(self.model.parameters(),
+                                          lr=config.settings.learning_rate,
+                                          betas=config.settings.betas,
+                                          eps=config.settings.eps,
+                                          weight_decay=config.settings.weight_decay)
+
+        # Define Scheduler
+        def lambda1(epoch): return pow(1 - epoch / config.settings.max_epoch, 0.9)
+        self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
+
+        # initialize counter
+        self.current_epoch = 0
+        self.current_iteration = 0
+        self.best_metric = 0
 
         # Model Loading from the latest checkpoint if not found start from scratch.
         self.load_checkpoint(config.settings.checkpoint_file)
@@ -162,17 +162,14 @@ class DefectAgent(BaseAgent):
         """
         for epoch in range(self.current_epoch, config.settings.max_epoch):
             self.current_epoch = epoch
-            # self.scheduler.step(epoch)
             self.train_one_epoch()
-
             ssim_score, valid_loss = self.validate()
             self.scheduler.step()
-
             is_best = ssim_score > self.best_metric
             if is_best:
                 self.best_metric = ssim_score
-
-            self.save_checkpoint(is_best=is_best)
+            # self.save_checkpoint(file_name=str(epoch) + '_' + config.settings.checkpoint_file,  is_best=is_best)
+            self.save_checkpoint(config.settings.checkpoint_file,  is_best=is_best)
 
     def train_one_epoch(self):
         """
@@ -194,9 +191,9 @@ class DefectAgent(BaseAgent):
             # images = Variable(images)
             self.optimizer.zero_grad()
             # model
-            pred = self.model(images)
+            recon_images = self.model(images)
             # loss
-            cur_loss = self.loss(pred, images)
+            cur_loss = self.loss(recon_images, images)
             if np.isnan(float(cur_loss.item())):
                 raise ValueError('Loss is nan during training...')
 
@@ -207,7 +204,7 @@ class DefectAgent(BaseAgent):
             epoch_loss.update(cur_loss.item())
             # must with no grad or the memory will increase like crazy
             with torch.no_grad():
-                mean_ssim += self.metrics(pred, images)
+                mean_ssim += self.metrics(recon_images, images, data_range=1.0, size_average=True)
 
             self.current_iteration += 1
             # exit(0)
@@ -241,18 +238,18 @@ class DefectAgent(BaseAgent):
                     images = images.to(self.device, dtype=torch.float32)
                 # images = Variable(images)
                 # model
-                pred = self.model(images)
+                recon_images = self.model(images)
                 # loss
-                cur_loss = self.loss(pred, images)
+                cur_loss = self.loss(recon_images, images)
 
                 if np.isnan(float(cur_loss.item())):
                     raise ValueError('Loss is nan during Validation.')
 
-                mean_ssim += self.metrics(pred, images)
+                mean_ssim += self.metrics(recon_images, images, data_range=1.0, size_average=True)
                 epoch_loss.update(cur_loss.item())
                 # save the reconstructed image
-                pred = pred.squeeze().detach().cpu().numpy()
-                self.save_validate_images(pred)
+                recon_images = recon_images.squeeze().detach().cpu().numpy()
+                self.save_validate_images(recon_images)
 
             mean_ssim /= len(self.data_loader.valid_loader.dataset)
 
@@ -273,7 +270,7 @@ class DefectAgent(BaseAgent):
         """
         logger.info("Please wait while finalizing the operation.. Thank you")
         self.save_checkpoint()
-        self.summary_writer.export_scalars_to_json("{}all_scalars.json".format(self.config.summary_dir))
+        self.summary_writer.export_scalars_to_json("{}all_scalars.json".format(self.config.settings.summary_dir))
         self.summary_writer.close()
         self.data_loader.finalize()
 
