@@ -19,12 +19,12 @@
     # if async loading into cuda memory
     async_loading = true    
     # angle range
-    batch_size = 256
+    batch_size = 64
     # random seed
     seed = 999
     # model parameters
-    model_c = 32
-    model_m = 32
+    model_c = 128
+    model_m = 128
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     learning_rate = 1e-4
     # betas for Adam optimizer
@@ -36,7 +36,7 @@
     # weight decay
     weight_decay = 1e-5
     # learning patience for the scheduler. it is number of epochs with no improvement after which learning rate will be reduced.
-    learning_rate_patience = 3
+    learning_rate_patience = 2
     # max epoches to for training.
     max_epoch = 300
     # validate every x epoches

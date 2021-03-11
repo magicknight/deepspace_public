@@ -11,6 +11,7 @@ import torch
 from torch.backends import cudnn
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.nn import MSELoss
 from torch.optim import lr_scheduler
 
 from tensorboardX import SummaryWriter
@@ -50,7 +51,8 @@ class DefectAgent(BaseAgent):
         self.data_loader = DefectDataLoader()
 
         # define loss
-        self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
+        self.loss = MSELoss()
+        # self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
         self.loss = self.loss.to(self.device)
 
         # define metrics
@@ -78,13 +80,17 @@ class DefectAgent(BaseAgent):
         # Tensorboard Writer
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='AutoEncoder')
 
-        # scheduler for the optimizer
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer,
-            'max',
-            patience=config.settings.learning_rate_patience,
-            min_lr=1e-10,
-            verbose=True)
+        # Define Scheduler
+        def lambda1(epoch): return pow(1 - epoch / config.settings.max_epoch, 0.9)
+        self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
+
+        # # scheduler for the optimizer
+        # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        #     self.optimizer,
+        #     'max',
+        #     patience=config.settings.learning_rate_patience,
+        #     min_lr=1e-10,
+        #     verbose=True)
 
     def load_checkpoint(self):
         """
@@ -155,7 +161,8 @@ class DefectAgent(BaseAgent):
             self.current_epoch = epoch
             self.train_one_epoch()
             ssim_score = self.validate()
-            self.scheduler.step(ssim_score)
+            self.scheduler.step()
+            # self.scheduler.step(np.round_(ssim_score, 4))
             is_best = ssim_score > self.best_metric
             if is_best:
                 self.best_metric = ssim_score
