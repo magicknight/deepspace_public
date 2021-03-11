@@ -8,9 +8,23 @@ import json
 import toml
 from easydict import EasyDict
 from pprint import pprint
+from pathlib import Path
 import argparse
 
-from deepspace.utils.dirs import create_dirs
+
+def create_dirs(dirs):
+    """
+    dirs - a list of directories to create if these directories are not found
+    :param dirs:
+    :return:
+    """
+    try:
+        for dir_ in dirs:
+            if not os.path.exists(dir_):
+                os.makedirs(dir_)
+    except Exception as err:
+        logging.getLogger("Dirs Creator").info("Creating directories error: {0}".format(err))
+        exit(-1)
 
 
 def setup_logging(log_dir):
@@ -42,6 +56,7 @@ def setup_logging(log_dir):
     main_logger.addHandler(console_handler)
     main_logger.addHandler(exp_file_handler)
     main_logger.addHandler(exp_errors_file_handler)
+    return main_logger
 
 
 def get_config_from_json(json_file):
@@ -107,7 +122,7 @@ def process_config(config_file):
 
     summary = config.summary
     settings = config.settings
-
+    config.swap = {}
     # making sure that you have provided the name.
     try:
         print(" *************************************** ")
@@ -119,20 +134,21 @@ def process_config(config_file):
 
     # create some important directories to be used for that experiment.
     if 'project_root' not in settings:
-        settings.project_root = os.path.join('.', "experiments")
-    settings.summary_dir = os.path.join(settings.project_root, summary.name, "summaries/")
-    settings.checkpoint_dir = os.path.join(settings.project_root, summary.name, "checkpoints/")
-    settings.out_dir = os.path.join(settings.project_root, summary.name, "out/")
-    settings.log_dir = os.path.join(settings.project_root, summary.name, "logs/")
-    create_dirs([settings.summary_dir, settings.checkpoint_dir, settings.out_dir, settings.log_dir])
+        settings.project_root = Path('.') / "experiments"
+    root = Path(settings.project_root)
+    config.swap.summary_dir = root / summary.name / "summaries/"
+    config.swap.checkpoint_dir = root / summary.name / "checkpoints/"
+    config.swap.out_dir = root / summary.name / "out/"
+    config.swap.log_dir = root / summary.name / "logs/"
+    create_dirs([config.swap.summary_dir, config.swap.checkpoint_dir, config.swap.out_dir, config.swap.log_dir])
 
     # setup logging in the project
-    setup_logging(settings.log_dir)
+    logger = setup_logging(config.swap.log_dir)
 
     logging.getLogger().info("Hi, This is dxray.")
     logging.getLogger().info("After the configurations are successfully processed and dirs are created.")
     logging.getLogger().info("The pipeline of the project will begin now.")
-    return config
+    return config, logger
 
 
 def get_config():
@@ -152,12 +168,11 @@ def get_config():
     args = arg_parser.parse_args()
 
     # parse the config json file
-    config = process_config(args.config)
-    return config
+    config, logger = process_config(args.config)
+    return config, logger
 
 
-config = get_config()
-logger = logging.getLogger()
+config, logger = get_config()
 
 
 if __name__ == "__main__":

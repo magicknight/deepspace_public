@@ -1,0 +1,68 @@
+[summary]
+    # name of this experiment
+    name = 'defect_detection_autoencoder'
+    author = 'Zhihua Liang'
+    discription = 'Defect detection for POL 2020'
+[settings]
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space'
+    # root directory of the dataset
+    dataset_root = '/home/zhihua/data/anomaly/simulation/bunny'
+    # CAD object path
+    mesh_file_path = '/home/zhihua/data/mesh/common/bunny/bunny_watertight.stl'
+    # agent name
+    agent = 'deepspace.agents.defect.DefectAgent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'gpu'
+    # retry times to break the object
+    gpu_device = 0
+    # if async loading into cuda memory
+    async_loading = true    
+    # angle range
+    batch_size = 256
+    # random seed
+    seed = 999
+    # model parameters
+    model_c = 32
+    model_m = 32
+    # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+    learning_rate = 1e-5
+    # betas for Adam optimizer
+    betas = [0.9, 0.999]
+    # eps for Adam optimizer
+    eps = 1e-8
+    # momentum for Adam optimizer
+    momentum = 0.99
+    # weight decay
+    weight_decay = 1e-5
+    # max epoches to for training.
+    max_epoch = 300
+    # validate every x epoches
+    validate_step = 2
+    # save model every x steps
+    save_model_step = 30
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # dataloader name
+    data_loader = 'defect_image_dataloader'
+    # workers for dataloader
+    data_loader_workers = 8
+    # data resolution
+    image_resolution = [512, 512]
+    # channels
+    image_channels = 1
+    # output format; png or tif
+    data_format = 'png'
+    # data mode, 'image', 'numpy', 'tfrecord'... or anything if you write your own data loader
+    data_mode = 'image'
+    # loss function to be 'ssim' or 'ms_ssim'
+    loss = 'ssim'
+    # mode = 'train', 'test', 'validate'
+    mode = 'test'
+    # save ouput on first n images during validation
+    number_of_save_images = 3
+
+
+
+
+

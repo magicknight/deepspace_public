@@ -1,5 +1,8 @@
 import numpy as np
 from imageio import imwrite
+from numpy.lib.function_base import diff
+from seaborn import heatmap
+from matplotlib import pyplot as plt
 
 
 def save_images(data, paths):
@@ -11,6 +14,16 @@ def save_images(data, paths):
     """
     for image, path in zip(data, paths):
         imwrite(path, image)
+
+
+def make_heatmaps(output_images, images, paths):
+    # diff_images = normalization(output - images)
+    diff_images = output_images - images
+    for diff_image, path in zip(diff_images, paths):
+        diff_heatmap = heatmap(diff_image).get_figure()
+        plt.axis('off')
+        diff_heatmap.savefig(path)
+        plt.close()
 
 
 def read_numpy(path, shape, datatype=np.float32) -> np.array:

@@ -4,10 +4,21 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
-            "name": "Python: 当前文件",
+            "name": "deefct train",
             "args": [
-                "configs/toml/defect/defect_detection.toml"
+                "configs/toml/defect/train_defect_images/train.toml"
+            ],
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "deefct test",
+            "args": [
+                "configs/toml/defect/train_defect_images/test.toml"
             ],
             "type": "python",
             "request": "launch",

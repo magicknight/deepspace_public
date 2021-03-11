@@ -4,9 +4,14 @@ from torch.backends import cudnn
 from torch.autograd import Variable
 import math
 
+from deepspace.config.config import config, logger
+from deepspace.utils.misc import print_cuda_statistics
+
 """
 Learning rate adjustment used for CondenseNet model training
 """
+
+
 def adjust_learning_rate(optimizer, epoch, config, batch=None, nBatch=None, method='cosine'):
     if method == 'cosine':
         T_total = config.max_epoch * nBatch
@@ -18,3 +23,23 @@ def adjust_learning_rate(optimizer, epoch, config, batch=None, nBatch=None, meth
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
+
+
+def get_device():
+    use_cuda = config.settings.device == 'gpu'
+    is_cuda = torch.cuda.is_available()
+    if is_cuda and not use_cuda:
+        logger.warn("You have a CUDA device, so you should probably enable CUDA!")
+    cuda = is_cuda and use_cuda
+    # set the manual seed for torch
+    if cuda:
+        torch.cuda.manual_seed_all(config.settings.seed)
+        device = torch.device("cuda")
+        torch.cuda.set_device(config.settings.gpu_device)
+        logger.info("Program will run on *****GPU-CUDA***** ")
+        print_cuda_statistics()
+    else:
+        device = torch.device("cpu")
+        torch.manual_seed(config.settings.seed)
+        logger.info("Program will run on *****CPU*****\n")
+    return device

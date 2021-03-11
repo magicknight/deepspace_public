@@ -13,9 +13,9 @@ from deepspace.config.config import config, logger
 
 def main():
     # Create the Agent then run it..
-    agent_class = importlib.import_module('.agents', package='deepspace')
-    agent_class = getattr(getattr(agent_class, config.settings.agent_module), config.settings.agent_name)
-    agent = agent_class()
+    mod_name, func_name = config.settings.agent.rsplit('.', 1)
+    mod = importlib.import_module(mod_name)
+    agent = getattr(mod, func_name)()
     agent.run()
     agent.finalize()
 
