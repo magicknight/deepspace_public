@@ -1,0 +1,26 @@
+[summary]
+    # name of this experiment
+    name = 'w8_dataset'
+    author = 'Zhihua Liang'
+    discription = 'Defect detection for wp8 ai product flanders'
+[settings]
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space'
+    # root directory of the dataset
+    dataset_root = '/home/zhihua/data/anomaly/wp8/cy18_png'
+    # dataset_root = '/home/zhihua/data/anomaly/wp8/cyl9_aligned_781x781x793_uint16_png'
+    # bin object path
+    bin_file_path = '/mnt/data/anomaly/wp8/cyl8.bin'
+    # bin_file_path = '/mnt/data/anomaly/wp8/cyl9_aligned_781x781x793_uint16.bin'
+    # bin file shape
+    bin_shape = [760,810,815]
+    # bin_shape = [781,781,793]
+    # bin data type
+    data_type = 'float32'
+    # data_type = 'uint16'
+    # output format; png or tif
+    data_format = 'png'
+    # data transpose
+    transpose = true
+    # transpose order
+    transpose_order = [2, 0, 1]

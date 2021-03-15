@@ -40,3 +40,10 @@ def init_model_weights(m):
             m.bias.data.zero_()
         elif isinstance(m, nn.Linear):
             m.bias.data.zero_()
+
+
+def xavier_weights(m):
+    '''apply xavier initialization on model weights'''
+    if hasattr(m, 'weight'):
+        if len(m.weight.shape) > 1:
+            torch.nn.init.xavier_normal_(m.weight)

@@ -136,10 +136,11 @@ def process_config(config_file):
     if 'project_root' not in settings:
         settings.project_root = Path('.') / "experiments"
     root = Path(settings.project_root)
-    config.swap.summary_dir = root / summary.name / "summaries/"
-    config.swap.checkpoint_dir = root / summary.name / "checkpoints/"
-    config.swap.out_dir = root / summary.name / "out/"
-    config.swap.log_dir = root / summary.name / "logs/"
+    config.swap.work_space = root / summary.name
+    config.swap.summary_dir = config.swap.work_space / "summaries/"
+    config.swap.checkpoint_dir = config.swap.work_space / "checkpoints/"
+    config.swap.out_dir = config.swap.work_space / "out/"
+    config.swap.log_dir = config.swap.work_space / "logs/"
     create_dirs([config.swap.summary_dir, config.swap.checkpoint_dir, config.swap.out_dir, config.swap.log_dir])
 
     # setup logging in the project

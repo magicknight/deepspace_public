@@ -1,5 +1,5 @@
 """
-Defect images Data loader
+Defect images Data loader, for training on normal images
 """
 import imageio
 import numpy as np
@@ -17,81 +17,95 @@ def get_paths(mode):
         mode (string): dataloader mode, like 'train', 'test', 'validate'
 
     Raises:
-        Exception: proper mode 
+        Exception: proper mode
 
     Returns:
         list: items list, and masks list if in test mode
     """
-    assert mode in ['train', 'val', 'validate', 'test', 'inference']
     root = Path(config.settings.dataset_root)
-    items = []
-    if mode == 'train':
-        image_path = root / 'train' / 'good'
-    elif mode == 'val' or mode == 'validate':
-        image_path = root / 'validate' / 'good'
-    elif mode == 'test' or mode == 'inference':
-        image_path = root / 'test'
-        ground_truth_path = root / 'ground_truth'
-    else:
-        raise Exception("Please choose proper mode for data")
-    items = list(image_path.glob('**/*.' + config.settings.data_format))
-    if mode == 'test':
-        ground_truth_items = list(ground_truth_path.glob('**/*.' + config.settings.data_format))
-    else:
-        ground_truth_items = None
+    # train directory
+    config.swap.train = {}
+    config.swap.train.root = root / 'train'
+    config.swap.train.normal = root / 'train' / 'normal'
+    config.swap.train.defect = root / 'train' / 'defect'
+    config.swap.train.ground_truth = root / 'train' / 'ground_truth'
+    # validate directory
+    config.swap.validate = {}
+    config.swap.validate.root = root / 'validate'
+    config.swap.validate.normal = root / 'validate' / 'normal'
+    config.swap.validate.defect = root / 'validate' / 'defect'
+    config.swap.validate.ground_truth = root / 'validate' / 'ground_truth'
+    # test directory
+    config.swap.test = {}
+    config.swap.test.root = root / 'test'
+    config.swap.test.normal = root / 'test' / 'normal'
+    config.swap.test.defect = root / 'test' / 'defect'
+    config.swap.test.ground_truth = root / 'test' / 'ground_truth'
 
-    return items, ground_truth_items
+    nomral_images_path = list(config.swap[mode].normal.glob('**/*.' + config.settings.data_format))
+    defect_images_path = list(config.swap[mode].defect.glob('**/*.' + config.settings.data_format))
+    ground_truth_images_path = list(config.swap[mode].ground_truth.glob('**/*.' + config.settings.data_format))
+
+    return nomral_images_path, defect_images_path, ground_truth_images_path
 
 
 class DefectImages:
     def __init__(self, mode, transform=None):
-        self.imgs, self.masks = get_paths(mode)
-        if len(self.imgs) == 0:
-            raise RuntimeError('Found 0 images, please check the data set')
+        # get all the image paths
+        self.normal_images_path, self.defect_images_path, self.ground_truth_images_path = get_paths(mode)
+        # if len(self.normal_images_path) == 0 or len(self.defect_images_path) == 0 or len(self.ground_truth_images_path) == 0:
+        #     raise RuntimeError('Found 0 images, please check the data set')
         self.mode = mode
         self.transform = transform
 
     def __getitem__(self, index):
-        if self.mode == 'train':
-            img_path = self.imgs[index]
-            image = imageio.imread(img_path)
-            if self.transform is not None:
-                image = self.transform(image)
-            return image
+        """return defect, normal, and grouth_truth images on the same projection angle
 
-        if self.mode == 'validate':
-            img_path = self.imgs[index]
-            image = imageio.imread(img_path)
-            if self.transform is not None:
-                image = self.transform(image)
-            return image
+        Args:
+            index (int): data index
 
-        if self.mode == 'test':
-            img_path = self.imgs[index]
-            image = imageio.imread(img_path)
-            mask_path = self.masks[index]
-            mask = imageio.imread(mask_path)
+        Returns:
+            Tensor: images
+        """
+        if config.settings.mode == 'test':
+            defect_image_path = self.defect_images_path[index]
+            defect_image = imageio.imread(defect_image_path)
+            # for test mode we will get ground truth to calculate metrics
+            ground_truth_image_path = config.swap[self.mode].ground_truth / defect_image_path.name
+            ground_truth_image = imageio.imread(ground_truth_image_path)
             if self.transform is not None:
-                image = self.transform(image)
-                mask = self.transform(mask)
-            return image, mask
+                ground_truth_image = self.transform(ground_truth_image)
+                defect_image = self.transform(defect_image)
+            return defect_image, ground_truth_image
+        else:
+            # get image path
+            normal_image_path = self.normal_images_path[index]
+            # read in images
+            normal_image = imageio.imread(normal_image_path)
+            if self.transform is not None:
+                normal_image = self.transform(normal_image)
+            return normal_image
 
     def __len__(self):
-        return len(self.imgs)
+        # the size defect images is the size of this dataset, not the size of normal images
+        if config.settings.mode == 'test':
+            return len(self.defect_images_path)
+        else:
+            return len(self.normal_images_path)
 
 
 class DefectDataLoader:
     def __init__(self):
-        assert config.settings.mode in ['train', 'test', 'validate']
+        assert config.settings.mode in ['train', 'test']
 
         self.input_transform = standard_transforms.Compose([
             standard_transforms.ToTensor(),
         ])
 
         if config.settings.mode == 'train':
+            # training needs train dataset and validate dataset
             train_set = DefectImages('train', transform=self.input_transform)
             valid_set = DefectImages('validate', transform=self.input_transform)
-
             self.train_loader = DataLoader(train_set, batch_size=config.settings.batch_size, shuffle=True,
                                            num_workers=config.settings.data_loader_workers)
             self.valid_loader = DataLoader(valid_set, batch_size=config.settings.batch_size, shuffle=False,
@@ -99,7 +113,7 @@ class DefectDataLoader:
             self.train_iterations = (len(train_set) + config.settings.batch_size) // config.settings.batch_size
             self.valid_iterations = (len(valid_set) + config.settings.batch_size) // config.settings.batch_size
 
-        elif config.settings.mode == 'test':
+        elif config.settings.mode == 'real' or config.settings.mode == 'test':
             test_set = DefectImages('test', transform=self.input_transform)
 
             self.test_loader = DataLoader(test_set, batch_size=config.settings.batch_size, shuffle=False,

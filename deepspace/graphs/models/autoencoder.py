@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import math
 
 from deepspace.graphs.layers.gdn import GDN
+from deepspace.graphs.weights_initializer import weights_init
 
 
 class AutoEncoder(nn.Module):
@@ -38,6 +39,7 @@ class Encoder(nn.Module):
 
             nn.Conv2d(in_channels=M, out_channels=C, kernel_size=5, stride=2, padding=2, bias=False)
         )
+        self.apply(weights_init)
 
     def forward(self, x):
         return self.enc(x)
@@ -61,6 +63,7 @@ class Decoder(nn.Module):
 
             nn.ConvTranspose2d(in_channels=M, out_channels=out_chan, kernel_size=5, stride=2, padding=2, output_padding=1, bias=False),
         )
+        self.apply(weights_init)
 
     def forward(self, q):
         return torch.sigmoid(self.dec(q))
@@ -68,7 +71,7 @@ class Decoder(nn.Module):
 
 class AnomalyAE(nn.Module):
     """autoencoder for anomaly images
-
+        https://arxiv.org/abs/2001.03674
     Args:
         nn (torch nn): torch nn
     """
@@ -102,8 +105,9 @@ class AnomalyAE(nn.Module):
         self.conv_tr4 = nn.ConvTranspose2d(in_channels=C, out_channels=M, kernel_size=(11, 11), stride=(2, 2), padding=5, output_padding=1)
         self.bn_tr4 = nn.BatchNorm2d(M)
 
-        self.conv_output = nn.Conv2d(in_channels=C, ut_channels=out_chan, kernel_size=(1, 1), stride=(1, 1))
+        self.conv_output = nn.Conv2d(in_channels=C, out_channels=out_chan, kernel_size=(1, 1), stride=(1, 1))
         self.bn_output = nn.BatchNorm2d(1)
+        self.apply(weights_init)
 
     def forward(self, x):
         slope = 0.2

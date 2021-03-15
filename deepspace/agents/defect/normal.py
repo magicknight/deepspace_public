@@ -2,33 +2,31 @@
 Defect detection agent
 """
 import numpy as np
-from numpy.testing._private.utils import requires_memory
 
 from tqdm import tqdm
 import shutil
-import random
 from pathlib import Path
 
 import torch
-from torch import nn
 from torch.backends import cudnn
-from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.nn import MSELoss
 from torch.optim import lr_scheduler
 
 from tensorboardX import SummaryWriter
 
 from deepspace.agents.base import BaseAgent
 
-from deepspace.graphs.models.autoencoder import AutoEncoder
-from deepspace.datasets.defect import DefectDataLoader
+from deepspace.graphs.models.autoencoder import AutoEncoder, AnomalyAE
+from deepspace.datasets.defect.normal import DefectDataLoader
+from deepspace.datasets.defect.wp8 import PNGDataLoader
 from deepspace.graphs.losses.ssim import SSIM_Loss, ssim, MS_SSIM_Loss, ms_ssim
 
 from deepspace.utils.metrics import AverageMeter, AverageMeterList
-from deepspace.utils.misc import print_cuda_statistics
 from deepspace.utils.data import to_uint8, save_images, make_heatmaps
 from deepspace.utils.dirs import create_dirs
+from deepspace.utils.train_utils import get_device
 from deepspace.config.config import config, logger
 
 cudnn.benchmark = True
@@ -37,48 +35,38 @@ cudnn.benchmark = True
 class DefectAgent(BaseAgent):
 
     def __init__(self):
-        super().__init__(config)
+        super().__init__()
 
         # set cuda flag
-        config.settings.cuda = config.settings.device == 'gpu'
-        self.is_cuda = torch.cuda.is_available()
-        if self.is_cuda and not config.settings.cuda:
-            logger.warn("You have a CUDA device, so you should probably enable CUDA!")
-
-        self.cuda = self.is_cuda & config.settings.cuda
-
-        # set the manual seed for torch
-        if self.cuda:
-            torch.cuda.manual_seed_all(config.settings.seed)
-            self.device = torch.device("cuda")
-            torch.cuda.set_device(config.settings.gpu_device)
-            logger.info("Program will run on *****GPU-CUDA***** ")
-            print_cuda_statistics()
-        else:
-            self.device = torch.device("cpu")
-            torch.manual_seed(config.settings.seed)
-            logger.info("Program will run on *****CPU*****\n")
+        self.device = get_device()
 
         # define models
-        self.model = AutoEncoder(C=config.settings.model_c, M=config.settings.model_m, in_chan=config.settings.image_channels, out_chan=config.settings.image_channels)
+        self.model = AnomalyAE(
+            C=config.settings.model_c,
+            M=config.settings.model_m,
+            in_chan=config.settings.image_channels,
+            out_chan=config.settings.image_channels)
         self.model = self.model.to(self.device)
 
         # define data_loader
-        self.data_loader = DefectDataLoader()
+        # self.data_loader = DefectDataLoader()
+        self.data_loader = PNGDataLoader()
 
         # define loss
-        self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True) if config.settings.loss == 'ssim' else MS_SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
+        # self.loss = MSELoss()
+        self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
         self.loss = self.loss.to(self.device)
 
         # define metrics
-        self.metrics = ssim if config.settings.loss == 'ssim' else ms_ssim
+        self.metrics = ssim
 
         # Create instance from the optimizer
-        self.optimizer = torch.optim.Adam(self.model.parameters(),
-                                          lr=config.settings.learning_rate,
-                                          #   betas=config.settings.betas,
-                                          #   eps=config.settings.eps,
-                                          weight_decay=config.settings.weight_decay)
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(),
+            lr=config.settings.learning_rate,
+            betas=config.settings.betas,
+            eps=config.settings.eps,
+            weight_decay=config.settings.weight_decay)
 
         # Define Scheduler
         def lambda1(epoch): return pow(1 - epoch / config.settings.max_epoch, 0.9)
@@ -90,22 +78,25 @@ class DefectAgent(BaseAgent):
         self.best_metric = 0
 
         # Model Loading from the latest checkpoint if not found start from scratch.
-        self.load_checkpoint(config.settings.checkpoint_file)
+        self.load_checkpoint()
         # Tensorboard Writer
-        self.summary_writer = SummaryWriter(log_dir=config.settings.summary_dir, comment='FCN8s')
+        self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='AutoEncoder')
 
         # # scheduler for the optimizer
-        # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,
-        #                                                             'min', patience=config.learning_rate_patience,
-        #                                                             min_lr=1e-10, verbose=True)
+        # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        #     self.optimizer,
+        #     'max',
+        #     patience=config.settings.learning_rate_patience,
+        #     min_lr=1e-10,
+        #     verbose=True)
 
-    def load_checkpoint(self, file_name):
+    def load_checkpoint(self):
         """
         Latest checkpoint loader
         :param file_name: name of the checkpoint file
         :return:
         """
-        file_name = config.settings.checkpoint_dir + file_name
+        file_name = config.swap.checkpoint_dir / config.settings.checkpoint_file
         try:
             logger.info("Loading checkpoint '{}'".format(file_name))
             checkpoint = torch.load(file_name)
@@ -114,11 +105,10 @@ class DefectAgent(BaseAgent):
             self.current_iteration = checkpoint['iteration']
             self.model.load_state_dict(checkpoint['state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
-
             logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
-                        .format(config.settings.checkpoint_dir, checkpoint['epoch'], checkpoint['iteration']))
+                        .format(config.swap.checkpoint_dir, checkpoint['epoch'], checkpoint['iteration']))
         except OSError as e:
-            logger.info("No checkpoint exists from '{}'. Skipping...".format(config.settings.checkpoint_dir))
+            logger.info("No checkpoint exists from '{}'. Skipping...".format(config.swap.checkpoint_dir))
             logger.info("**First time to train**")
 
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False):
@@ -135,21 +125,27 @@ class DefectAgent(BaseAgent):
             'optimizer': self.optimizer.state_dict(),
         }
         # Save the state
-        torch.save(state, config.settings.checkpoint_dir + file_name)
+        torch.save(state, config.swap.checkpoint_dir / file_name)
+        # backup model on a certain steps
+        if self.current_epoch % config.settings.save_model_step == 0:
+            torch.save(state, config.swap.checkpoint_dir / (str(self.current_epoch) + '_' + config.settings.checkpoint_file))
         # If it is the best copy it to another file 'model_best.pth.tar'
         if is_best:
-            shutil.copyfile(config.settings.checkpoint_dir + file_name,
-                            config.settings.checkpoint_dir + 'model_best.pth.tar')
+            shutil.copyfile(
+                config.swap.checkpoint_dir / file_name,
+                config.swap.checkpoint_dir / 'model_best.pth.tar')
 
     def run(self):
         """
         The main operator
         :return:
         """
-        assert config.settings.mode in ['train', 'test', 'validate']
+        assert config.settings.mode in ['train', 'test', 'real']
         try:
             if config.settings.mode == 'test':
                 self.test()
+            elif config.settings.mode == 'real':
+                self.real()
             else:
                 self.train()
 
@@ -161,16 +157,15 @@ class DefectAgent(BaseAgent):
         Main training loop
         :return:
         """
-        for epoch in range(self.current_epoch, config.settings.max_epoch):
+        for epoch in tqdm(range(self.current_epoch, config.settings.max_epoch)):
             self.current_epoch = epoch
             self.train_one_epoch()
-            ssim_score, valid_loss = self.validate()
+            ssim_score = self.validate()
             self.scheduler.step()
+            # self.scheduler.step(np.round_(ssim_score, 4))
             is_best = ssim_score > self.best_metric
             if is_best:
                 self.best_metric = ssim_score
-            if epoch % config.settings.save_model_step == 0:
-                self.save_checkpoint(file_name=str(epoch) + '_' + config.settings.checkpoint_file,  is_best=is_best)
             self.save_checkpoint(config.settings.checkpoint_file,  is_best=is_best)
 
     def train_one_epoch(self):
@@ -178,47 +173,44 @@ class DefectAgent(BaseAgent):
         One epoch of training
         :return:
         """
-        # Initialize tqdm
-        tqdm_batch = tqdm(self.data_loader.train_loader, total=self.data_loader.train_iterations,
-                          desc="Epoch-{}-".format(self.current_epoch))
+        # Initialize tqdm dataset
+        tqdm_batch = tqdm(
+            self.data_loader.train_loader,
+            total=self.data_loader.train_iterations,
+            desc="Epoch-{}-".format(self.current_epoch))
         mean_ssim = 0.0
         # Set the model to be in training mode (for batchnorm)
         self.model.train()
-        # Initialize your average meters
+        # Initialize average meters
         epoch_loss = AverageMeter()
-
-        for images in tqdm_batch:
-            if self.cuda:
-                images = images.to(self.device, dtype=torch.float32)
-            # images = Variable(images)
+        # loop images
+        for normal_images in tqdm_batch:
+            normal_images = normal_images.to(self.device, dtype=torch.float32)
             self.optimizer.zero_grad()
             # model
-            out_images = self.model(images)
+            out_images = self.model(normal_images)
             # loss
-            cur_loss = self.loss(out_images, images)
+            cur_loss = self.loss(out_images, normal_images)
             if np.isnan(float(cur_loss.item())):
                 raise ValueError('Loss is nan during training...')
-
             # optimizer
             cur_loss.backward()
             self.optimizer.step()
-
             epoch_loss.update(cur_loss.item())
-            # must with no grad or the memory will increase like crazy
+            # must with no grad here, or the mean_ssim and images will be keeped in the memory and the memory will increase like crazy
             with torch.no_grad():
-                mean_ssim += self.metrics(out_images, images, data_range=1.0, size_average=True)
-
+                mean_ssim += self.metrics(out_images, normal_images, data_range=1.0, size_average=True)
             self.current_iteration += 1
-            # exit(0)
 
+        # logging
         mean_ssim = mean_ssim / len(self.data_loader.train_loader)
         mean_ssim = mean_ssim.detach().cpu().numpy()
         self.summary_writer.add_scalar("epoch-training/loss", epoch_loss.val, self.current_iteration)
         self.summary_writer.add_scalar("epoch_training/mean_ssim", mean_ssim, self.current_iteration)
         tqdm_batch.close()
-
-        logger.info("Training Results at epoch-" + str(self.current_epoch) + " | " + "loss: " + str(
-            epoch_loss.val) + "- mean_ssim: " + str(mean_ssim))
+        logger.info(
+            "Training Results at epoch-" + str(self.current_epoch) + " | " + "loss: " + str(
+                epoch_loss.val) + "- mean_ssim: " + str(mean_ssim))
 
     def validate(self):
         """
@@ -226,122 +218,141 @@ class DefectAgent(BaseAgent):
         :return:
         """
         tqdm_batch = tqdm(self.data_loader.valid_loader, total=self.data_loader.valid_iterations, desc="Valiation at -{}-".format(self.current_epoch))
-
         # set the model in validate mode
         self.model.eval()
-
-        epoch_loss = AverageMeter()
+        # initialize
         mean_ssim = 0.0
-
+        # loop validation images
         with torch.no_grad():
-            for images in tqdm_batch:
-                if self.cuda:
-                    images = images.to(self.device, dtype=torch.float32)
+            for normal_images in tqdm_batch:
+                normal_images = normal_images.to(self.device, dtype=torch.float32)
                 # model
-                out_images = self.model(images)
-                # loss
-                cur_loss = self.loss(out_images, images)
-
-                if np.isnan(float(cur_loss.item())):
-                    raise ValueError('Loss is nan during Validation.')
-
-                mean_ssim += self.metrics(out_images, images, data_range=1.0, size_average=True)
-                epoch_loss.update(cur_loss.item())
+                out_images = self.model(normal_images)
+                mean_ssim += self.metrics(out_images, normal_images, data_range=1.0, size_average=True)
                 # save the reconstructed image
                 out_images = out_images.squeeze().detach().cpu().numpy()
-                images = images.squeeze().detach().cpu().numpy()
-                self.save_output_images(out_images[0:config.settings.number_of_save_images], images[0:config.settings.number_of_save_images])
-
+                normal_images = normal_images.squeeze().detach().cpu().numpy()
+                self.save_output_images(out_images[config.settings.save_images[0]:config.settings.save_images[1]], normal_images[config.settings.save_images[0]:config.settings.save_images[1]])
+            # logging
             mean_ssim = mean_ssim / len(self.data_loader.valid_loader)
             mean_ssim = mean_ssim.detach().cpu().numpy()
-
-            self.summary_writer.add_scalar("epoch_validation/loss", epoch_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_validation/mean_ssim", mean_ssim, self.current_iteration)
-
-            logger.info("Validation Results at epoch-" + str(self.current_epoch) + " | " + "loss: " + str(
-                epoch_loss.val) + "- mean_ssim: " + str(mean_ssim))
-
+            logger.info("Validation Results at epoch-" + str(self.current_epoch) + " | " + "- mean_ssim: " + str(mean_ssim))
             tqdm_batch.close()
-
-        return mean_ssim, epoch_loss.val
+        return mean_ssim
 
     def test(self):
+        """test and save heatmaps
+
+        Returns:
+            float: mean ssim
+        """
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.model.eval()
         mean_ssim = 0.0
-
         with torch.no_grad():
-            for images, masks in tqdm_batch:
-                if self.cuda:
-                    images = images.to(self.device, dtype=torch.float32)
+            for defect_images, ground_truth_images in tqdm_batch:
+                defect_images = defect_images.to(self.device, dtype=torch.float32)
+                ground_truth_images = ground_truth_images.to(self.device, dtype=torch.float32)
                 # model
-                out_images = self.model(images)
-                mean_ssim += self.metrics(out_images, images, data_range=1.0, size_average=True)
-
+                out_images = self.model(defect_images)
+                mean_ssim += self.metrics(out_images, defect_images, data_range=1.0, size_average=True)
                 # save the reconstructed image
                 out_images = out_images.squeeze().detach().cpu().numpy()
-                images = images.squeeze().detach().cpu().numpy()
-                masks = masks.squeeze().detach().cpu().numpy()
-                self.save_output_images(out_images, images, masks=masks)
-
-            mean_ssim = mean_ssim / len(self.data_loader.valid_loader)
+                defect_images = defect_images.squeeze().detach().cpu().numpy()
+                ground_truth_images = ground_truth_images.squeeze().detach().cpu().numpy()
+                self.save_output_images(out_images, defect_images, ground_truth_images)
+            # logging
+            mean_ssim = mean_ssim / len(self.data_loader.test_loader)
             mean_ssim = mean_ssim.detach().cpu().numpy()
-
             self.summary_writer.add_scalar("epoch_validation/mean_ssim", mean_ssim, self.current_iteration)
             logger.info("Validation Results at epoch-" + str(self.current_epoch) + " | " + ' mean_ssim: ' + str(mean_ssim))
             tqdm_batch.close()
-
         return mean_ssim
 
-    def finalize(self):
-        """
-        Finalizes all the operations of the 2 Main classes of the process, the operator and the data loader
-        :return:
-        """
-        logger.info("Please wait while finalizing the operation.. Thank you")
-        # self.save_checkpoint()
-        self.summary_writer.export_scalars_to_json("{}all_scalars.json".format(self.config.settings.summary_dir))
-        self.summary_writer.close()
-        self.data_loader.finalize()
+    def real(self):
+        """test on real images, without ground truth
 
-    def save_output_images(self, out_images, images, masks=None):
+        Returns:
+            float: mean ssim
+        """
+        tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        self.model.eval()
+        mean_ssim = 0.0
+        with torch.no_grad():
+            for defect_images in tqdm_batch:
+                defect_images = defect_images.to(self.device, dtype=torch.float32)
+                # model
+                out_images = self.model(defect_images)
+                mean_ssim += self.metrics(out_images, defect_images, data_range=1.0, size_average=True)
+                # save the reconstructed image
+                out_images = out_images.squeeze().detach().cpu().numpy()
+                defect_images = defect_images.squeeze().detach().cpu().numpy()
+                self.save_output_images(out_images, defect_images)
+            # logging
+            mean_ssim = mean_ssim / len(self.data_loader.test_loader)
+            mean_ssim = mean_ssim.detach().cpu().numpy()
+            self.summary_writer.add_scalar("epoch_validation/mean_ssim", mean_ssim, self.current_iteration)
+            logger.info("Validation Results at epoch-" + str(self.current_epoch) + " | " + ' mean_ssim: ' + str(mean_ssim))
+            tqdm_batch.close()
+        return mean_ssim
+
+    def save_output_images(self, out_images, normal_images, ground_truth_images=None):
         """helper function to save recunstructed images
 
         Args:
             out_images (numpy array): a numpy array represents the reconstruction images. shape: N x H x W
-            images (numpy array): a numpy array represents the images. shape: N x H x W
-            paths (string or Path): image paths
+            normal_images (numpy array): a numpy array represents the normal_images. shape: N x H x W
+            ground_truth_images (numpy array): a numpy array represents the ground_truth_images. shape: N x H x W
         """
-        root = Path(config.settings.out_dir)
-        if config.settings.mode == 'train' or config.settings.mode == 'validate':
+        root = Path(config.swap.out_dir)
+        if config.settings.mode == 'train':
             root = root / 'validate'
             create_dirs([root])
             out_images = to_uint8(out_images)
-            images = to_uint8(images)
-            paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_recon_' + str(index) + '.png') for index in range(images.shape[0])]
+            normal_images = to_uint8(normal_images)
+            paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_recon_' + str(index) + '.png') for index in range(out_images.shape[0])]
             save_images(out_images, paths)
-            paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_input_' + str(index) + '.png') for index in range(images.shape[0])]
-            save_images(images, paths)
-        else:
+            paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_normal_' + str(index) + '.png') for index in range(normal_images.shape[0])]
+            save_images(normal_images, paths)
+        elif config.settings.mode == 'real':
             root = root / 'test'
-            create_dirs([root / 'heatmap', root / 'recon', root / 'input', root / 'diff', root / 'mask'])
-
+            create_dirs([root / 'heatmap', root / 'recon', root / 'input', root / 'normal', root / 'diff'])
             # calculate heatmap
-            paths = [root / 'heatmap' / (str(index) + '.png') for index in range(images.shape[0])]
-            make_heatmaps(output_images=out_images, images=images, paths=paths)
+            paths = [root / 'heatmap' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            make_heatmaps(output_images=out_images, images=normal_images, paths=paths)
 
-            paths = [root / 'recon' / (str(index) + '.png') for index in range(images.shape[0])]
+            paths = [root / 'recon' / (str(index) + '.png') for index in range(out_images.shape[0])]
             out_images = to_uint8(out_images)
             save_images(out_images, paths)
-            paths = [root / 'input' / (str(index) + '.png') for index in range(images.shape[0])]
-            images = to_uint8(images)
-            save_images(images, paths)
+            paths = [root / 'input' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            normal_images = to_uint8(normal_images)
+            save_images(normal_images, paths)
 
-            paths = [root / 'diff' / (str(index) + '.png') for index in range(images.shape[0])]
-            diff_image = images - out_images
+            paths = [root / 'diff' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            diff_image = normal_images - out_images
             diff_image = to_uint8(diff_image)
             save_images(diff_image, paths)
 
-            paths = [root / 'mask' / (str(index) + '.png') for index in range(images.shape[0])]
-            masks = to_uint8(masks)
-            save_images(masks, paths)
+        else:
+            root = root / 'test'
+            create_dirs([root / 'heatmap', root / 'recon', root / 'input', root / 'normal', root / 'diff', root / 'ground_truth'])
+            # calculate heatmap
+            paths = [root / 'heatmap' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            make_heatmaps(output_images=out_images, images=normal_images, paths=paths)
+
+            paths = [root / 'recon' / (str(index) + '.png') for index in range(out_images.shape[0])]
+            out_images = to_uint8(out_images)
+            save_images(out_images, paths)
+            paths = [root / 'input' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            normal_images = to_uint8(normal_images)
+            save_images(normal_images, paths)
+
+            paths = [root / 'diff' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            diff_image = normal_images - out_images
+            diff_image = to_uint8(diff_image)
+            save_images(diff_image, paths)
+
+            paths = [root / 'ground_truth' / (str(index) + '.png') for index in range(ground_truth_images.shape[0])]
+            ground_truth_images = to_uint8(ground_truth_images)
+            save_images(ground_truth_images, paths)

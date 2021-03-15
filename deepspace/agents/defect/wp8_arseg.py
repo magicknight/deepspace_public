@@ -11,6 +11,7 @@ import torch
 from torch.backends import cudnn
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.nn import MSELoss
 from torch.optim import lr_scheduler
 
 from tensorboardX import SummaryWriter
@@ -18,9 +19,9 @@ from tensorboardX import SummaryWriter
 from deepspace.agents.base import BaseAgent
 
 from deepspace.graphs.models.autoencoder import AutoEncoder, AnomalyAE
-from deepspace.datasets.defect.defect import DefectDataLoader
+from deepspace.datasets.defect.normal import DefectDataLoader
+from deepspace.datasets.defect.wp8 import PNGDataLoader
 from deepspace.graphs.losses.ssim import SSIM_Loss, ssim, MS_SSIM_Loss, ms_ssim
-from deepspace.graphs.losses.mse import MaskLoss
 
 from deepspace.utils.metrics import AverageMeter, AverageMeterList
 from deepspace.utils.data import to_uint8, save_images, make_heatmaps
@@ -31,21 +32,15 @@ from deepspace.config.config import config, logger
 cudnn.benchmark = True
 
 
-class DefectAgent(BaseAgent):
+class ArSegAgent(BaseAgent):
 
     def __init__(self):
         super().__init__()
 
         # set cuda flag
         self.device = get_device()
-        config.swap.device = self.device
 
         # define models
-        # self.model = AutoEncoder(
-        #     C=config.settings.model_c,
-        #     M=config.settings.model_m,
-        #     in_chan=config.settings.image_channels,
-        #     out_chan=config.settings.image_channels)
         self.model = AnomalyAE(
             C=config.settings.model_c,
             M=config.settings.model_m,
@@ -54,11 +49,12 @@ class DefectAgent(BaseAgent):
         self.model = self.model.to(self.device)
 
         # define data_loader
-        self.data_loader = DefectDataLoader()
+        # self.data_loader = DefectDataLoader()
+        self.data_loader = PNGDataLoader()
 
         # define loss
-        self.loss = MaskLoss()
-        # self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
+        # self.loss = MSELoss()
+        self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
         self.loss = self.loss.to(self.device)
 
         # define metrics
@@ -85,10 +81,6 @@ class DefectAgent(BaseAgent):
         self.load_checkpoint()
         # Tensorboard Writer
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='AutoEncoder')
-
-        # Define Scheduler
-        def lambda1(epoch): return pow(1 - epoch / config.settings.max_epoch, 0.9)
-        self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
 
         # # scheduler for the optimizer
         # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -148,10 +140,12 @@ class DefectAgent(BaseAgent):
         The main operator
         :return:
         """
-        assert config.settings.mode in ['train', 'test']
+        assert config.settings.mode in ['train', 'test', 'real']
         try:
             if config.settings.mode == 'test':
                 self.test()
+            elif config.settings.mode == 'real':
+                self.real()
             else:
                 self.train()
 
@@ -190,12 +184,11 @@ class DefectAgent(BaseAgent):
         # Initialize average meters
         epoch_loss = AverageMeter()
         # loop images
-        for defect_images, normal_images in tqdm_batch:
-            defect_images = defect_images.to(self.device, dtype=torch.float32)
+        for normal_images in tqdm_batch:
             normal_images = normal_images.to(self.device, dtype=torch.float32)
             self.optimizer.zero_grad()
             # model
-            out_images = self.model(defect_images)
+            out_images = self.model(normal_images)
             # loss
             cur_loss = self.loss(out_images, normal_images)
             if np.isnan(float(cur_loss.item())):
@@ -231,17 +224,15 @@ class DefectAgent(BaseAgent):
         mean_ssim = 0.0
         # loop validation images
         with torch.no_grad():
-            for defect_images, normal_images in tqdm_batch:
-                defect_images = defect_images.to(self.device, dtype=torch.float32)
+            for normal_images in tqdm_batch:
                 normal_images = normal_images.to(self.device, dtype=torch.float32)
                 # model
-                out_images = self.model(defect_images)
+                out_images = self.model(normal_images)
                 mean_ssim += self.metrics(out_images, normal_images, data_range=1.0, size_average=True)
                 # save the reconstructed image
                 out_images = out_images.squeeze().detach().cpu().numpy()
-                defect_images = defect_images.squeeze().detach().cpu().numpy()
                 normal_images = normal_images.squeeze().detach().cpu().numpy()
-                self.save_output_images(out_images[0:config.settings.number_of_save_images], defect_images[0:config.settings.number_of_save_images], normal_images[0:config.settings.number_of_save_images])
+                self.save_output_images(out_images[0:config.settings.number_of_save_images], normal_images[0:config.settings.number_of_save_images])
             # logging
             mean_ssim = mean_ssim / len(self.data_loader.valid_loader)
             mean_ssim = mean_ssim.detach().cpu().numpy()
@@ -251,48 +242,66 @@ class DefectAgent(BaseAgent):
         return mean_ssim
 
     def test(self):
+        """test and save heatmaps
+
+        Returns:
+            float: mean ssim
+        """
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.model.eval()
         mean_ssim = 0.0
         with torch.no_grad():
-            for defect_images, normal_images, ground_truth_images in tqdm_batch:
+            for defect_images, ground_truth_images in tqdm_batch:
                 defect_images = defect_images.to(self.device, dtype=torch.float32)
-                normal_images = normal_images.to(self.device, dtype=torch.float32)
                 ground_truth_images = ground_truth_images.to(self.device, dtype=torch.float32)
                 # model
                 out_images = self.model(defect_images)
-                mean_ssim += self.metrics(out_images, normal_images, data_range=1.0, size_average=True)
+                mean_ssim += self.metrics(out_images, defect_images, data_range=1.0, size_average=True)
                 # save the reconstructed image
                 out_images = out_images.squeeze().detach().cpu().numpy()
                 defect_images = defect_images.squeeze().detach().cpu().numpy()
-                normal_images = normal_images.squeeze().detach().cpu().numpy()
                 ground_truth_images = ground_truth_images.squeeze().detach().cpu().numpy()
-                self.save_output_images(out_images, defect_images, normal_images, ground_truth_images)
+                self.save_output_images(out_images, defect_images, ground_truth_images)
             # logging
-            mean_ssim = mean_ssim / len(self.data_loader.valid_loader)
+            mean_ssim = mean_ssim / len(self.data_loader.test_loader)
             mean_ssim = mean_ssim.detach().cpu().numpy()
             self.summary_writer.add_scalar("epoch_validation/mean_ssim", mean_ssim, self.current_iteration)
             logger.info("Validation Results at epoch-" + str(self.current_epoch) + " | " + ' mean_ssim: ' + str(mean_ssim))
             tqdm_batch.close()
         return mean_ssim
 
-    def finalize(self):
-        """
-        Finalizes all the operations of the 2 Main classes of the process, the operator and the data loader
-        :return:
-        """
-        logger.info("Please wait while finalizing the operation.. Thank you")
-        # self.save_checkpoint()
-        self.summary_writer.export_scalars_to_json(config.swap.summary_dir / "all_scalars.json")
-        self.summary_writer.close()
-        self.data_loader.finalize()
+    def real(self):
+        """test on real images, without ground truth
 
-    def save_output_images(self, out_images, defect_images, normal_images, ground_truth_images=None):
+        Returns:
+            float: mean ssim
+        """
+        tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        self.model.eval()
+        mean_ssim = 0.0
+        with torch.no_grad():
+            for defect_images in tqdm_batch:
+                defect_images = defect_images.to(self.device, dtype=torch.float32)
+                # model
+                out_images = self.model(defect_images)
+                mean_ssim += self.metrics(out_images, defect_images, data_range=1.0, size_average=True)
+                # save the reconstructed image
+                out_images = out_images.squeeze().detach().cpu().numpy()
+                defect_images = defect_images.squeeze().detach().cpu().numpy()
+                self.save_output_images(out_images, defect_images)
+            # logging
+            mean_ssim = mean_ssim / len(self.data_loader.test_loader)
+            mean_ssim = mean_ssim.detach().cpu().numpy()
+            self.summary_writer.add_scalar("epoch_validation/mean_ssim", mean_ssim, self.current_iteration)
+            logger.info("Validation Results at epoch-" + str(self.current_epoch) + " | " + ' mean_ssim: ' + str(mean_ssim))
+            tqdm_batch.close()
+        return mean_ssim
+
+    def save_output_images(self, out_images, normal_images, ground_truth_images=None):
         """helper function to save recunstructed images
 
         Args:
             out_images (numpy array): a numpy array represents the reconstruction images. shape: N x H x W
-            defect_images (numpy array): a numpy array represents the defect_images. shape: N x H x W
             normal_images (numpy array): a numpy array represents the normal_images. shape: N x H x W
             ground_truth_images (numpy array): a numpy array represents the ground_truth_images. shape: N x H x W
         """
@@ -301,33 +310,46 @@ class DefectAgent(BaseAgent):
             root = root / 'validate'
             create_dirs([root])
             out_images = to_uint8(out_images)
-            defect_images = to_uint8(defect_images)
             normal_images = to_uint8(normal_images)
             paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_recon_' + str(index) + '.png') for index in range(out_images.shape[0])]
             save_images(out_images, paths)
-            paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_input_' + str(index) + '.png') for index in range(defect_images.shape[0])]
-            save_images(defect_images, paths)
             paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_normal_' + str(index) + '.png') for index in range(normal_images.shape[0])]
             save_images(normal_images, paths)
-        else:
+        elif config.settings.mode == 'real':
             root = root / 'test'
-            create_dirs([root / 'heatmap', root / 'recon', root / 'input', root / 'normal', root / 'diff', root / 'ground_truth'])
+            create_dirs([root / 'heatmap', root / 'recon', root / 'input', root / 'normal', root / 'diff'])
             # calculate heatmap
-            paths = [root / 'heatmap' / (str(index) + '.png') for index in range(defect_images.shape[0])]
-            make_heatmaps(output_images=out_images, images=defect_images, paths=paths)
+            paths = [root / 'heatmap' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            make_heatmaps(output_images=out_images, images=normal_images, paths=paths)
 
             paths = [root / 'recon' / (str(index) + '.png') for index in range(out_images.shape[0])]
             out_images = to_uint8(out_images)
             save_images(out_images, paths)
-            paths = [root / 'input' / (str(index) + '.png') for index in range(defect_images.shape[0])]
-            defect_images = to_uint8(defect_images)
-            save_images(defect_images, paths)
-            paths = [root / 'normal' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            paths = [root / 'input' / (str(index) + '.png') for index in range(normal_images.shape[0])]
             normal_images = to_uint8(normal_images)
             save_images(normal_images, paths)
 
-            paths = [root / 'diff' / (str(index) + '.png') for index in range(defect_images.shape[0])]
-            diff_image = defect_images - out_images
+            paths = [root / 'diff' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            diff_image = normal_images - out_images
+            diff_image = to_uint8(diff_image)
+            save_images(diff_image, paths)
+
+        else:
+            root = root / 'test'
+            create_dirs([root / 'heatmap', root / 'recon', root / 'input', root / 'normal', root / 'diff', root / 'ground_truth'])
+            # calculate heatmap
+            paths = [root / 'heatmap' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            make_heatmaps(output_images=out_images, images=normal_images, paths=paths)
+
+            paths = [root / 'recon' / (str(index) + '.png') for index in range(out_images.shape[0])]
+            out_images = to_uint8(out_images)
+            save_images(out_images, paths)
+            paths = [root / 'input' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            normal_images = to_uint8(normal_images)
+            save_images(normal_images, paths)
+
+            paths = [root / 'diff' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+            diff_image = normal_images - out_images
             diff_image = to_uint8(diff_image)
             save_images(diff_image, paths)
 

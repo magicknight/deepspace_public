@@ -2,6 +2,8 @@
 The Base Agent class, where all other agents inherit from, that contains definitions for all the necessary functions
 """
 import logging
+from deepspace.utils.io import save_settings
+from deepspace.config.config import logger, config
 
 
 class BaseAgent:
@@ -9,9 +11,9 @@ class BaseAgent:
     This base class will contain the base functions to be overloaded by any agent you will implement.
     """
 
-    def __init__(self, config):
-        self.config = config
-        self.logger = logging.getLogger("Agent")
+    def __init__(self):
+        self.summary_writer = None
+        self.data_loader = None
 
     def load_checkpoint(self, file_name):
         """
@@ -63,4 +65,8 @@ class BaseAgent:
         Finalizes all the operations of the 2 Main classes of the process, the operator and the data loader
         :return:
         """
-        raise NotImplementedError
+        logger.info("Please wait while finalizing the operation.. Thank you")
+        self.summary_writer.export_scalars_to_json(config.swap.summary_dir / "all_scalars.json")
+        self.summary_writer.close()
+        save_settings(config, config.swap.work_space / 'config.toml')
+        self.data_loader.finalize()

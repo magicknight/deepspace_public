@@ -8,7 +8,7 @@
         {
             "name": "deefct train",
             "args": [
-                "configs/toml/defect/train_defect_images/train.toml"
+                "configs/toml/defect/defect_detection_train_defect_images.toml"
             ],
             "type": "python",
             "request": "launch",
@@ -19,6 +19,16 @@
             "name": "deefct test",
             "args": [
                 "configs/toml/defect/train_defect_images/test.toml"
+            ],
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "train on normal",
+            "args": [
+                "configs/toml/defect/defect_detection_train_normal_images.toml"
             ],
             "type": "python",
             "request": "launch",
