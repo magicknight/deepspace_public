@@ -103,8 +103,8 @@ ENV/
 # Pycharm
 .idea/
 
-# Experiments
-experiments/*
+# Experiments upload experiments
+# experiments/*
 !experiments/.keep
 
 # Pretrained Weights
