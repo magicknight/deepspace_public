@@ -146,7 +146,7 @@ def process_config(config_file):
     # setup logging in the project
     logger = setup_logging(config.swap.log_dir)
 
-    logging.getLogger().info("Hi, This is dxray.")
+    logging.getLogger().info("Hi, This is deepspace.")
     logging.getLogger().info("After the configurations are successfully processed and dirs are created.")
     logging.getLogger().info("The pipeline of the project will begin now.")
     return config, logger
