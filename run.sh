@@ -18,6 +18,7 @@ python3 main.py configs/toml/defect/restoration.toml
 
 # wp8 
 # python3 main.py configs/toml/defect/wp8_autoencoder_same_data.toml
-
+# wp8 make plots
+# python3 experiments/wp8/make_plots.py configs/toml/defect/wp8_autoencoder_same_data.toml
 
 

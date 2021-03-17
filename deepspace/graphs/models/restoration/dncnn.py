@@ -1,3 +1,7 @@
+"""
+Two version of DnCNN network
+
+"""
 import torch
 import torch.nn as nn
 from deepspace.graphs.layers.restoration.dncnn import LIST

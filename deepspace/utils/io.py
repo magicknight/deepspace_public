@@ -1,5 +1,5 @@
 from imageio import imread
-from matplotlib.pyplot import figure, imshow, axis
+from matplotlib import pyplot as plt
 import tqdm
 import logging
 import os
@@ -33,7 +33,7 @@ class TqdmLoggingHandler(logging.Handler):
             self.handleError(record)
 
 
-def showImagesHorizontally(list_of_files):
+def showImagesHorizontally(list_of_files, path=None):
     """show multiple images horizontally
 
     Args:
@@ -42,14 +42,17 @@ def showImagesHorizontally(list_of_files):
     Returns:
         figure: a figure referencer.
     """
-    fig = figure()
+    fig = plt.figure()
     number_of_files = len(list_of_files)
     for i in range(number_of_files):
-        a = fig.add_subplot(1, number_of_files, i+1)
+        a = fig.add_subplot(1, number_of_files, i + 1)
+        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0., hspace=0.)
         image = imread(list_of_files[i])
-        imshow(image, cmap='Greys_r')
-        axis('off')
-    return fig
+        plt.imshow(image, cmap='Greys_r')
+        plt.axis('off')
+        if path is not None:
+            plt.savefig(path, bbox_inches='tight', pad_inches=0)
+    plt.close()
 
 
 if __name__ == '__main__':
