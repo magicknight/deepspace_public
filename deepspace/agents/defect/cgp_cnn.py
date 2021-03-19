@@ -2,7 +2,8 @@ import torch
 from torch.optim import lr_scheduler
 
 from deepspace.agents.defect.base import BaseAgent
-from deepspace.graphs.models.restoration.dncnn import DnCNN_cheap
+from deepspace.graphs.models.restoration.cgp_cnn import CGP2CNN_autoencoder
+from deepspace.datasets.defect.defect import DefectDataLoader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.graphs.losses.ssim import SSIM_Loss, ssim, MS_SSIM_Loss, ms_ssim
 
@@ -30,6 +31,9 @@ class RestorationAgent(BaseAgent):
         self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
 
         self.model.apply(xavier_weights)
+
+        # define data_loader
+        self.data_loader = DefectDataLoader()
 
         # define loss
         self.loss = MS_SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)

@@ -14,7 +14,10 @@
 # python3 main.py configs/toml/defect/defect_detection_train_normal_images.toml
 
 # restoration
-python3 main.py configs/toml/defect/restoration.toml
+# python3 main.py configs/toml/defect/restoration.toml
+
+# gan
+python3 main.py configs/toml/defect/defect_gan.toml
 
 # wp8 
 # python3 main.py configs/toml/defect/wp8_autoencoder_same_data.toml

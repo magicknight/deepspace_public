@@ -78,11 +78,11 @@ class DefectImages:
             normal_image = self.transform(normal_image)
         if config.settings.mode == 'test':
             # for test mode we will get ground truth to calculate metrics
-            ground_truth_image_path = config.swap[self.mode].ground_truth / defect_image_path.name
+            ground_truth_image_path = config.swap[self.mode].ground_truth / defect_image_path.parent.name / defect_image_path.name
             ground_truth_image = imageio.imread(ground_truth_image_path)
             if self.transform is not None:
                 ground_truth_image = self.transform(ground_truth_image)
-            return defect_image, normal_image, ground_truth_image
+            return defect_image, normal_image, ground_truth_image, [str(defect_image_path), str(normal_image_path), str(ground_truth_image_path)]
         else:
             return defect_image, normal_image
 

@@ -24,7 +24,6 @@ def make_plots():
 
     for index in tqdm(range(len(recon_paths))):
         showImagesHorizontally([input_paths[index], recon_paths[index], diff_paths[index]], path=output_dir / ('inputs' + str(index) + '.png'))
-
         diff_image = imread(diff_paths[index])
         input_image = imread(input_paths[index])
         defect_y, defect_x = np.where(diff_image == diff_image.max())

@@ -17,7 +17,6 @@ from tensorboardX import SummaryWriter
 from deepspace.agents.base import BaseAgent
 
 from deepspace.graphs.models.autoencoder import AutoEncoder, AnomalyAE
-from deepspace.datasets.defect.defect import DefectDataLoader
 from deepspace.graphs.losses.ssim import SSIM_Loss, ssim, MS_SSIM_Loss, ms_ssim
 from deepspace.graphs.losses.mse import MaskLoss
 
@@ -46,9 +45,6 @@ class BaseAgent(BaseAgent):
         #     in_chan=config.settings.image_channels,
         #     out_chan=config.settings.image_channels)
         # self.model = self.model.to(self.device)
-
-        # define data_loader
-        self.data_loader = DefectDataLoader()
 
         # define loss
         self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
@@ -237,7 +233,7 @@ class BaseAgent(BaseAgent):
         self.model.eval()
         mean_ssim = 0.0
         with torch.no_grad():
-            for defect_images, normal_images, ground_truth_images in tqdm_batch:
+            for defect_images, normal_images, ground_truth_images, paths in tqdm_batch:
                 defect_images = defect_images.to(self.device, dtype=torch.float32)
                 normal_images = normal_images.to(self.device, dtype=torch.float32)
                 ground_truth_images = ground_truth_images.to(self.device, dtype=torch.float32)
@@ -249,7 +245,7 @@ class BaseAgent(BaseAgent):
                 defect_images = defect_images.squeeze().detach().cpu().numpy()
                 normal_images = normal_images.squeeze().detach().cpu().numpy()
                 ground_truth_images = ground_truth_images.squeeze().detach().cpu().numpy()
-                self.save_output_images(out_images, defect_images, normal_images, ground_truth_images)
+                self.save_output_images(out_images, defect_images, normal_images, ground_truth_images, paths)
             # logging
             mean_ssim = mean_ssim / len(self.data_loader.test_loader)
             mean_ssim = mean_ssim.detach().cpu().numpy()
@@ -269,7 +265,7 @@ class BaseAgent(BaseAgent):
         self.summary_writer.close()
         self.data_loader.finalize()
 
-    def save_output_images(self, out_images, defect_images=None, normal_images=None, ground_truth_images=None):
+    def save_output_images(self, out_images, defect_images=None, normal_images=None, ground_truth_images=None, paths=None):
         """helper function to save recunstructed images
 
         Args:
@@ -279,6 +275,8 @@ class BaseAgent(BaseAgent):
             ground_truth_images (numpy array): a numpy array represents the ground_truth_images. shape: N x H x W
         """
         try:
+            if out_images is None:
+                return
             root = Path(config.swap.out_dir)
             if config.settings.mode == 'train':
                 root = root / 'validate'
@@ -287,38 +285,45 @@ class BaseAgent(BaseAgent):
                 if self.current_epoch == 0:
                     defect_images = to_uint8(defect_images)
                     normal_images = to_uint8(normal_images)
-                    paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_input_' + str(index) + '.png') for index in range(defect_images.shape[0])]
-                    save_images(defect_images, paths)
-                    paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_normal_' + str(index) + '.png') for index in range(normal_images.shape[0])]
-                    save_images(normal_images, paths)
+                    image_paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_input_' + str(index) + '.png') for index in range(defect_images.shape[0])]
+                    save_images(defect_images, image_paths)
+                    image_paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_normal_' + str(index) + '.png') for index in range(normal_images.shape[0])]
+                    save_images(normal_images, image_paths)
                 out_images = to_uint8(out_images)
-                paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_recon_' + str(index) + '.png') for index in range(out_images.shape[0])]
-                save_images(out_images, paths)
+                image_paths = [root / ('epoch' + '_' + str(self.current_epoch) + '_recon_' + str(index) + '.png') for index in range(out_images.shape[0])]
+                save_images(out_images, image_paths)
 
             else:
                 root = root / 'test'
-                create_dirs([root / 'heatmap', root / 'recon', root / 'input', root / 'normal', root / 'diff', root / 'ground_truth'])
+                defect_name = Path(paths[0][0]).parent.name
+                heatmap_path = root / 'heatmap' / defect_name
+                recon_path = root / 'recon' / defect_name
+                input_path = root / 'input' / defect_name
+                normal_path = root / 'normal' / defect_name
+                diff_path = root / 'diff' / defect_name
+                ground_truth_path = root / 'ground_truth' / defect_name
+                create_dirs([heatmap_path, recon_path, input_path, normal_path, diff_path, ground_truth_path])
                 # calculate heatmap
-                paths = [root / 'heatmap' / (str(index) + '.png') for index in range(defect_images.shape[0])]
-                make_heatmaps(output_images=out_images, images=defect_images, paths=paths)
+                image_paths = [heatmap_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
+                make_heatmaps(output_images=out_images, images=defect_images, paths=image_paths)
 
-                paths = [root / 'recon' / (str(index) + '.png') for index in range(out_images.shape[0])]
+                image_paths = [recon_path / Path(paths[0][index]).name for index in range(out_images.shape[0])]
                 out_images = to_uint8(out_images)
-                save_images(out_images, paths)
-                paths = [root / 'input' / (str(index) + '.png') for index in range(defect_images.shape[0])]
+                save_images(out_images, image_paths)
+                image_paths = [input_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
                 defect_images = to_uint8(defect_images)
-                save_images(defect_images, paths)
-                paths = [root / 'normal' / (str(index) + '.png') for index in range(normal_images.shape[0])]
+                save_images(defect_images, image_paths)
+                image_paths = [normal_path / Path(paths[0][index]).name for index in range(normal_images.shape[0])]
                 normal_images = to_uint8(normal_images)
-                save_images(normal_images, paths)
+                save_images(normal_images, image_paths)
 
-                paths = [root / 'diff' / (str(index) + '.png') for index in range(defect_images.shape[0])]
+                image_paths = [diff_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
                 diff_image = defect_images - out_images
                 diff_image = to_uint8(diff_image)
-                save_images(diff_image, paths)
+                save_images(diff_image, image_paths)
 
-                paths = [root / 'ground_truth' / (str(index) + '.png') for index in range(ground_truth_images.shape[0])]
+                image_paths = [ground_truth_path / Path(paths[0][index]).name for index in range(ground_truth_images.shape[0])]
                 ground_truth_images = to_uint8(ground_truth_images)
-                save_images(ground_truth_images, paths)
+                save_images(ground_truth_images, image_paths)
         except Exception as e:
             logger.error(e)
