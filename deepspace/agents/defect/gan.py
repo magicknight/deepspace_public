@@ -103,7 +103,11 @@ class GanAgent(BaseAgent):
         self.discriminator.train()
         # Initialize average meters
         dis_epoch_loss = AverageMeter()
+        dis_epoch_fake_loss = AverageMeter()
+        dis_epoch_normal_loss = AverageMeter()
         gen_epoch_loss = AverageMeter()
+        gen_epoch_dis_loss = AverageMeter()
+        gen_epoch_image_loss = AverageMeter()
         # loop images
         for defect_images, normal_images in tqdm_batch:
             defect_images = defect_images.to(self.device, dtype=torch.float32)
@@ -117,19 +121,22 @@ class GanAgent(BaseAgent):
             dis_loss_normal = self.loss(out_labels.squeeze(), self.real_labels[0:defect_images.shape[0]])
             dis_loss_normal.backward()
 
-            out_labels = self.discriminator(defect_images)
-            dis_loss_defect = self.loss(out_labels.squeeze(), self.fake_labels[0:defect_images.shape[0]])
-            dis_loss_defect.backward()
+            # train disctriminator with defect data may result on difficulty of loss reduce. so skip this step
+            # out_labels = self.discriminator(defect_images)
+            # dis_loss_defect = self.loss(out_labels.squeeze(), self.fake_labels[0:defect_images.shape[0]])
+            # dis_loss_defect.backward()
 
-            # train the discriminator with fake data---
+            # # train the discriminator with fake data---
             fake_images = self.generator(defect_images)
             out_labels = self.discriminator(fake_images.detach())
             dis_loss_fake = self.loss(out_labels.squeeze(), self.fake_labels[0:defect_images.shape[0]])
             dis_loss_fake.backward()
 
             self.optimizer_dis.step()
+            dis_epoch_normal_loss.update(dis_loss_normal.item())
+            dis_epoch_fake_loss.update(dis_loss_fake.item())
             dis_epoch_loss.update(dis_loss_normal.item())
-            dis_epoch_loss.update(dis_loss_defect.item())
+            # dis_epoch_loss.update(dis_loss_defect.item())
             dis_epoch_loss.update(dis_loss_fake.item())
 
             # train the generator now---
@@ -141,6 +148,8 @@ class GanAgent(BaseAgent):
             gen_loss.backward()
 
             self.optimizer_gen.step()
+            gen_epoch_dis_loss.update(gen_diss_loss.item())
+            gen_epoch_image_loss.update(image_loss.item())
             gen_epoch_loss.update(gen_loss.item())
 
             self.current_iteration += 1
@@ -149,8 +158,14 @@ class GanAgent(BaseAgent):
         tqdm_batch.close()
         # logging
         self.summary_writer.add_scalar("epoch-training/gen_loss", gen_epoch_loss.val, self.current_iteration)
+        self.summary_writer.add_scalar("epoch-training/gen_diss_loss", gen_epoch_dis_loss.val, self.current_iteration)
+        self.summary_writer.add_scalar("epoch-training/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
         self.summary_writer.add_scalar("epoch_training/dis_loss", dis_epoch_loss.val, self.current_iteration)
-        logger.info("Training Results at epoch-" + str(self.current_epoch) + " | " + "gen_loss: " + str(gen_epoch_loss.val) + "- dis_loss: " + str(dis_epoch_loss.val))
+        self.summary_writer.add_scalar("epoch_training/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)
+        self.summary_writer.add_scalar("epoch_training/dis_fake_loss", dis_epoch_fake_loss.val, self.current_iteration)
+        logger.info("Training Results at epoch-" + str(self.current_epoch) + " | " + "gen_loss: " + str(gen_epoch_loss.val) + "- dis_loss: " + str(dis_epoch_loss.val)
+                    + "gen_diss_loss: " + str(gen_epoch_dis_loss.val) + "gen_image_loss: " + str(gen_epoch_image_loss.val)
+                    + "- dis_normal_loss: " + str(dis_epoch_normal_loss.val) + "- dis_fake_loss: " + str(dis_epoch_fake_loss.val))
         # save images
         # save the reconstructed image
         fake_images = fake_images.squeeze().detach().cpu().numpy()
@@ -158,6 +173,51 @@ class GanAgent(BaseAgent):
         normal_images = normal_images.squeeze().detach().cpu().numpy()
         self.save_output_images(fake_images, defect_images, normal_images)
         return gen_epoch_loss.val, dis_epoch_loss.val
+
+    def test(self):
+        tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        self.generator.eval()
+        self.discriminator.eval()
+        dis_epoch_loss = AverageMeter()
+        dis_epoch_fake_loss = AverageMeter()
+        dis_epoch_normal_loss = AverageMeter()
+        gen_epoch_loss = AverageMeter()
+        gen_epoch_dis_loss = AverageMeter()
+        gen_epoch_image_loss = AverageMeter()
+        with torch.no_grad():
+            for defect_images, normal_images, ground_truth_images, paths in tqdm_batch:
+                defect_images = defect_images.to(self.device, dtype=torch.float32)
+                normal_images = normal_images.to(self.device, dtype=torch.float32)
+                ground_truth_images = ground_truth_images.to(self.device, dtype=torch.float32)
+                # test discriminator
+                fake_images = self.generator(defect_images,)
+                fake_labels = self.discriminator(fake_images)
+                dis_fake_loss = self.loss(fake_labels, self.fake_labels)
+                normal_labels = self.discriminator(normal_images)
+                dis_normal_loss = self.loss(normal_labels, self.real_labels)
+                dis_loss = dis_fake_loss + dis_normal_loss
+                dis_epoch_fake_loss.update(dis_fake_loss.item())
+                dis_epoch_normal_loss.update(dis_normal_loss.item())
+                dis_epoch_loss.update(dis_loss.item())
+                # test generator
+                gen_dis_loss = self.loss(fake_labels, self.fake_labels)
+                gen_image_loss = self.image_loss(fake_images, normal_images)
+                gen_epoch_dis_loss.update(gen_dis_loss.item())
+                gen_epoch_image_loss.update(gen_image_loss)
+                gen_loss = gen_dis_loss + gen_image_loss
+                gen_epoch_loss.update(gen_loss.item())
+
+                # save the reconstructed image
+                fake_images = fake_images.squeeze().detach().cpu().numpy()
+                defect_images = defect_images.squeeze().detach().cpu().numpy()
+                normal_images = normal_images.squeeze().detach().cpu().numpy()
+                ground_truth_images = ground_truth_images.squeeze().detach().cpu().numpy()
+                self.save_output_images(fake_images, defect_images, normal_images, ground_truth_images, paths)
+            # logging
+            logger.info("test Results at epoch-" + str(self.current_epoch) + " | " + ' dis_epoch_loss: ' + str(dis_epoch_loss.val) + " | " + ' gen_epoch_loss: ' + str(gen_epoch_loss.val)
+                        + " | " + ' dis_epoch_fake_loss: ' + str(dis_epoch_fake_loss.val) + " | " + ' dis_epoch_normal_loss: ' + str(dis_epoch_normal_loss.val)
+                        + " | " + ' gen_epoch_dis_loss: ' + str(gen_epoch_dis_loss.val) + " | " + ' gen_epoch_image_loss: ' + str(gen_epoch_image_loss.val))
+            tqdm_batch.close()
 
     def load_checkpoint(self):
         """

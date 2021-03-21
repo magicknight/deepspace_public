@@ -21,7 +21,7 @@ from deepspace.graphs.losses.ssim import SSIM_Loss, ssim, MS_SSIM_Loss, ms_ssim
 from deepspace.graphs.losses.mse import MaskLoss
 
 from deepspace.utils.metrics import AverageMeter, AverageMeterList
-from deepspace.utils.data import to_uint8, save_images, make_heatmaps
+from deepspace.utils.data import to_uint8, save_images, make_heatmaps, make_masks
 from deepspace.utils.dirs import create_dirs
 from deepspace.utils.train_utils import get_device
 from deepspace.config.config import config, logger
@@ -301,8 +301,9 @@ class BaseAgent(BaseAgent):
                 input_path = root / 'input' / defect_name
                 normal_path = root / 'normal' / defect_name
                 diff_path = root / 'diff' / defect_name
+                mask_diff_path = root / 'mask_diff' / defect_name
                 ground_truth_path = root / 'ground_truth' / defect_name
-                create_dirs([heatmap_path, recon_path, input_path, normal_path, diff_path, ground_truth_path])
+                create_dirs([heatmap_path, recon_path, input_path, normal_path, diff_path, mask_diff_path, ground_truth_path])
                 # calculate heatmap
                 image_paths = [heatmap_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
                 make_heatmaps(output_images=out_images, images=defect_images, paths=image_paths)
@@ -321,6 +322,14 @@ class BaseAgent(BaseAgent):
                 diff_image = defect_images - out_images
                 diff_image = to_uint8(diff_image)
                 save_images(diff_image, image_paths)
+
+                # make mask diff
+                image_paths = [mask_diff_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
+                defect_mask = make_masks(defect_images, threshold=1.0)
+                recon_mask = make_masks(out_images, threshold=1.0)
+                mask_diff_image = defect_mask - recon_mask
+                mask_diff_image = to_uint8(mask_diff_image)
+                save_images(mask_diff_image, image_paths)
 
                 image_paths = [ground_truth_path / Path(paths[0][index]).name for index in range(ground_truth_images.shape[0])]
                 ground_truth_images = to_uint8(ground_truth_images)

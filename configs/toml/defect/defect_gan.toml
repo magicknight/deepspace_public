@@ -45,7 +45,7 @@
     # validate every x epoches
     validate_step = 2
     # save model every x steps
-    save_model_step = 10
+    save_model_step = 2
     # checkpoint file name
     checkpoint_file = 'checkpoint.pth.tar'
     # dataloader name
@@ -66,7 +66,7 @@
     # save ouput on first n images during validation, should be smaller than batch size
     save_images = [0, 10]
     # image loss weight
-    image_loss_weight = 0.99
+    image_loss_weight = 0.999
 
 
 

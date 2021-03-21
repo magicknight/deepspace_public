@@ -55,6 +55,29 @@ def showImagesHorizontally(list_of_files, path=None):
     plt.close()
 
 
+def show_images(list_of_images, path=None):
+    """show multiple images horizontally
+
+    Args:
+        list_of_images (list): a list of images
+
+    Returns:
+        figure: a figure referencer.
+    """
+    fig = plt.figure()
+    number_of_files = len(list_of_images)
+    for i in range(number_of_files):
+        a = fig.add_subplot(1, number_of_files, i + 1)
+        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0., hspace=0.)
+        # image = imread(list_of_images[i])
+        plt.imshow(list_of_images[i], cmap='Greys_r')
+        plt.axis('off')
+        if path is not None:
+            plt.savefig(path, bbox_inches='tight', pad_inches=0)
+    plt.show()
+    plt.close()
+
+
 if __name__ == '__main__':
     pass
     # save_settings(Path.home() / 'temp' / 'settings.toml')
