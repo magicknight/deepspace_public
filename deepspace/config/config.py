@@ -162,12 +162,11 @@ def get_config():
     # parse the path of the json config file
     arg_parser = argparse.ArgumentParser(description="")
     arg_parser.add_argument(
-        'config',
+        '--config',
         metavar='config_json_file',
         default='None',
         help='The Configuration file in json format')
-    args = arg_parser.parse_args()
-
+    args, unknown = arg_parser.parse_known_args()
     # parse the config json file
     config, logger = process_config(args.config)
     return config, logger

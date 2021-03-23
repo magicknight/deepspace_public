@@ -51,7 +51,7 @@ class BaseAgent(BaseAgent):
         self.loss = self.loss.to(self.device)
 
         # define metrics
-        self.metrics = ssim
+        self.criterion = ssim
 
         # Create instance from the optimizer
         # self.optimizer = torch.optim.Adam(
@@ -123,13 +123,14 @@ class BaseAgent(BaseAgent):
         The main operator
         :return:
         """
-        assert config.settings.mode in ['train', 'test']
+        assert config.settings.mode in ['train', 'test', 'metrics']
         try:
             if config.settings.mode == 'test':
                 self.test()
-            else:
+            elif config.settings.mode == 'train':
                 self.train()
-
+            else:
+                self.metrics()
         except KeyboardInterrupt:
             logger.info("You have entered CTRL+C.. Wait to finalize")
 
@@ -181,7 +182,7 @@ class BaseAgent(BaseAgent):
             epoch_loss.update(cur_loss.item())
             # must with no grad here, or the mean_ssim and images will be keeped in the memory and the memory will increase like crazy
             with torch.no_grad():
-                mean_ssim += self.metrics(out_images, normal_images, data_range=1.0, size_average=True)
+                mean_ssim += self.criterion(out_images, normal_images, data_range=1.0, size_average=True)
             self.current_iteration += 1
 
         # logging
@@ -211,7 +212,7 @@ class BaseAgent(BaseAgent):
                 normal_images = normal_images.to(self.device, dtype=torch.float32)
                 # model
                 out_images = self.model(defect_images)
-                mean_ssim += self.metrics(out_images, normal_images, data_range=1.0, size_average=True)
+                mean_ssim += self.criterion(out_images, normal_images, data_range=1.0, size_average=True)
                 # save the reconstructed image
                 out_images = out_images.squeeze().detach().cpu().numpy()
                 defect_images = defect_images.squeeze().detach().cpu().numpy()
@@ -239,7 +240,7 @@ class BaseAgent(BaseAgent):
                 ground_truth_images = ground_truth_images.to(self.device, dtype=torch.float32)
                 # model
                 out_images = self.model(defect_images)
-                mean_ssim += self.metrics(out_images, normal_images, data_range=1.0, size_average=True)
+                mean_ssim += self.criterion(out_images, normal_images, data_range=1.0, size_average=True)
                 # save the reconstructed image
                 out_images = out_images.squeeze().detach().cpu().numpy()
                 defect_images = defect_images.squeeze().detach().cpu().numpy()

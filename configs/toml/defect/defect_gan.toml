@@ -8,7 +8,9 @@
     project_root = '/home/zhihua/data/work_space'
     # root directory of the dataset
     # dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/bunny_train_on_defect_images'
-    dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/large_defect_bunny_train_on_defect_images'
+    # dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/large_defect_bunny_train_on_defect_images'
+    dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/metrics'
+    # dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/test'
     # CAD object path
     mesh_file_path = '/home/zhihua/data/mesh/common/bunny/bunny_watertight.stl'
     # agent name
@@ -20,7 +22,7 @@
     # if async loading into cuda memory
     async_loading = true    
     # angle range
-    batch_size = 128
+    batch_size = 32
     # random seed
     seed = 999
     # model parameters
@@ -60,14 +62,17 @@
     data_format = 'png'
     # data mode, 'image', 'numpy', 'tfrecord'... or anything when there exist corresponding dataloader
     data_mode = 'image'
-    # mode = 'train', 'test', 'validate'
-    mode = 'train'
+    # mode = 'train', 'test', 'validate', 'metrics'
+    # mode = 'train'
     # mode = 'test'
+    mode = 'metrics'
     # save ouput on first n images during validation, should be smaller than batch size
     save_images = [0, 10]
     # image loss weight
     image_loss_weight = 0.999
-
+    # defect detection threshold, image threshold is the range of the image and area threshold is the cut on area of defect 
+    image_threshold = [0.2, 0.8]
+    area_threshold = 500
 
 
 

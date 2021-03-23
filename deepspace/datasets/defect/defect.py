@@ -41,12 +41,65 @@ def get_paths(mode):
     config.swap.test.normal = root / 'test' / 'normal'
     config.swap.test.defect = root / 'test' / 'defect'
     config.swap.test.ground_truth = root / 'test' / 'ground_truth'
+    # metrics directory
+    config.swap.metrics = {}
+    config.swap.metrics.root = root / 'metrics'
+    config.swap.metrics.images = root / 'metrics' / 'images'
+    config.swap.metrics.ground_truth = root / 'metrics' / 'ground_truth'
+
+    if config.settings.mode == 'metrics':
+        image_paths = list(config.swap[mode].images.glob('**/*.' + config.settings.data_format))
+        ground_truth_paths = list(config.swap[mode].ground_truth.glob('**/*.' + config.settings.data_format))
+        return image_paths, ground_truth_paths
 
     nomral_images_path = list(config.swap[mode].normal.glob('**/*.' + config.settings.data_format))
     defect_images_path = list(config.swap[mode].defect.glob('**/*.' + config.settings.data_format))
     ground_truth_images_path = list(config.swap[mode].ground_truth.glob('**/*.' + config.settings.data_format))
 
     return nomral_images_path, defect_images_path, ground_truth_images_path
+
+
+class MetricsImages:
+    """metrics images for calculating some metrics of the model.
+    """
+
+    def __init__(self, mode, transform=None):
+        # get all the image paths
+        self.image_paths, self.ground_truth_paths = get_paths(mode)
+        if len(self.image_paths) == 0 or len(self.image_paths) == 0:
+            raise RuntimeError('Found 0 images, please check the data set')
+        self.mode = mode
+        self.transform = transform
+
+    def __getitem__(self, index):
+        """return defect, normal, and grouth_truth images on the same projection angle
+
+        Args:
+            index (int): data index
+
+        Returns:
+            Tensor: images
+        """
+        # get image path
+        image_path = self.image_paths[index]
+        ground_truth_image_path = config.swap[self.mode].ground_truth / image_path.name
+        # read in images
+        image = imageio.imread(image_path)
+        # if ground truth is not exists, then this is an normal image, ground truth would be a zero array
+        if not ground_truth_image_path.exists():
+            ground_truth_image = np.zeros_like(image)
+        else:
+            ground_truth_image = imageio.imread(ground_truth_image_path)
+        if self.transform is not None:
+            image = self.transform(image)
+            ground_truth_image = self.transform(ground_truth_image)
+        # the first character in the filename is the label. 0: normal. else: defect, here we get the filename label and transfer it into 0 for normal and 1 for defect
+        label = int(int(image_path.name.split('_')[0]) != 0)
+        return image, ground_truth_image, label, [str(image_path), str(ground_truth_image_path)]
+
+    def __len__(self):
+        # the size defect images is the size of this dataset, not the size of normal images
+        return len(self.image_paths)
 
 
 class DefectImages:
@@ -93,7 +146,7 @@ class DefectImages:
 
 class DefectDataLoader:
     def __init__(self):
-        assert config.settings.mode in ['train', 'test']
+        assert config.settings.mode in ['train', 'test', 'metrics']
 
         self.input_transform = standard_transforms.Compose([
             standard_transforms.ToTensor(),
@@ -116,6 +169,13 @@ class DefectDataLoader:
             self.test_loader = DataLoader(test_set, batch_size=config.settings.batch_size, shuffle=False,
                                           num_workers=config.settings.data_loader_workers)
             self.test_iterations = (len(test_set) + config.settings.batch_size) // config.settings.batch_size
+
+        elif config.settings.mode == 'metrics':
+            metrics_set = MetricsImages('metrics', transform=self.input_transform)
+
+            self.metrics_loader = DataLoader(metrics_set, batch_size=config.settings.batch_size, shuffle=False,
+                                             num_workers=config.settings.data_loader_workers)
+            self.metrics_iterations = (len(metrics_set) + config.settings.batch_size) // config.settings.batch_size
 
         else:
             raise Exception('Please choose a proper mode for data loading')

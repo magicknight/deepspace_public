@@ -16,9 +16,10 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "deefct test",
+            "name": "deefct metrics",
             "args": [
-                "configs/toml/defect/restoration.toml"
+                "--config",
+                "configs/toml/defect/defect_gan.toml"
             ],
             "type": "python",
             "request": "launch",
