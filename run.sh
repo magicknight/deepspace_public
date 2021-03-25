@@ -17,7 +17,7 @@
 # python3 main.py --config configs/toml/defect/restoration.toml
 
 # gan
-python3 main.py --config configs/toml/defect/defect_gan.toml
+# python3 main.py --config configs/toml/defect/defect_gan.toml
 
 # wp8 
 # python3 main.py --config configs/toml/defect/wp8_autoencoder_same_data.toml
@@ -25,3 +25,5 @@ python3 main.py --config configs/toml/defect/defect_gan.toml
 # python3 experiments/wp8/make_plots.py --config configs/toml/defect/wp8_autoencoder_same_data.toml
 
 
+# dqn
+python3 main.py --config configs/toml/reinforcement/dqn.toml

@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 import torchvision.transforms as standard_transforms
 
+from deepspace.utils.data import AddGaussianNoise
 from deepspace.config.config import config, logger
 
 
@@ -147,10 +148,13 @@ class DefectImages:
 class DefectDataLoader:
     def __init__(self):
         assert config.settings.mode in ['train', 'test', 'metrics']
-
-        self.input_transform = standard_transforms.Compose([
+        # transforms
+        this_transform = [
             standard_transforms.ToTensor(),
-        ])
+        ]
+        if config.settings.gaussian_noise:
+            this_transform.append(AddGaussianNoise(config.settings.gaussian_mean, config.settings.gaussian_std))
+        self.input_transform = standard_transforms.Compose(this_transform)
 
         if config.settings.mode == 'train':
             # training needs train dataset and validate dataset

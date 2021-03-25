@@ -17,19 +17,24 @@ from deepspace.graphs.models.reinforcement.dqn import DQN
 from deepspace.utils.env_utils import CartPoleEnv
 from deepspace.utils.misc import print_cuda_statistics
 from deepspace.utils.replay_memory import ReplayMemory, Transition
+from deepspace.config.config import config, logger
+from deepspace.utils.train_utils import get_device
 
 cudnn.benchmark = True
 
 
 class DQNAgent(BaseAgent):
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self):
+        super().__init__()
+        # set cuda flag
+        self.device = get_device()
+        config.swap.device = self.device
         # define models (policy and target)
-        self.policy_model = DQN(self.config)
-        self.target_model = DQN(self.config)
+        self.policy_model = DQN()
+        self.target_model = DQN()
         # define memory
-        self.memory = ReplayMemory(self.config)
+        self.memory = ReplayMemory(config.settings)
         # define loss
         self.loss = HuberLoss()
         # define optimizer
@@ -37,28 +42,12 @@ class DQNAgent(BaseAgent):
 
         # define environment
         self.env = gym.make('CartPole-v0').unwrapped
-        self.cartpole = CartPoleEnv(self.config.screen_width)
+        self.cartpole = CartPoleEnv(config.settings.screen_width)
 
         # initialize counter
         self.current_episode = 0
         self.current_iteration = 0
         self.episode_durations = []
-
-        # set cuda flag
-        self.is_cuda = torch.cuda.is_available()
-        if self.is_cuda and not self.config.cuda:
-            self.logger.info("WARNING: You have a CUDA device, so you should probably enable CUDA")
-
-        self.cuda = self.is_cuda & self.config.cuda
-
-        if self.cuda:
-            self.device = torch.device("cuda")
-            torch.cuda.set_device(self.config.gpu_device)
-            self.logger.info("Program will run on *****GPU-CUDA***** ")
-            print_cuda_statistics()
-        else:
-            self.device = torch.device("cpu")
-            self.logger.info("Program will run on *****CPU***** ")
 
         self.policy_model = self.policy_model.to(self.device)
         self.target_model = self.target_model.to(self.device)
@@ -68,12 +57,12 @@ class DQNAgent(BaseAgent):
         self.target_model.load_state_dict(self.policy_model.state_dict())
         self.target_model.eval()
         # Summary Writer
-        self.summary_writer = SummaryWriter(log_dir=self.config.summary_dir, comment='DQN')
+        self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='DQN')
 
     def load_checkpoint(self, file_name):
-        filename = self.config.checkpoint_dir + file_name
+        filename = config.settings.checkpoint_dir + file_name
         try:
-            self.logger.info("Loading checkpoint '{}'".format(filename))
+            logger.info("Loading checkpoint '{}'".format(filename))
             checkpoint = torch.load(filename)
 
             self.current_episode = checkpoint['episode']
@@ -81,11 +70,11 @@ class DQNAgent(BaseAgent):
             self.policy_model.load_state_dict(checkpoint['state_dict'])
             self.optim.load_state_dict(checkpoint['optimizer'])
 
-            self.logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
-                             .format(self.config.checkpoint_dir, checkpoint['episode'], checkpoint['iteration']))
+            logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
+                        .format(config.settings.checkpoint_dir, checkpoint['episode'], checkpoint['iteration']))
         except OSError as e:
-            self.logger.info("No checkpoint exists from '{}'. Skipping...".format(self.config.checkpoint_dir))
-            self.logger.info("**First time to train**")
+            logger.info("No checkpoint exists from '{}'. Skipping...".format(config.settings.checkpoint_dir))
+            logger.info("**First time to train**")
 
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=0):
         state = {
@@ -95,11 +84,11 @@ class DQNAgent(BaseAgent):
             'optimizer': self.optim.state_dict(),
         }
         # Save the state
-        torch.save(state, self.config.checkpoint_dir + file_name)
+        torch.save(state, config.settings.checkpoint_dir + file_name)
         # If it is the best copy it to another file 'model_best.pth.tar'
         if is_best:
-            shutil.copyfile(self.config.checkpoint_dir + file_name,
-                            self.config.checkpoint_dir + 'model_best.pth.tar')
+            shutil.copyfile(config.settings.checkpoint_dir + file_name,
+                            config.settings.checkpoint_dir + 'model_best.pth.tar')
 
     def run(self):
         """
@@ -110,7 +99,7 @@ class DQNAgent(BaseAgent):
             self.train()
 
         except KeyboardInterrupt:
-            self.logger.info("You have entered CTRL+C.. Wait to finalize")
+            logger.info("You have entered CTRL+C.. Wait to finalize")
 
     def select_action(self, state):
         """
@@ -118,11 +107,10 @@ class DQNAgent(BaseAgent):
         :param state: current state of the model
         :return:
         """
-        if self.cuda:
-            state = state.cuda()
+        state = state.to(self.device)
         sample = random.random()
-        eps_threshold = self.config.eps_start + (self.config.eps_start - self.config.eps_end) * math.exp(
-            -1. * self.current_iteration / self.config.eps_decay)
+        eps_threshold = config.settings.eps_start + (config.settings.eps_start - config.settings.eps_end) * math.exp(
+            -1. * self.current_iteration / config.settings.eps_decay)
         self.current_iteration += 1
         if sample > eps_threshold:
             with torch.no_grad():
@@ -135,10 +123,10 @@ class DQNAgent(BaseAgent):
         performs a single step of optimization for the policy model
         :return:
         """
-        if self.memory.length() < self.config.batch_size:
+        if self.memory.length() < config.settings.batch_size:
             return
         # sample a batch
-        transitions = self.memory.sample_batch(self.config.batch_size)
+        transitions = self.memory.sample_batch(config.settings.batch_size)
 
         one_batch = Transition(*zip(*transitions))
 
@@ -157,11 +145,11 @@ class DQNAgent(BaseAgent):
         curr_state_values = self.policy_model(state_batch)
         curr_state_action_values = curr_state_values.gather(1, action_batch)
 
-        next_state_values = torch.zeros(self.config.batch_size, device=self.device)
+        next_state_values = torch.zeros(config.settings.batch_size, device=self.device)
         next_state_values[non_final_mask] = self.target_model(non_final_next_states).max(1)[0].detach()
 
         # Get the expected Q values
-        expected_state_action_values = (next_state_values * self.config.gamma) + reward_batch
+        expected_state_action_values = (next_state_values * config.settings.gamma) + reward_batch
         # compute loss: temporal difference error
         loss = self.loss(curr_state_action_values, expected_state_action_values.unsqueeze(1))
 
@@ -179,13 +167,13 @@ class DQNAgent(BaseAgent):
         Training loop based on the number of episodes
         :return:
         """
-        for episode in tqdm(range(self.current_episode, self.config.num_episodes)):
+        for episode in tqdm(range(self.current_episode, config.settings.num_episodes)):
             self.current_episode = episode
             # reset environment
             self.env.reset()
             self.train_one_epoch()
             # The target network has its weights kept frozen most of the time
-            if self.current_episode % self.config.target_update == 0:
+            if self.current_episode % config.settings.target_update == 0:
                 self.target_model.load_state_dict(self.policy_model.state_dict())
 
         self.env.render()
@@ -209,10 +197,7 @@ class DQNAgent(BaseAgent):
             # perform action and get reward
             _, reward, done, _ = self.env.step(action.item())
 
-            if self.cuda:
-                reward = torch.Tensor([reward]).to(self.device)
-            else:
-                reward = torch.Tensor([reward]).to(self.device)
+            reward = torch.Tensor([reward]).to(self.device)
 
             prev_frame = curr_frame
             curr_frame = self.cartpole.get_screen(self.env)
@@ -230,8 +215,7 @@ class DQNAgent(BaseAgent):
             # Policy model optimization step
             curr_loss = self.optimize_policy_model()
             if curr_loss is not None:
-                if self.cuda:
-                    curr_loss = curr_loss.cpu()
+                curr_loss = curr_loss.cpu()
                 self.summary_writer.add_scalar("Temporal_Difference_Loss", curr_loss.detach().numpy(), self.current_iteration)
             # check if done
             if done:
@@ -247,7 +231,7 @@ class DQNAgent(BaseAgent):
         Finalize all the operations of the 2 Main classes of the process the operator and the data loader
         :return:
         """
-        self.logger.info("Please wait while finalizing the operation.. Thank you")
-        self.save_checkpoint()
-        self.summary_writer.export_scalars_to_json("{}all_scalars.json".format(self.config.summary_dir))
+        logger.info("Please wait while finalizing the operation.. Thank you")
+        # self.save_checkpoint()
+        self.summary_writer.export_scalars_to_json("{}all_scalars.json".format(config.swap.summary_dir))
         self.summary_writer.close()

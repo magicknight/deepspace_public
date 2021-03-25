@@ -1,47 +1,36 @@
 [summary]
     # name of this experiment
-    name = 'defect_gan'
+    name = 'dqn'
     author = 'Zhihua Liang'
-    discription = 'Defect detection for POL 2020'
+    discription = 'Defect detection for POL 2020, reinforcement model'
 [settings]
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
-    # root directory of the dataset
-    # dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/bunny_train_on_defect_images'
-    # dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/large_defect_bunny_train_on_defect_images'
-    dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/metrics'
-    # dataset_root = '/home/zhihua/data/anomaly/simulation/bunny/test'
     # CAD object path
     mesh_file_path = '/home/zhihua/data/mesh/common/bunny/bunny_watertight.stl'
     # agent name
-    agent = 'deepspace.agents.defect.gan.GanAgent'
+    agent = 'deepspace.agents.reinforcement.dqn.DQNAgent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
     # retry times to break the object
     gpu_device = 0
-    # if async loading into cuda memory
-    async_loading = true    
     # angle range
     batch_size = 32
     # random seed
     seed = 999
-    # model parameters
-    number_of_layers = 8
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     learning_rate = 1e-4
-    # betas for Adam optimizer
-    betas = [0.9, 0.999]
-    # eps for Adam optimizer
-    eps = 1e-8
-    # momentum for Adam optimizer
-    momentum = 0.99
-    # weight decay
-    weight_decay = 1e-5
-    # gan model parameters
-    num_filt_g = 64
-    num_filt_d = 64
-    relu_slope = 0.2
-    latent_space_size = 1024
+    gamma = 0.999
+    eps_start = 0.9
+    eps_end = 0.05
+    eps_decay = 200
+    target_update = 10
+    num_classes = 2
+    memory_capacity = 10_000
+    num_episodes = 50
+    screen_width = 600
+    # model parameters
+    conv_filters = [ 16, 32, 32 ]
     # max epoches to for training.
     max_epoch = 300
     # validate every x epoches
@@ -57,19 +46,21 @@
     # data resolution
     image_resolution = [512, 512]
     # channels
-    image_channels = 1
-    # output format; png or tif
-    data_format = 'png'
-    # data mode, 'image', 'numpy', 'tfrecord'... or anything when there exist corresponding dataloader
-    data_mode = 'image'
+    input_channels = 3
+    data_mode = ""
+    data_folder = ""
+    x_train = ""
+    y_train = ""
+    x_valid = ""
+    y_valid = ""
+    x_test = ""
+    y_test = ""
     # mode = 'train', 'test', 'validate', 'metrics'
     # mode = 'train'
     # mode = 'test'
     mode = 'metrics'
     # save ouput on first n images during validation, should be smaller than batch size
     save_images = [0, 10]
-    # image loss weight
-    image_loss_weight = 0.999
     # defect detection threshold, image threshold is the range of the image and area threshold is the cut on area of defect 
     image_threshold = [0.2, 0.8]
     area_threshold = 500
