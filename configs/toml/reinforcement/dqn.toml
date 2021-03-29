@@ -3,6 +3,33 @@
     name = 'dqn'
     author = 'Zhihua Liang'
     discription = 'Defect detection for POL 2020, reinforcement model'
+[environment]
+    # this is settings for environemnt for deep reinforcemnet training.
+    # setting for xray environment
+    # CAD object path
+    mesh_file_path = '/home/zhihua/data/mesh/common/bunny/bunny_watertight.stl'
+    # is the CAD object watertight?
+    watertight_cad = false  
+    # retry times to break the object
+    retry = 10
+    # angle range
+    angle_range = [ [ -3, 3 ], [ -3, 3 ], [ 0, 360 ] ]              
+    # source distance from the origin point
+    source_distance = -40
+    # detector distance from the origin point
+    detector_distance = 960
+    # pixel size of detector
+    pixel_size = [0.6, 0.6]
+    # resolution of detector
+    resolution = [ 512, 512 ]    
+    # removed part radius range
+    radius_range = [0.01, 0.1]
+    # removed part removed vertices range
+    remove_range = [0.01, 0.1]
+    # removed part unit, can be 'scale' for object scale or 'voxel' for voxel size.
+    unit = 'scale'
+    # if showing preview
+    interactive = false    
 [settings]
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'

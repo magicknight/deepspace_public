@@ -319,6 +319,9 @@ class GanAgent(BaseAgent):
             self.optimizer_dis.load_state_dict(checkpoint['optimizer_dis'])
             logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
                         .format(config.swap.checkpoint_dir, checkpoint['epoch'], checkpoint['iteration']))
+            # checkpoint_2 = torch.load('/home/zhihua/data/work_space/defect_gan_train_on_astra_dataset/checkpoints/checkpoint.pth.tar')
+            # self.discriminator.load_state_dict(checkpoint_2['dis_state_dict'])
+
         except OSError as e:
             logger.info("No checkpoint exists from '{}'. Skipping...".format(config.swap.checkpoint_dir))
             logger.info("**First time to train**")

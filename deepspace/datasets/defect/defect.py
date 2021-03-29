@@ -56,6 +56,7 @@ def get_paths(mode):
     nomral_images_path = list(config.swap[mode].normal.glob('**/*.' + config.settings.data_format))
     defect_images_path = list(config.swap[mode].defect.glob('**/*.' + config.settings.data_format))
     ground_truth_images_path = list(config.swap[mode].ground_truth.glob('**/*.' + config.settings.data_format))
+    print(len(nomral_images_path), len(defect_images_path), len(ground_truth_images_path))
 
     return nomral_images_path, defect_images_path, ground_truth_images_path
 

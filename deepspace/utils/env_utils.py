@@ -11,6 +11,8 @@ import numpy as np
 resize = transforms.Compose([transforms.ToPILImage(),
                              transforms.Resize(40, interpolation=Image.CUBIC),
                              transforms.ToTensor()])
+
+
 class CartPoleEnv:
     def __init__(self, screen_width):
         super().__init__()

@@ -27,14 +27,15 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "train on normal",
+            "name": "dqn",
             "args": [
-                "configs/toml/defect/defect_detection_train_normal_images.toml"
+                "--config",
+                "configs/toml/reinforcement/dqn.toml"
             ],
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
-        }
+        },
     ]
 }

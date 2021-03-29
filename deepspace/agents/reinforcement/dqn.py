@@ -41,7 +41,7 @@ class DQNAgent(BaseAgent):
         self.optim = torch.optim.RMSprop(self.policy_model.parameters())
 
         # define environment
-        self.env = gym.make('CartPole-v0').unwrapped
+        self.env = gym.make('deepspace.environments:xray-v0', num_ads=10, time_series_frequency=1000).unwrapped
         self.cartpole = CartPoleEnv(config.settings.screen_width)
 
         # initialize counter
