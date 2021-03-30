@@ -30,6 +30,11 @@
     unit = 'scale'
     # if showing preview
     interactive = false    
+    # detection model
+    model_path = '/home/zhihua/data/work_space/defect_gan_train_on_astra_dataset/checkpoints/20_checkpoint.pth.tar'
+    # defect detection threshold, image threshold is the range of the image and area threshold is the cut on area of defect 
+    image_threshold = [0.2, 0.8]
+    area_threshold = 500    
 [settings]
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
@@ -88,9 +93,6 @@
     mode = 'metrics'
     # save ouput on first n images during validation, should be smaller than batch size
     save_images = [0, 10]
-    # defect detection threshold, image threshold is the range of the image and area threshold is the cut on area of defect 
-    image_threshold = [0.2, 0.8]
-    area_threshold = 500
     # noise level for metrics
     gaussian_noise = true
     gaussian_mean = 0

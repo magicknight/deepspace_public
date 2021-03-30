@@ -4,8 +4,8 @@ from gym.envs.registration import register
 
 
 register(
-    id='xray-v0',
-    entry_point='deepspace.environments.xray.xray:XRay',
+    id='detection-v0',
+    entry_point='deepspace.environments.xray.detection:Detection',
     max_episode_steps=1000,
     reward_threshold=1.0,
     nondeterministic=True,

@@ -1,149 +1,105 @@
-"""
-X-Ray evironment for deep reinforcemnet
-"""
-
-import gym
-from gym import logger, spaces
-from gym.utils import seeding
-
 import numpy as np
+import trimesh
+from scipy.spatial.transform import Rotation as R
 
-import matplotlib
-import matplotlib.pyplot as plt
+from deepspace.config.config import config, logger
 
-from deepspace.environments.xray.projection import projections
+from dxray.astra.projection import project
+from dxray.astra.utils import fix_mesh
+from dxray.astra.modify import random_break
 
-matplotlib.rcParams['toolbar'] = 'None'
 
+class Astra:
+    """Astra simulation for mesh projection
+    """
 
-class XRay(gym.Env):
-    metadata = {
-        'render.modes': ['human']
-    }
+    def __init__(self, max_projections=3, resolution=(512, 512)) -> None:
+        self._angle = self.init_angle()
+        self._projections = np.zeros(self.shape)
+        self._current_projection = 0
+        self.shape = (max_projections) + resolution
+        self.max_projections = max_projections
+        self.resolution = resolution
+        self._mesh = self.load_mesh()
+        self.broken_mesh = None
+        self.init_break()
 
-    def __init__(self, number_of_projections=3, resolution=(512, 512)):
-        self.projections = projections(number_of_projections, resolution)
+    @property
+    def mesh(self):
+        return self._mesh
 
-        # Initial state (can be reset later)
-        ads = [Ad(i) for i in range(num_ads)]
-        clicks = 0
-        impressions = 0
-        self.state = (ads, impressions, clicks)
-        self.ctr_time_series = []
+    @mesh.setter
+    def mesh(self, new_mesh):
+        self._mesh = new_mesh
 
-        # Environment OpenAI metadata
-        self.reward_range = (0, 1)
-        self.action_space = spaces.Discrete(num_ads)  # index of the selected ad
-        self.observation_space = spaces.Box(low=0.0, high=np.inf, shape=(2, num_ads), dtype=np.float)  # clicks and impressions, for each ad
+    @property
+    def projections(self):
+        return self._projections
 
-    def seed(self, seed=None):  # pragma: no cover
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+    @property
+    def current_projection(self):
+        return self._current_projection
 
-    def step(self, action):
-        ads, impressions, clicks = self.state
+    @property
+    def quaternion(self):
+        # transfer the angles into quaterions
+        return R.from_euler('yxz', self.angle, degrees=True).as_quat()
 
-        # Update clicks (if any)
-        reward = self.draw_click(action)
-        if reward == 1:
-            clicks += 1
-            ads[action].clicks += 1
+    def reset(self) -> None:
+        self._current_projection = 0
+        self._projections = np.zeros(self.shape)
+        # project once
+        self.angle = self.init_angles()
+        self.project()
 
-        # Update impressions
-        ads[action].impressions += 1
-        impressions += 1
+    def project(self):
+        this_projection = project(self.mesh, angles=[self.quaternion], heights=None, settings=config.environment)
+        self._projections[self._current_projection] = this_projection
+        self._current_projection += 1
 
-        # Update the ctr time series (for rendering)
-        if impressions % self.time_series_frequency == 0:
-            ctr = 0.0 if impressions == 0 else float(clicks / impressions)
-            self.ctr_time_series.append(ctr)
+    def init_break(self):
+        settings = config.environment
+        # calculate for the position and radius of the defect
+        mesh_min = self._mesh.vertices.min(axis=0)
+        mesh_max = self._mesh.vertices.max(axis=0)
+        if settings.unit == 'scale':
+            config.swap.center_range = [[mesh_min[i], mesh_max[i]] for i in range(3)]
+            if 'radius_range' in settings:
+                config.swap.radius_range = (self._mesh.scale * settings.radius_range[0], self._mesh.scale * settings.radius_range[1])
+            else:
+                config.swap.radius_range = (self._mesh.scale * 0.01, self._mesh.scale * 0.1)
+            if 'remove_range' in settings:
+                config.swap.remove_range = (self._mesh.vertices.shape[0] * settings.remove_range[0], self._mesh.vertices.shape[0] * settings.remove_range[1])
+            else:
+                config.swap.remove_range = (self._mesh.vertices.shape[0] * 0.01, self._mesh.vertices.shape[0] * 0.1)
+        elif settings.unit == 'voxel':
+            config.swap.center_range = [[mesh_min[i], mesh_max[i]] for i in range(3)]
+            if 'radius_range' in settings:
+                config.swap.radius_range = (settings.radius_range[0], settings.radius_range[1])
+            else:
+                config.swap.radius_range = (self._mesh.scale * 0.01, self._mesh.scale * 0.1)
+            if 'remove_range' in settings:
+                config.swap.remove_range = (settings.remove_range[0], settings.remove_range[1])
+            else:
+                config.swap.remove_range = (self._mesh.vertices.shape[0] * 0.01, self._mesh.vertices.shape[0] * 0.1)
+        config.swap.get_removed_part = True
 
-        self.state = (ads, impressions, clicks)
+    def break(self):
+        defect_mesh, vertices_mask, face_mask, removed_mesh = random_break(self._mesh)
+        self.broken_mesh = defect_mesh
 
-        return self.state, reward, False, {}
+    @staticmethod
+    def load_mesh():
+        # load mesh, fix watertight if necessery
+        mesh = trimesh.load(config.settings.mesh_file_path)
+        if not config.settings.watertight_cad:
+            # fix mesh to water tight
+            mesh = fix_mesh(mesh)
+        return mesh
 
-    def reset(self):
-        # reset image arrays to 0
-
-        ads = [Ad(i) for i in range(self.num_ads)]
-        clicks = 0
-        impressions = 0
-        self.state = (ads, impressions, clicks)
-        self.ctr_time_series = []
-        return self.state
-
-    def render(self, mode='human', freeze=False, output_file=None):  # pragma: no cover
-        if mode != 'human':
-            raise NotImplementedError
-
-        ads, impressions, clicks = self.state
-        ctr = 0.0 if impressions == 0 else float(clicks / impressions)
-
-        logger.info('Scenario: {}, Impressions: {}, CTR: {}, Ads: {}'.format(self.scenario_name, impressions, ctr, ads))
-
-        fig = plt.figure(num=self.scenario_name, figsize=(9, 6))
-        grid_size = (5, 2)
-
-        # Plot CTR time series
-        plt.subplot2grid(grid_size, (0, 0), rowspan=2, colspan=2)
-        x = [i for i, _ in enumerate(self.ctr_time_series)]
-        y = self.ctr_time_series
-        axes = plt.gca()
-        axes.set_ylim([0, None])
-        plt.xticks(x, [(i + 1) * self.time_series_frequency for i, _ in enumerate(x)])
-        plt.ylabel("CTR")
-        plt.xlabel("Impressions")
-        plt.plot(x, y, marker='o')
-        for x, y in zip(x, y):
-            plt.annotate("{:.2f}".format(y), (x, y), textcoords="offset points", xytext=(0, 10), ha='center')
-
-        # Plot impressions
-        plt.subplot2grid(grid_size, (2, 0), rowspan=3, colspan=1)
-        x = [ad.id for ad in ads]
-        impressions = [ad.impressions for ad in ads]
-        x_pos = [i for i, _ in enumerate(x)]
-        plt.barh(x_pos, impressions)
-        plt.ylabel("Ads")
-        plt.xlabel("Impressions")
-        plt.yticks(x_pos, x)
-
-        # Plot CTRs and probabilities
-        plt.subplot2grid(grid_size, (2, 1), rowspan=3, colspan=1)
-        x = [ad.id for ad in ads]
-        y = [ad.ctr() for ad in ads]
-        y_2 = self.click_probabilities
-        x_pos = [i for i, _ in enumerate(x)]
-        x_pos_2 = [i + 0.4 for i, _ in enumerate(x)]
-        plt.ylabel("Ads")
-        plt.xlabel("")
-        plt.yticks(x_pos, x)
-        plt.barh(x_pos, y, 0.4, label='Actual CTR')
-        plt.barh(x_pos_2, y_2, 0.4, label='Probability')
-        plt.legend(loc='upper right')
-
-        plt.tight_layout()
-
-        if output_file is not None:
-            fig.savefig(output_file)
-
-        if freeze:
-            # Keep the plot window open
-            # https://stackoverflow.com/questions/13975756/keep-a-figure-on-hold-after-running-a-script
-            if matplotlib.is_interactive():
-                plt.ioff()
-            plt.show(block=True)
-        else:
-            plt.show(block=False)
-            plt.pause(0.001)
-
-    def draw_click(self, action):
-        if self.reward_policy is not None:
-            return self.reward_policy(action)
-
-        if self.click_probabilities is None:
-            self.click_probabilities = [self.np_random.uniform() * 0.5 for i in range(self.num_ads)]
-
-        return 1 if self.np_random.uniform() <= self.click_probabilities[action] else 0
-
-    def close(self):
-        plt.close()
+    @staticmethod
+    def init_angle():
+        angles = np.random.rand(3)
+        # scale the random number into ranges on each direction
+        angles = [angles[index] * (config.environment.angle_range[index][1] - config.environment.angle_range[index][0]) + config.environment.angle_range[index][0] for index in range(3)]
+        return angles
