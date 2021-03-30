@@ -14,15 +14,18 @@ class Astra:
     """
 
     def __init__(self, max_projections=3, resolution=(512, 512)) -> None:
-        self._angle = self.init_angle()
-        self._projections = np.zeros(self.shape)
-        self._current_projection = 0
+        # self._angle = self.init_angle()
+        # self._projections = np.zeros(self.shape)
+        # self._current_projection = 0
+        # self.broken_mesh = None
+
         self.shape = (max_projections) + resolution
         self.max_projections = max_projections
         self.resolution = resolution
         self._mesh = self.load_mesh()
-        self.broken_mesh = None
+
         self.init_break()
+        self.reset()
 
     @property
     def mesh(self):
@@ -41,21 +44,31 @@ class Astra:
         return self._current_projection
 
     @property
+    def angle(self):
+        return self._angle
+
+    @property
     def quaternion(self):
         # transfer the angles into quaterions
         return R.from_euler('yxz', self.angle, degrees=True).as_quat()
 
     def reset(self) -> None:
+        self.angle = self.init_angles()
         self._current_projection = 0
         self._projections = np.zeros(self.shape)
+        self.broken_mesh = self.mesh
         # project once
-        self.angle = self.init_angles()
+        self.break()
         self.project()
 
     def project(self):
-        this_projection = project(self.mesh, angles=[self.quaternion], heights=None, settings=config.environment)
+        this_projection = project(self.broken_mesh, angles=[self.quaternion], heights=None, settings=config.environment)
         self._projections[self._current_projection] = this_projection
         self._current_projection += 1
+
+    def rotate(self, angle):
+        self._angle += angle
+        self._angle[2] = (self._angle[2] + angle) % config.environment.angle_range[2][1]
 
     def init_break(self):
         settings = config.environment

@@ -27,15 +27,16 @@ class Detection(gym.Env):
     }
 
     def __init__(self, max_projections=3, resolution=(512, 512)):
+        self.max_step = max_projections
+        self.resolution = resolution
         self.current_step = 0
         self.projector = Astra(max_projections, resolution)
-        # do the projection
-        self.projector.project(self.angle)
         # Initial state (can be reset later)
         self.detected = False
         self.state = (self.projector.projections, self.detected)
 
-        self.reward_range = (0, 10)
+        self.reward_range = (0, 1)
+        self.reward = 0
         angle_range = np.array(config.environment.angle_range)
         # self.action_space = spaces.Box(low=angle_range[:, 0], high=angle_range[:, 1], )  # in real life the parameter selection model may not be able to select exactly angles.
         self.action_space = spaces.Box(low=angle_range[2, 0], high=angle_range[2, 1], shape=(1, ))  # select rotate x degree from current position
@@ -53,33 +54,35 @@ class Detection(gym.Env):
         return [seed]
 
     def step(self, action):
+        # change projector angle
+        self.projector.rotate(action)
+        # projection
+        self.projector.project()
         # update detect status
-
-        reward = self.draw_click(action)
-        if reward == 1:
-            clicks += 1
-            ads[action].clicks += 1
-
-        # Update impressions
-        ads[action].impressions += 1
-        impressions += 1
-
-        # Update the ctr time series (for rendering)
-        if impressions % self.time_series_frequency == 0:
-            ctr = 0.0 if impressions == 0 else float(clicks / impressions)
-            self.ctr_time_series.append(ctr)
-
-        self.state = (ads, impressions, clicks)
-
-        return self.state, reward, False, {}
+        self.detect()
+        # update reward
+        self.reward_policy()
+        # update step count
+        self.step += 1
+        # update state
+        self.state = (self.projector.projections, self.detected)
+        # done or not
+        is_done = self.step >= self.max_step
+        return self.state, self.reward, is_done, {}
 
     def reset(self):
-        # reset image arrays to 0
-        self.projector.reset()
+        while True:
+            # reset image arrays to 0
+            self.current_step = 0
+            self.projector.reset()
+            self.detect()
+            if self.detected:
+                continue
+            else:
+                break
         self.detected = False
+        self.reward_policy()
         self.state = (self.projector.projections, self.detected)
-        self.angle = self.init_angles()
-        self.current_step = 0
         return self.state
 
     def render(self, mode='human', angle=None):
@@ -121,6 +124,9 @@ class Detection(gym.Env):
         diff_image = diff_image.squeeze()
         detect_area = torch.sum(diff_image, (0, 1))
         self.detected = detect_area > config.environment.area_threshold
+
+    def reward_policy(self):
+        self.reward = 1 if self.detected else 0
 
     def close(self):
         plt.close()
