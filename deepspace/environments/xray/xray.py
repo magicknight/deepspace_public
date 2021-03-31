@@ -1,3 +1,6 @@
+"""
+X-Ray evironment for deep reinforcemnet
+"""
 import numpy as np
 import trimesh
 from scipy.spatial.transform import Rotation as R
@@ -19,7 +22,7 @@ class Astra:
         # self._current_projection = 0
         # self.broken_mesh = None
 
-        self.shape = (max_projections) + resolution
+        self.shape = (max_projections, ) + resolution
         self.max_projections = max_projections
         self.resolution = resolution
         self._mesh = self.load_mesh()
@@ -47,18 +50,22 @@ class Astra:
     def angle(self):
         return self._angle
 
+    @angle.setter
+    def angle(self, new_angle):
+        self._angle = new_angle
+
     @property
     def quaternion(self):
         # transfer the angles into quaterions
         return R.from_euler('yxz', self.angle, degrees=True).as_quat()
 
     def reset(self) -> None:
-        self.angle = self.init_angles()
+        self.angle = self.init_angle()
         self._current_projection = 0
         self._projections = np.zeros(self.shape)
         self.broken_mesh = self.mesh
         # project once
-        self.break()
+        self.break_mesh()
         self.project()
 
     def project(self):
@@ -75,6 +82,7 @@ class Astra:
         # calculate for the position and radius of the defect
         mesh_min = self._mesh.vertices.min(axis=0)
         mesh_max = self._mesh.vertices.max(axis=0)
+        config.swap = {}
         if settings.unit == 'scale':
             config.swap.center_range = [[mesh_min[i], mesh_max[i]] for i in range(3)]
             if 'radius_range' in settings:
@@ -97,15 +105,16 @@ class Astra:
                 config.swap.remove_range = (self._mesh.vertices.shape[0] * 0.01, self._mesh.vertices.shape[0] * 0.1)
         config.swap.get_removed_part = True
 
-    def break(self):
-        defect_mesh, vertices_mask, face_mask, removed_mesh = random_break(self._mesh)
+    def break_mesh(self):
+        config.environment.swap = config.swap
+        defect_mesh, vertices_mask, face_mask, removed_mesh = random_break(self._mesh, config.environment)
         self.broken_mesh = defect_mesh
 
     @staticmethod
     def load_mesh():
         # load mesh, fix watertight if necessery
         mesh = trimesh.load(config.settings.mesh_file_path)
-        if not config.settings.watertight_cad:
+        if not config.environment.watertight_cad:
             # fix mesh to water tight
             mesh = fix_mesh(mesh)
         return mesh

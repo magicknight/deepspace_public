@@ -1,5 +1,5 @@
 """
-X-Ray evironment for deep reinforcemnet
+detection evironment for deep reinforcemnet
 """
 import torch
 
@@ -88,15 +88,6 @@ class Detection(gym.Env):
     def render(self, mode='human', angle=None):
         if mode == 'human':
             self.viewer.imshow(self.projector.projections[self.current_step])
-
-    def draw_click(self, action):
-        if self.reward_policy is not None:
-            return self.reward_policy(action)
-
-        if self.click_probabilities is None:
-            self.click_probabilities = [self.np_random.uniform() * 0.5 for i in range(self.num_ads)]
-
-        return 1 if self.np_random.uniform() <= self.click_probabilities[action] else 0
 
     def load_model(self) -> None:
         """

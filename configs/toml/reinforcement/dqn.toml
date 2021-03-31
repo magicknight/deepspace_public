@@ -35,6 +35,8 @@
     # defect detection threshold, image threshold is the range of the image and area threshold is the cut on area of defect 
     image_threshold = [0.2, 0.8]
     area_threshold = 500    
+    # max steps per episode
+    max_step = 3
 [settings]
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
@@ -57,8 +59,8 @@
     eps_end = 0.05
     eps_decay = 200
     target_update = 10
-    num_classes = 2
-    memory_capacity = 10_000
+    num_classes = 1
+    memory_capacity = 1000
     num_episodes = 50
     screen_width = 600
     # model parameters
@@ -97,6 +99,12 @@
     gaussian_noise = true
     gaussian_mean = 0
     gaussian_std = 0.1
-
+    # gan model parameters
+    num_filt_g = 64
+    num_filt_d = 64
+    relu_slope = 0.2
+    latent_space_size = 1024
+    # channels
+    image_channels = 1
 
 

@@ -19,7 +19,7 @@
 # gan
 # python3 main.py --config configs/toml/defect/defect_gan.toml
 # gan & projector
-python3 main.py --config configs/toml/defect/defect_gan_projector.toml
+# python3 main.py --config configs/toml/defect/defect_gan_projector.toml
 
 # wp8 
 # python3 main.py --config configs/toml/defect/wp8_autoencoder_same_data.toml
@@ -29,3 +29,4 @@ python3 main.py --config configs/toml/defect/defect_gan_projector.toml
 
 # dqn
 # python3 main.py --config configs/toml/reinforcement/dqn.toml
+python3 main.py --config configs/toml/defect/metrics_dqn.toml

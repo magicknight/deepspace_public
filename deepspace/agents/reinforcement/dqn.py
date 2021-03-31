@@ -14,8 +14,6 @@ from tqdm import tqdm
 from deepspace.agents.base import BaseAgent
 from deepspace.graphs.losses.huber_loss import HuberLoss
 from deepspace.graphs.models.reinforcement.dqn import DQN
-from deepspace.utils.env_utils import CartPoleEnv
-from deepspace.utils.misc import print_cuda_statistics
 from deepspace.utils.replay_memory import ReplayMemory, Transition
 from deepspace.config.config import config, logger
 from deepspace.utils.train_utils import get_device
@@ -41,13 +39,15 @@ class DQNAgent(BaseAgent):
         self.optim = torch.optim.RMSprop(self.policy_model.parameters())
 
         # define environment
-        self.env = gym.make('deepspace.environments:xray-v0', num_ads=10, time_series_frequency=1000).unwrapped
-        self.cartpole = CartPoleEnv(config.settings.screen_width)
+        self.env = gym.make('deepspace.environments:detection-v0', max_projections=config.environment.max_step, resolution=tuple(config.environment.resolution)).unwrapped
 
         # initialize counter
         self.current_episode = 0
         self.current_iteration = 0
         self.episode_durations = []
+
+        # Model Loading from the latest checkpoint if not found start from scratch.
+        self.load_checkpoint()
 
         self.policy_model = self.policy_model.to(self.device)
         self.target_model = self.target_model.to(self.device)
@@ -178,6 +178,7 @@ class DQNAgent(BaseAgent):
 
         self.env.render()
         self.env.close()
+        self.save_checkpoint(config.settings.checkpoint_file)
 
     def train_one_epoch(self):
         """
