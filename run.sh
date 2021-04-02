@@ -28,5 +28,5 @@
 
 
 # dqn
-# python3 main.py --config configs/toml/reinforcement/dqn.toml
-python3 main.py --config configs/toml/defect/metrics_dqn.toml
+python3 main.py --config configs/toml/reinforcement/dqn.toml
+# python3 main.py --config configs/toml/defect/metrics_dqn.toml

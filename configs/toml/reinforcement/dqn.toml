@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'dqn'
+    name = 'dqn_xray'
     author = 'Zhihua Liang'
     discription = 'Defect detection for POL 2020, reinforcement model'
 [environment]
@@ -47,7 +47,7 @@
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
     # retry times to break the object
-    gpu_device = 0
+    gpu_device = 1
     # angle range
     batch_size = 32
     # random seed
