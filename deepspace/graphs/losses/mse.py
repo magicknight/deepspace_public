@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.nn import MSELoss
 
 from deepspace.utils.data import make_masks_tensor
-from deepspace.config.config import config
+from commontools.setup import config, logger
 
 
 class MaskLoss(MSELoss):

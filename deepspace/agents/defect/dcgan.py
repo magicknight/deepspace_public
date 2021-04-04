@@ -19,7 +19,7 @@ from deepspace.graphs.losses.bce import BinaryCrossEntropy
 from deepspace.datasets.celebA import CelebADataLoader
 from deepspace.utils.metrics import AverageMeter, AverageMeterList
 from deepspace.utils.misc import print_cuda_statistics
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 from tensorboardX import SummaryWriter
 

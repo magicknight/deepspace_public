@@ -71,7 +71,7 @@ This framework is providing a series of tutorials to get your started
 This is to ensure that our proposed project structure is compatible with different problems and can handle all the variations related to any of them.
 
 ### Repo Structure:
-After adding all our examples, the repo has the following structure:
+the repo has the following structure:
 ```
 |-- tutorials/
 |-- test/
@@ -130,4 +130,4 @@ tensorboardX==2.1
 We are planning to add project examples into our template to include various categories of problems. 
 
 ### License:
-This project is licensed under MIT License - see the LICENSE file for details
+TBD

@@ -4,7 +4,7 @@ from torch.backends import cudnn
 from torch.autograd import Variable
 import math
 
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 from deepspace.utils.misc import print_cuda_statistics
 
 """
@@ -26,20 +26,20 @@ def adjust_learning_rate(optimizer, epoch, config, batch=None, nBatch=None, meth
 
 
 def get_device():
-    use_cuda = config.settings.device == 'gpu'
+    use_cuda = config.deepspace.device == 'gpu'
     is_cuda = torch.cuda.is_available()
     if is_cuda and not use_cuda:
         logger.warn("You have a CUDA device, so you should probably enable CUDA!")
     cuda = is_cuda and use_cuda
     # set the manual seed for torch
     if cuda:
-        torch.cuda.manual_seed_all(config.settings.seed)
+        torch.cuda.manual_seed_all(config.deepspace.seed)
         device = torch.device("cuda")
-        torch.cuda.set_device(config.settings.gpu_device)
+        torch.cuda.set_device(config.deepspace.gpu_device)
         logger.info("Program will run on *****GPU-CUDA***** ")
         print_cuda_statistics()
     else:
         device = torch.device("cpu")
-        torch.manual_seed(config.settings.seed)
+        torch.manual_seed(config.deepspace.seed)
         logger.info("Program will run on *****CPU*****\n")
     return device

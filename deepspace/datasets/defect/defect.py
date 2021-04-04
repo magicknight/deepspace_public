@@ -8,7 +8,7 @@ from pathlib import Path
 import torchvision.transforms as standard_transforms
 
 from deepspace.utils.data import AddGaussianNoise
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 
 def get_paths(mode):
@@ -23,7 +23,7 @@ def get_paths(mode):
     Returns:
         list: items list, and masks list if in test mode
     """
-    root = Path(config.settings.dataset_root)
+    root = Path(config.deepspace.dataset_root)
     # train directory
     config.swap.train = {}
     config.swap.train.root = root / 'train'
@@ -48,14 +48,14 @@ def get_paths(mode):
     config.swap.metrics.images = root / 'metrics' / 'images'
     config.swap.metrics.ground_truth = root / 'metrics' / 'ground_truth'
 
-    if config.settings.mode == 'metrics':
-        image_paths = list(config.swap[mode].images.glob('**/*.' + config.settings.data_format))
-        ground_truth_paths = list(config.swap[mode].ground_truth.glob('**/*.' + config.settings.data_format))
+    if config.deepspace.mode == 'metrics':
+        image_paths = list(config.swap[mode].images.glob('**/*.' + config.deepspace.data_format))
+        ground_truth_paths = list(config.swap[mode].ground_truth.glob('**/*.' + config.deepspace.data_format))
         return image_paths, ground_truth_paths
 
-    nomral_images_path = list(config.swap[mode].normal.glob('**/*.' + config.settings.data_format))
-    defect_images_path = list(config.swap[mode].defect.glob('**/*.' + config.settings.data_format))
-    ground_truth_images_path = list(config.swap[mode].ground_truth.glob('**/*.' + config.settings.data_format))
+    nomral_images_path = list(config.swap[mode].normal.glob('**/*.' + config.deepspace.data_format))
+    defect_images_path = list(config.swap[mode].defect.glob('**/*.' + config.deepspace.data_format))
+    ground_truth_images_path = list(config.swap[mode].ground_truth.glob('**/*.' + config.deepspace.data_format))
     print(len(nomral_images_path), len(defect_images_path), len(ground_truth_images_path))
 
     return nomral_images_path, defect_images_path, ground_truth_images_path
@@ -131,7 +131,7 @@ class DefectImages:
         if self.transform is not None:
             defect_image = self.transform(defect_image)
             normal_image = self.transform(normal_image)
-        if config.settings.mode == 'test':
+        if config.deepspace.mode == 'test':
             # for test mode we will get ground truth to calculate metrics
             ground_truth_image_path = config.swap[self.mode].ground_truth / defect_image_path.parent.name / defect_image_path.name
             ground_truth_image = imageio.imread(ground_truth_image_path)
@@ -148,39 +148,39 @@ class DefectImages:
 
 class DefectDataLoader:
     def __init__(self):
-        assert config.settings.mode in ['train', 'test', 'metrics']
+        assert config.deepspace.mode in ['train', 'test', 'metrics']
         # transforms
         this_transform = [
             standard_transforms.ToTensor(),
         ]
-        if config.settings.gaussian_noise:
-            this_transform.append(AddGaussianNoise(config.settings.gaussian_mean, config.settings.gaussian_std))
+        if config.deepspace.gaussian_noise:
+            this_transform.append(AddGaussianNoise(config.deepspace.gaussian_mean, config.deepspace.gaussian_std))
         self.input_transform = standard_transforms.Compose(this_transform)
 
-        if config.settings.mode == 'train':
+        if config.deepspace.mode == 'train':
             # training needs train dataset and validate dataset
             train_set = DefectImages('train', transform=self.input_transform)
             valid_set = DefectImages('validate', transform=self.input_transform)
-            self.train_loader = DataLoader(train_set, batch_size=config.settings.batch_size, shuffle=True,
-                                           num_workers=config.settings.data_loader_workers)
-            self.valid_loader = DataLoader(valid_set, batch_size=config.settings.batch_size, shuffle=False,
-                                           num_workers=config.settings.data_loader_workers)
-            self.train_iterations = (len(train_set) + config.settings.batch_size) // config.settings.batch_size
-            self.valid_iterations = (len(valid_set) + config.settings.batch_size) // config.settings.batch_size
+            self.train_loader = DataLoader(train_set, batch_size=config.deepspace.batch_size, shuffle=True,
+                                           num_workers=config.deepspace.data_loader_workers)
+            self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.batch_size, shuffle=False,
+                                           num_workers=config.deepspace.data_loader_workers)
+            self.train_iterations = (len(train_set) + config.deepspace.batch_size) // config.deepspace.batch_size
+            self.valid_iterations = (len(valid_set) + config.deepspace.batch_size) // config.deepspace.batch_size
 
-        elif config.settings.mode == 'test':
+        elif config.deepspace.mode == 'test':
             test_set = DefectImages('test', transform=self.input_transform)
 
-            self.test_loader = DataLoader(test_set, batch_size=config.settings.batch_size, shuffle=False,
-                                          num_workers=config.settings.data_loader_workers)
-            self.test_iterations = (len(test_set) + config.settings.batch_size) // config.settings.batch_size
+            self.test_loader = DataLoader(test_set, batch_size=config.deepspace.batch_size, shuffle=False,
+                                          num_workers=config.deepspace.data_loader_workers)
+            self.test_iterations = (len(test_set) + config.deepspace.batch_size) // config.deepspace.batch_size
 
-        elif config.settings.mode == 'metrics':
+        elif config.deepspace.mode == 'metrics':
             metrics_set = MetricsImages('metrics', transform=self.input_transform)
 
-            self.metrics_loader = DataLoader(metrics_set, batch_size=config.settings.batch_size, shuffle=False,
-                                             num_workers=config.settings.data_loader_workers)
-            self.metrics_iterations = (len(metrics_set) + config.settings.batch_size) // config.settings.batch_size
+            self.metrics_loader = DataLoader(metrics_set, batch_size=config.deepspace.batch_size, shuffle=False,
+                                             num_workers=config.deepspace.data_loader_workers)
+            self.metrics_iterations = (len(metrics_set) + config.deepspace.batch_size) // config.deepspace.batch_size
 
         else:
             raise Exception('Please choose a proper mode for data loading')

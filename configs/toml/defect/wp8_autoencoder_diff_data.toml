@@ -3,9 +3,9 @@
     name = 'wp8_defect_detection'
     author = 'Zhihua Liang'
     discription = 'Defect detection for wp8 flanders maker'
-[settings]
     # root directory of the project (for saveing logs, models, temp files, etc...)
-    project_root = '/home/zhihua/data/work_space'
+    project_root = '/home/zhihua/data/work_space'    
+[deepspace]
     # root directory of the dataset
     # dataset_root = '/home/zhihua/data/anomaly/wp8/cy19_aligned_781x781x793_uint16_png'
     dataset_root = '/home/zhihua/data/anomaly/wp8/cy18_png'

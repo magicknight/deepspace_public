@@ -8,12 +8,12 @@ Main
 -Run the agent
 """
 import importlib
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 
 def main():
     # Create the Agent then run it..
-    mod_name, func_name = config.settings.agent.rsplit('.', 1)
+    mod_name, func_name = config.deepspace.agent.rsplit('.', 1)
     mod = importlib.import_module(mod_name)
     agent = getattr(mod, func_name)()
     agent.run()

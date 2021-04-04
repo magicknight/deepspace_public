@@ -1,5 +1,5 @@
 import time
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 
 def timeit(f):

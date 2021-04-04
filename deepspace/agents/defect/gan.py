@@ -20,7 +20,7 @@ from deepspace.utils.dirs import create_dirs
 from deepspace.utils.data import to_uint8, save_images, make_heatmaps, make_masks
 from deepspace.utils.metrics import evaluate_decision
 
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 
 class GanAgent(BaseAgent):
@@ -36,19 +36,19 @@ class GanAgent(BaseAgent):
         # Create instance from the optimizer
         self.optimizer_gen = torch.optim.Adam(
             self.generator.parameters(),
-            lr=config.settings.learning_rate if 'learning_rate' in config.settings else 1e-3,
-            betas=config.settings.betas if 'betas' in config.settings else [0.9, 0.999],
-            eps=config.settings.eps if 'eps' in config.settings else 1e-8,
-            weight_decay=config.settings.weight_decay if 'weight_decay' in config.settings else 1e-5)
+            lr=config.deepspace.learning_rate if 'learning_rate' in config.deepspace else 1e-3,
+            betas=config.deepspace.betas if 'betas' in config.deepspace else [0.9, 0.999],
+            eps=config.deepspace.eps if 'eps' in config.deepspace else 1e-8,
+            weight_decay=config.deepspace.weight_decay if 'weight_decay' in config.deepspace else 1e-5)
         self.optimizer_dis = torch.optim.Adam(
             self.discriminator.parameters(),
-            lr=config.settings.learning_rate if 'learning_rate' in config.settings else 1e-3,
-            betas=config.settings.betas if 'betas' in config.settings else [0.9, 0.999],
-            eps=config.settings.eps if 'eps' in config.settings else 1e-8,
-            weight_decay=config.settings.weight_decay if 'weight_decay' in config.settings else 1e-5)
+            lr=config.deepspace.learning_rate if 'learning_rate' in config.deepspace else 1e-3,
+            betas=config.deepspace.betas if 'betas' in config.deepspace else [0.9, 0.999],
+            eps=config.deepspace.eps if 'eps' in config.deepspace else 1e-8,
+            weight_decay=config.deepspace.weight_decay if 'weight_decay' in config.deepspace else 1e-5)
 
         # Define Scheduler
-        def lambda1(epoch): return pow(1 - epoch / config.settings.max_epoch, 0.9)
+        def lambda1(epoch): return pow(1 - epoch / config.deepspace.max_epoch, 0.9)
         self.scheduler_gen = lr_scheduler.LambdaLR(self.optimizer_gen, lr_lambda=lambda1)
         self.scheduler_dis = lr_scheduler.LambdaLR(self.optimizer_dis, lr_lambda=lambda1)
 
@@ -74,15 +74,15 @@ class GanAgent(BaseAgent):
         self.load_checkpoint()
 
         with torch.no_grad():
-            self.real_labels = torch.FloatTensor(config.settings.batch_size).fill_(1).to(self.device)
-            self.fake_labels = torch.FloatTensor(config.settings.batch_size).fill_(0).to(self.device)
+            self.real_labels = torch.FloatTensor(config.deepspace.batch_size).fill_(1).to(self.device)
+            self.fake_labels = torch.FloatTensor(config.deepspace.batch_size).fill_(0).to(self.device)
 
     def train(self):
         """
         Main training loop
         :return:
         """
-        for epoch in tqdm(range(self.current_epoch, config.settings.max_epoch), desc="traing at -{}-, total epoches -{}-".format(self.current_epoch, config.settings.max_epoch)):
+        for epoch in tqdm(range(self.current_epoch, config.deepspace.max_epoch), desc="traing at -{}-, total epoches -{}-".format(self.current_epoch, config.deepspace.max_epoch)):
             self.current_epoch = epoch
             gen_loss, dis_loss = self.train_one_epoch()
             # ssim_score = self.validate()
@@ -94,7 +94,7 @@ class GanAgent(BaseAgent):
                 self.gen_best_metric = gen_loss
             if dis_loss < self.dis_best_metric:
                 self.dis_best_metric = dis_loss
-            self.save_checkpoint(config.settings.checkpoint_file,  is_best=is_best)
+            self.save_checkpoint(config.deepspace.checkpoint_file,  is_best=is_best)
 
     def train_one_epoch(self):
         """
@@ -152,7 +152,7 @@ class GanAgent(BaseAgent):
             out_labels = self.discriminator(fake_images)
             gen_diss_loss = self.loss(out_labels.squeeze(), self.real_labels[0:defect_images.shape[0]])    # fake labels are real for generator cost
             image_loss = self.image_loss(fake_images, normal_images)
-            gen_loss = (1 - config.settings.image_loss_weight) * gen_diss_loss + config.settings.image_loss_weight * image_loss
+            gen_loss = (1 - config.deepspace.image_loss_weight) * gen_diss_loss + config.deepspace.image_loss_weight * image_loss
             gen_loss.backward()
 
             self.optimizer_gen.step()
@@ -231,8 +231,8 @@ class GanAgent(BaseAgent):
         tqdm_batch = tqdm(self.data_loader.metrics_loader, total=self.data_loader.metrics_iterations, desc="metrics at -{}-".format(self.current_epoch))
         self.generator.eval()
         self.discriminator.eval()
-        self.real_labels = torch.FloatTensor(config.settings.batch_size).fill_(0).to(self.device)
-        self.fake_labels = torch.FloatTensor(config.settings.batch_size).fill_(1).to(self.device)
+        self.real_labels = torch.FloatTensor(config.deepspace.batch_size).fill_(0).to(self.device)
+        self.fake_labels = torch.FloatTensor(config.deepspace.batch_size).fill_(1).to(self.device)
         dis_epoch_loss = AverageMeter()
         dis_epoch_fake_loss = AverageMeter()
         dis_epoch_normal_loss = AverageMeter()
@@ -274,11 +274,11 @@ class GanAgent(BaseAgent):
                 zero_array = torch.zeros_like(test_images)
                 one_array = torch.ones_like(test_images)
                 diff_images = test_images - fake_images
-                diff_images = torch.where(diff_images > config.settings.image_threshold[1], zero_array, diff_images)
-                diff_images = torch.where(diff_images > config.settings.image_threshold[0], one_array, zero_array)
+                diff_images = torch.where(diff_images > config.deepspace.image_threshold[1], zero_array, diff_images)
+                diff_images = torch.where(diff_images > config.deepspace.image_threshold[0], one_array, zero_array)
                 diff_images = diff_images.squeeze()
                 defect_areas = torch.sum(diff_images, (1, 2))
-                defect_labels = (defect_areas > config.settings.area_threshold).type(torch.float)
+                defect_labels = (defect_areas > config.deepspace.area_threshold).type(torch.float)
                 detection_loss = self.loss(defect_labels, labels)
                 detection_epoch_loss.update(detection_loss.item())
 
@@ -306,7 +306,7 @@ class GanAgent(BaseAgent):
         :param file_name: name of the checkpoint file
         :return:
         """
-        file_name = config.swap.checkpoint_dir / config.settings.checkpoint_file
+        file_name = config.swap.checkpoint_dir / config.deepspace.checkpoint_file
         try:
             logger.info("Loading checkpoint '{}'".format(file_name))
             checkpoint = torch.load(file_name)
@@ -344,8 +344,8 @@ class GanAgent(BaseAgent):
         # Save the state
         torch.save(state, config.swap.checkpoint_dir / file_name)
         # backup model on a certain steps
-        if self.current_epoch % config.settings.save_model_step == 0:
-            torch.save(state, config.swap.checkpoint_dir / (str(self.current_epoch) + '_' + config.settings.checkpoint_file))
+        if self.current_epoch % config.deepspace.save_model_step == 0:
+            torch.save(state, config.swap.checkpoint_dir / (str(self.current_epoch) + '_' + config.deepspace.checkpoint_file))
         # If it is the best copy it to another file 'model_best.pth.tar'
         if is_best:
             shutil.copyfile(

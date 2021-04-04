@@ -5,6 +5,8 @@ import logging
 import os
 from toml import dump
 from pathlib import Path
+import torch
+import shutil
 
 
 def save_settings(config, path):
@@ -76,6 +78,49 @@ def show_images(list_of_images, path=None):
             plt.savefig(path, bbox_inches='tight', pad_inches=0)
     plt.show()
     plt.close()
+
+
+def save_checkpoint(state, filename, is_best=False) -> None:
+    """io function for saveing checkpoint during training
+
+    Args:
+        state (dict): a dict contains key and values wanted to be svaed
+        filename (pathlib Path): a path to the checkpoint file
+        is_best (bool, optional): is it the best performance model. Defaults to False.
+    """
+    for key, value in state.items():
+        if '.' in key:
+            name, attr = key.split('.')
+            state[key] = getattr(value, attr)()
+    # state['state_dict'] = {k: v.state_dict() for k, v in state['state_dict'].items()}
+    # Save the state
+    torch.save(state, filename)
+    # If it is the best copy it to another file 'model_best.pth.tar'
+    if is_best:
+        shutil.copyfile(filename, filename.parent / 'model_best.pth.tar')
+
+
+def load_checkpoint(agent, filename) -> None:
+    """an io function to load checkpoint
+
+    Args:
+        agent (deepspace agent): a deepspace agent object
+        filename (pathlib Path): a path to the checkpoint file
+    """
+    checkpoint = torch.load(filename)
+    for key, value in checkpoint.items():
+        if '.' in key:
+            name, attr = key.split('.')
+            agent[name].load_state_dict(value)
+        else:
+            agent[key] = value
+    # for k, v in checkpoint['number'].items():
+    #     agent[k] = v
+    #     # property = getattr(agent, k)
+    #     # property = v
+    # for k, v in checkpoint['state_dict'].items():
+    #     # getattr(agent, k).load_state_dict(v)
+    #     agent[k].load_state_dict(v)
 
 
 if __name__ == '__main__':

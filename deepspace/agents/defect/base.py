@@ -24,7 +24,7 @@ from deepspace.utils.metrics import AverageMeter, AverageMeterList
 from deepspace.utils.data import to_uint8, save_images, make_heatmaps, make_masks
 from deepspace.utils.dirs import create_dirs
 from deepspace.utils.train_utils import get_device
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 cudnn.benchmark = True
 
@@ -40,14 +40,14 @@ class BaseAgent(BaseAgent):
 
         # define models
         # self.model = AutoEncoder(
-        #     C=config.settings.model_c if 'model_c' in config.settings else 128,
-        #     M=config.settings.model_m if 'model_m' in config.settings else 64,
-        #     in_chan=config.settings.image_channels,
-        #     out_chan=config.settings.image_channels)
+        #     C=config.deepspace.model_c if 'model_c' in config.deepspace else 128,
+        #     M=config.deepspace.model_m if 'model_m' in config.deepspace else 64,
+        #     in_chan=config.deepspace.image_channels,
+        #     out_chan=config.deepspace.image_channels)
         # self.model = self.model.to(self.device)
 
         # define loss
-        self.loss = SSIM_Loss(channel=config.settings.image_channels, data_range=1.0, size_average=True)
+        self.loss = SSIM_Loss(channel=config.deepspace.image_channels, data_range=1.0, size_average=True)
         self.loss = self.loss.to(self.device)
 
         # define metrics
@@ -56,13 +56,13 @@ class BaseAgent(BaseAgent):
         # Create instance from the optimizer
         # self.optimizer = torch.optim.Adam(
         #     self.model.parameters(),
-        #     lr=config.settings.learning_rate if 'learning_rate' in config.settings else 1e-3,
-        #     betas=config.settings.betas if 'betas' in config.settings else [0.9, 0.999],
-        #     eps=config.settings.eps if 'eps' in config.settings else 1e-8,
-        #     weight_decay=config.settings.weight_decay if 'weight_decay' in config.settings else 1e-5)
+        #     lr=config.deepspace.learning_rate if 'learning_rate' in config.deepspace else 1e-3,
+        #     betas=config.deepspace.betas if 'betas' in config.deepspace else [0.9, 0.999],
+        #     eps=config.deepspace.eps if 'eps' in config.deepspace else 1e-8,
+        #     weight_decay=config.deepspace.weight_decay if 'weight_decay' in config.deepspace else 1e-5)
 
         # Define Scheduler
-        # def lambda1(epoch): return pow(1 - epoch / config.settings.max_epoch, 0.9)
+        # def lambda1(epoch): return pow(1 - epoch / config.deepspace.max_epoch, 0.9)
         # self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
 
         # initialize counter
@@ -79,7 +79,7 @@ class BaseAgent(BaseAgent):
         :param file_name: name of the checkpoint file
         :return:
         """
-        file_name = config.swap.checkpoint_dir / config.settings.checkpoint_file
+        file_name = config.swap.checkpoint_dir / config.deepspace.checkpoint_file
         try:
             logger.info("Loading checkpoint '{}'".format(file_name))
             checkpoint = torch.load(file_name)
@@ -110,8 +110,8 @@ class BaseAgent(BaseAgent):
         # Save the state
         torch.save(state, config.swap.checkpoint_dir / file_name)
         # backup model on a certain steps
-        if self.current_epoch % config.settings.save_model_step == 0:
-            torch.save(state, config.swap.checkpoint_dir / (str(self.current_epoch) + '_' + config.settings.checkpoint_file))
+        if self.current_epoch % config.deepspace.save_model_step == 0:
+            torch.save(state, config.swap.checkpoint_dir / (str(self.current_epoch) + '_' + config.deepspace.checkpoint_file))
         # If it is the best copy it to another file 'model_best.pth.tar'
         if is_best:
             shutil.copyfile(
@@ -123,11 +123,11 @@ class BaseAgent(BaseAgent):
         The main operator
         :return:
         """
-        assert config.settings.mode in ['train', 'test', 'metrics']
+        assert config.deepspace.mode in ['train', 'test', 'metrics']
         try:
-            if config.settings.mode == 'test':
+            if config.deepspace.mode == 'test':
                 self.test()
-            elif config.settings.mode == 'train':
+            elif config.deepspace.mode == 'train':
                 self.train()
             else:
                 self.metrics()
@@ -139,7 +139,7 @@ class BaseAgent(BaseAgent):
         Main training loop
         :return:
         """
-        for epoch in tqdm(range(self.current_epoch, config.settings.max_epoch), desc="traing at -{}-, total epoches -{}-".format(self.current_epoch, config.settings.max_epoch)):
+        for epoch in tqdm(range(self.current_epoch, config.deepspace.max_epoch), desc="traing at -{}-, total epoches -{}-".format(self.current_epoch, config.deepspace.max_epoch)):
             self.current_epoch = epoch
             self.train_one_epoch()
             ssim_score = self.validate()
@@ -148,7 +148,7 @@ class BaseAgent(BaseAgent):
             is_best = ssim_score > self.best_metric
             if is_best:
                 self.best_metric = ssim_score
-            self.save_checkpoint(config.settings.checkpoint_file,  is_best=is_best)
+            self.save_checkpoint(config.deepspace.checkpoint_file,  is_best=is_best)
 
     def train_one_epoch(self):
         """
@@ -218,9 +218,9 @@ class BaseAgent(BaseAgent):
                 defect_images = defect_images.squeeze().detach().cpu().numpy()
                 normal_images = normal_images.squeeze().detach().cpu().numpy()
 
-                self.save_output_images(out_images[config.settings.save_images[0]: config.settings.save_images[1]],
-                                        defect_images[config.settings.save_images[0]: config.settings.save_images[1]],
-                                        normal_images[config.settings.save_images[0]: config.settings.save_images[1]])
+                self.save_output_images(out_images[config.deepspace.save_images[0]: config.deepspace.save_images[1]],
+                                        defect_images[config.deepspace.save_images[0]: config.deepspace.save_images[1]],
+                                        normal_images[config.deepspace.save_images[0]: config.deepspace.save_images[1]])
             # logging
             mean_ssim = mean_ssim / len(self.data_loader.valid_loader)
             mean_ssim = mean_ssim.detach().cpu().numpy()
@@ -279,7 +279,7 @@ class BaseAgent(BaseAgent):
             if out_images is None:
                 return
             root = Path(config.swap.out_dir)
-            if config.settings.mode == 'train':
+            if config.deepspace.mode == 'train':
                 root = root / 'validate'
                 create_dirs([root])
                 # only save noraml and defect images on epoch 0, since they dont change each epoch

@@ -1,9 +1,17 @@
 """
 The Base Agent class, where all other agents inherit from, that contains definitions for all the necessary functions
 """
-import logging
-from deepspace.utils.io import save_settings
-from deepspace.config.config import logger, config
+import torch
+from pathlib import Path
+
+from commontools.setup import config, logger
+from deepspace.utils.io.io import save_checkpoint, load_checkpoint, save_settings
+from deepspace.utils.train_utils import get_device
+
+
+"""
+The Base Agent class, where all other agents inherit from, that contains definitions for all the necessary functions
+"""
 
 
 class BaseAgent:
@@ -12,8 +20,7 @@ class BaseAgent:
     """
 
     def __init__(self):
-        self.summary_writer = None
-        self.data_loader = None
+        pass
 
     def load_checkpoint(self, file_name):
         """
@@ -38,6 +45,76 @@ class BaseAgent:
         :return:
         """
         raise NotImplementedError
+
+    def train(self):
+        """
+        Main training loop
+        :return:
+        """
+        raise NotImplementedError
+
+    def train_one_epoch(self):
+        """
+        One epoch of training
+        :return:
+        """
+        raise NotImplementedError
+
+    def validate(self):
+        """
+        One cycle of model validation
+        :return:
+        """
+        raise NotImplementedError
+
+    def finalize(self):
+        """
+        Finalizes all the operations of the 2 Main classes of the process, the operator and the data loader
+        :return:
+        """
+        raise NotImplementedError
+
+
+class BasicAgent(BaseAgent):
+    """
+    This basic class will contain the basic functions to be overloaded by any agent you will implement.
+    """
+
+    def __init__(self):
+        super().__init__()
+        # set cuda flag
+        self.device = get_device()
+        self.summary_writer = None
+        self.data_loader = None
+        self.current_episode = 0
+        self.current_iteration = 0
+
+    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False):
+        filename = Path(config.swap.checkpoint_dir) / file_name
+        # Save the state
+        save_checkpoint(self.checkpoint, filename, is_best)
+
+    def load_checkpoint(self, file_name="checkpoint.pth.tar"):
+        filename = Path(config.swap.checkpoint_dir) / file_name
+        try:
+            logger.info("Loading checkpoint '{}'".format(filename))
+            load_checkpoint(self, file_name)
+            logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
+                        .format(config.swap.checkpoint_dir, self.current_episode, self.current_iteration))
+        except OSError as e:
+            logger.info("No checkpoint exists from '{}'. Skipping...".format(config.swap.checkpoint_dir))
+            logger.info("**First time to train**")
+
+    def run(self):
+        """
+        This function will the operator
+        :return:
+        """
+        try:
+            self.train()
+
+        except KeyboardInterrupt:
+            logger.info("You have entered CTRL+C.. Wait to finalize")
 
     def train(self):
         """

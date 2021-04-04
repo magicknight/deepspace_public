@@ -5,7 +5,7 @@ import sys
 import os
 from sklearn.metrics import precision_recall_curve, roc_curve, auc, average_precision_score
 import numpy as np
-from deepspace.config.config import logger
+from commontools.setup import config, logger
 
 
 class IOUMetric:

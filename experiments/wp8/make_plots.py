@@ -5,11 +5,11 @@ from matplotlib import pyplot as plt, axis
 from tqdm import tqdm
 
 from deepspace.utils.io import showImagesHorizontally
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 
 def make_plots():
-    root = Path(config.settings.project_root) / config.summary.name / 'out' / 'test'
+    root = Path(config.deepspace.project_root) / config.summary.name / 'out' / 'test'
     diff_path = root / 'diff'
     input_path = root / 'input'
     recon_path = root / 'recon'

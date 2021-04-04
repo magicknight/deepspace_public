@@ -3,9 +3,9 @@
     name = 'defect_detection_autoencoder'
     author = 'Zhihua Liang'
     discription = 'Defect detection for POL 2020'
-[settings]
     # root directory of the project (for saveing logs, models, temp files, etc...)
-    project_root = '/home/zhihua/data/work_space'
+    project_root = '/home/zhihua/data/work_space'    
+[deepspace]
     # root directory of the dataset
     dataset_root = '/home/zhihua/data/anomaly/simulation/bunny'
     # CAD object path

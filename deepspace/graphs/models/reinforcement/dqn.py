@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 from deepspace.graphs.weights_initializer import weights_init
-from deepspace.config.config import config
+from commontools.setup import config, logger
 
 
 class DQN(nn.Module):
@@ -15,16 +15,16 @@ class DQN(nn.Module):
         super().__init__()
         self.relu = nn.ReLU(inplace=True)
 
-        self.conv1 = nn.Conv2d(in_channels=config.settings.input_channels, out_channels=config.settings.conv_filters[0], kernel_size=5, stride=2, padding=0, bias=True)
-        self.bn1 = nn.BatchNorm2d(config.settings.conv_filters[0])
+        self.conv1 = nn.Conv2d(in_channels=config.deepspace.input_channels, out_channels=config.deepspace.conv_filters[0], kernel_size=5, stride=2, padding=0, bias=True)
+        self.bn1 = nn.BatchNorm2d(config.deepspace.conv_filters[0])
 
-        self.conv2 = nn.Conv2d(in_channels=config.settings.conv_filters[0], out_channels=config.settings.conv_filters[1], kernel_size=5, stride=2, padding=0, bias=True)
-        self.bn2 = nn.BatchNorm2d(config.settings.conv_filters[1])
+        self.conv2 = nn.Conv2d(in_channels=config.deepspace.conv_filters[0], out_channels=config.deepspace.conv_filters[1], kernel_size=5, stride=2, padding=0, bias=True)
+        self.bn2 = nn.BatchNorm2d(config.deepspace.conv_filters[1])
 
-        self.conv3 = nn.Conv2d(in_channels=config.settings.conv_filters[1], out_channels=config.settings.conv_filters[2], kernel_size=5, stride=2, padding=0, bias=True)
-        self.bn3 = nn.BatchNorm2d(config.settings.conv_filters[2])
+        self.conv3 = nn.Conv2d(in_channels=config.deepspace.conv_filters[1], out_channels=config.deepspace.conv_filters[2], kernel_size=5, stride=2, padding=0, bias=True)
+        self.bn3 = nn.BatchNorm2d(config.deepspace.conv_filters[2])
 
-        self.linear = nn.Linear(448, config.settings.num_classes)
+        self.linear = nn.Linear(448, config.deepspace.num_classes)
 
         self.apply(weights_init)
 

@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 import torchvision.transforms as standard_transforms
 
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 
 def get_paths(mode):
@@ -22,7 +22,7 @@ def get_paths(mode):
     Returns:
         list: items list, and masks list if in test mode
     """
-    root = Path(config.settings.dataset_root)
+    root = Path(config.deepspace.dataset_root)
     # train directory
     config.swap.train = {}
     config.swap.train.root = root / 'train'
@@ -33,7 +33,7 @@ def get_paths(mode):
     config.swap.test = {}
     config.swap.test.root = root / 'test'
     # return images path
-    images_path = list(config.swap[mode].root.glob('**/*.' + config.settings.data_format))
+    images_path = list(config.swap[mode].root.glob('**/*.' + config.deepspace.data_format))
     return images_path
 
 
@@ -72,30 +72,30 @@ class PNGImages:
 
 class PNGDataLoader:
     def __init__(self):
-        assert config.settings.mode in ['train', 'test', 'real']
+        assert config.deepspace.mode in ['train', 'test', 'real']
 
         self.input_transform = standard_transforms.Compose([
             standard_transforms.ToTensor(),
-            standard_transforms.Resize(config.settings.image_resolution),
+            standard_transforms.Resize(config.deepspace.image_resolution),
         ])
 
-        if config.settings.mode == 'train':
+        if config.deepspace.mode == 'train':
             # training needs train dataset and validate dataset
             train_set = PNGImages('train', transform=self.input_transform)
             valid_set = PNGImages('validate', transform=self.input_transform)
-            self.train_loader = DataLoader(train_set, batch_size=config.settings.batch_size, shuffle=True,
-                                           num_workers=config.settings.data_loader_workers)
-            self.valid_loader = DataLoader(valid_set, batch_size=config.settings.batch_size, shuffle=False,
-                                           num_workers=config.settings.data_loader_workers)
-            self.train_iterations = (len(train_set) + config.settings.batch_size) // config.settings.batch_size
-            self.valid_iterations = (len(valid_set) + config.settings.batch_size) // config.settings.batch_size
+            self.train_loader = DataLoader(train_set, batch_size=config.deepspace.batch_size, shuffle=True,
+                                           num_workers=config.deepspace.data_loader_workers)
+            self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.batch_size, shuffle=False,
+                                           num_workers=config.deepspace.data_loader_workers)
+            self.train_iterations = (len(train_set) + config.deepspace.batch_size) // config.deepspace.batch_size
+            self.valid_iterations = (len(valid_set) + config.deepspace.batch_size) // config.deepspace.batch_size
 
-        elif config.settings.mode == 'real' or config.settings.mode == 'test':
+        elif config.deepspace.mode == 'real' or config.deepspace.mode == 'test':
             test_set = PNGImages('test', transform=self.input_transform)
 
-            self.test_loader = DataLoader(test_set, batch_size=config.settings.batch_size, shuffle=False,
-                                          num_workers=config.settings.data_loader_workers)
-            self.test_iterations = (len(test_set) + config.settings.batch_size) // config.settings.batch_size
+            self.test_loader = DataLoader(test_set, batch_size=config.deepspace.batch_size, shuffle=False,
+                                          num_workers=config.deepspace.data_loader_workers)
+            self.test_iterations = (len(test_set) + config.deepspace.batch_size) // config.deepspace.batch_size
 
         else:
             raise Exception('Please choose a proper mode for data loading')

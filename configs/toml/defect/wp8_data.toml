@@ -3,7 +3,7 @@
     name = 'w8_dataset'
     author = 'Zhihua Liang'
     discription = 'Defect detection for wp8 ai product flanders'
-[settings]
+[deepspace]
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
     # root directory of the dataset

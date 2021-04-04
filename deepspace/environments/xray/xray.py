@@ -5,7 +5,7 @@ import numpy as np
 import trimesh
 from scipy.spatial.transform import Rotation as R
 
-from deepspace.config.config import config, logger
+from commontools.setup import config, logger
 
 from dxray.astra.projection import project
 from dxray.astra.utils import fix_mesh
@@ -21,7 +21,6 @@ class Astra:
         # self._projections = np.zeros(self.shape)
         # self._current_projection = 0
         # self.broken_mesh = None
-
         self.shape = (max_projections, ) + resolution
         self.max_projections = max_projections
         self.resolution = resolution
@@ -69,20 +68,20 @@ class Astra:
         self.project()
 
     def project(self):
-        this_projection = project(self.broken_mesh, angles=[self.quaternion], heights=None, settings=config.environment)
+        this_projection = project(self.broken_mesh, angles=[self.quaternion], heights=None)
         self._projections[self._current_projection] = this_projection
         self._current_projection += 1
 
     def rotate(self, angle):
         self._angle += angle
-        self._angle[2] = (self._angle[2] + angle) % config.environment.angle_range[2][1]
+        self._angle[2] = (self._angle[2] + angle) % config.dxray.angle_range[2][1]
 
     def init_break(self):
-        settings = config.environment
+        settings = config.dxray
         # calculate for the position and radius of the defect
         mesh_min = self._mesh.vertices.min(axis=0)
         mesh_max = self._mesh.vertices.max(axis=0)
-        config.swap = {}
+        # config.swap = {}
         if settings.unit == 'scale':
             config.swap.center_range = [[mesh_min[i], mesh_max[i]] for i in range(3)]
             if 'radius_range' in settings:
@@ -106,15 +105,14 @@ class Astra:
         config.swap.get_removed_part = True
 
     def break_mesh(self):
-        config.environment.swap = config.swap
-        defect_mesh, vertices_mask, face_mask, removed_mesh = random_break(self._mesh, config.environment)
+        defect_mesh, vertices_mask, face_mask, removed_mesh = random_break(self._mesh)
         self.broken_mesh = defect_mesh
 
     @staticmethod
     def load_mesh():
         # load mesh, fix watertight if necessery
-        mesh = trimesh.load(config.settings.mesh_file_path)
-        if not config.environment.watertight_cad:
+        mesh = trimesh.load(config.deepspace.mesh_file_path)
+        if not config.dxray.watertight_cad:
             # fix mesh to water tight
             mesh = fix_mesh(mesh)
         return mesh
@@ -123,5 +121,5 @@ class Astra:
     def init_angle():
         angles = np.random.rand(3)
         # scale the random number into ranges on each direction
-        angles = [angles[index] * (config.environment.angle_range[index][1] - config.environment.angle_range[index][0]) + config.environment.angle_range[index][0] for index in range(3)]
+        angles = [angles[index] * (config.dxray.angle_range[index][1] - config.dxray.angle_range[index][0]) + config.dxray.angle_range[index][0] for index in range(3)]
         return angles

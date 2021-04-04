@@ -3,7 +3,9 @@
     name = 'dqn_xray'
     author = 'Zhihua Liang'
     discription = 'Defect detection for POL 2020, reinforcement model'
-[environment]
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space'
+[dxray]
     # this is settings for environemnt for deep reinforcemnet training.
     # setting for xray environment
     # CAD object path
@@ -37,17 +39,14 @@
     area_threshold = 500    
     # max steps per episode
     max_step = 3
-[settings]
-    # root directory of the project (for saveing logs, models, temp files, etc...)
-    project_root = '/home/zhihua/data/work_space'
+[deepspace]
     # CAD object path
     mesh_file_path = '/home/zhihua/data/mesh/common/bunny/bunny_watertight.stl'
     # agent name
     agent = 'deepspace.agents.reinforcement.dqn.DQNAgent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
-    # retry times to break the object
-    gpu_device = 1
+    gpu_device = 0
     # angle range
     batch_size = 32
     # random seed

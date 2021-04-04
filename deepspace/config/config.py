@@ -120,8 +120,8 @@ def process_config(config_file):
     print(" THE Configuration of your experiment ..")
     pprint(config)
 
-    summary = config.summary
-    settings = config.settings
+    summary = config.summary if 'summary' in config else None
+    settings = config.deepspace if 'settings' in config else None
     config.swap = {}
     # making sure that you have provided the name.
     try:
@@ -130,7 +130,7 @@ def process_config(config_file):
         print(" *************************************** ")
     except AttributeError:
         print("ERROR!!..Please provide the experiment name in json file..")
-        exit(-1)
+        return None
 
     # create some important directories to be used for that experiment.
     if 'project_root' not in settings:

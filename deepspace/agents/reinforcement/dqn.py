@@ -11,35 +11,32 @@ from tensorboardX import SummaryWriter
 from torch.backends import cudnn
 from tqdm import tqdm
 
-from deepspace.agents.base import BaseAgent
+from deepspace.agents.base import BasicAgent
 from deepspace.graphs.losses.huber_loss import HuberLoss
 from deepspace.graphs.models.reinforcement.dqn import DQN
 from deepspace.utils.replay_memory import ReplayMemory, Transition
-from deepspace.config.config import config, logger
-from deepspace.utils.train_utils import get_device
+from commontools.setup import config, logger
 
 cudnn.benchmark = True
 
 
-class DQNAgent(BaseAgent):
+class DQNAgent(BasicAgent):
 
     def __init__(self):
         super().__init__()
-        # set cuda flag
-        self.device = get_device()
         config.swap.device = self.device
         # define models (policy and target)
         self.policy_model = DQN()
         self.target_model = DQN()
         # define memory
-        self.memory = ReplayMemory(config.settings)
+        self.memory = ReplayMemory(config.deepspace)
         # define loss
         self.loss = HuberLoss()
         # define optimizer
-        self.optim = torch.optim.RMSprop(self.policy_model.parameters())
+        self.optimizer = torch.optim.RMSprop(self.policy_model.parameters())
 
         # define environment
-        self.env = gym.make('deepspace.environments:detection-v0', max_projections=config.environment.max_step, resolution=tuple(config.environment.resolution)).unwrapped
+        self.env = gym.make('deepspace.environments:detection-v0', max_projections=config.dxray.max_step, resolution=tuple(config.dxray.resolution)).unwrapped
 
         # initialize counter
         self.current_episode = 0
@@ -59,47 +56,21 @@ class DQNAgent(BaseAgent):
         # Summary Writer
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='DQN')
 
-    def load_checkpoint(self, file_name):
-        filename = config.settings.checkpoint_dir + file_name
-        try:
-            logger.info("Loading checkpoint '{}'".format(filename))
-            checkpoint = torch.load(filename)
-
-            self.current_episode = checkpoint['episode']
-            self.current_iteration = checkpoint['iteration']
-            self.policy_model.load_state_dict(checkpoint['state_dict'])
-            self.optim.load_state_dict(checkpoint['optimizer'])
-
-            logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
-                        .format(config.settings.checkpoint_dir, checkpoint['episode'], checkpoint['iteration']))
-        except OSError as e:
-            logger.info("No checkpoint exists from '{}'. Skipping...".format(config.settings.checkpoint_dir))
-            logger.info("**First time to train**")
-
-    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=0):
-        state = {
-            'episode': self.current_episode,
-            'iteration': self.current_iteration,
-            'state_dict': self.policy_model.state_dict(),
-            'optimizer': self.optim.state_dict(),
+        # save checkpoint
+        self.checkpoint = {
+            'current_episode': self.current_episode,
+            'current_iteration': self.current_iteration,
+            'policy_model.state_dict': self.policy_model.state_dict(),
+            'optimizer.state_dict': self.optimizer.state_dict(),
+            # 'number': {
+            #     'current_episode': self.current_episode,
+            #     'current_iteration': self.current_iteration,
+            # },
+            # 'state_dict': {
+            #     'policy_model': self.policy_model,
+            #     'optimizer': self.optimizer,
+            # },
         }
-        # Save the state
-        torch.save(state, config.settings.checkpoint_dir + file_name)
-        # If it is the best copy it to another file 'model_best.pth.tar'
-        if is_best:
-            shutil.copyfile(config.settings.checkpoint_dir + file_name,
-                            config.settings.checkpoint_dir + 'model_best.pth.tar')
-
-    def run(self):
-        """
-        This function will the operator
-        :return:
-        """
-        try:
-            self.train()
-
-        except KeyboardInterrupt:
-            logger.info("You have entered CTRL+C.. Wait to finalize")
 
     def select_action(self, state):
         """
@@ -109,8 +80,8 @@ class DQNAgent(BaseAgent):
         """
         state = state.to(self.device)
         sample = random.random()
-        eps_threshold = config.settings.eps_start + (config.settings.eps_start - config.settings.eps_end) * math.exp(
-            -1. * self.current_iteration / config.settings.eps_decay)
+        eps_threshold = config.deepspace.eps_start + (config.deepspace.eps_start - config.deepspace.eps_end) * math.exp(
+            -1. * self.current_iteration / config.deepspace.eps_decay)
         self.current_iteration += 1
         if sample > eps_threshold:
             with torch.no_grad():
@@ -123,10 +94,10 @@ class DQNAgent(BaseAgent):
         performs a single step of optimization for the policy model
         :return:
         """
-        if self.memory.length() < config.settings.batch_size:
+        if self.memory.length() < config.deepspace.batch_size:
             return
         # sample a batch
-        transitions = self.memory.sample_batch(config.settings.batch_size)
+        transitions = self.memory.sample_batch(config.deepspace.batch_size)
 
         one_batch = Transition(*zip(*transitions))
 
@@ -145,20 +116,20 @@ class DQNAgent(BaseAgent):
         curr_state_values = self.policy_model(state_batch)
         curr_state_action_values = curr_state_values.gather(1, action_batch)
 
-        next_state_values = torch.zeros(config.settings.batch_size, device=self.device)
+        next_state_values = torch.zeros(config.deepspace.batch_size, device=self.device)
         next_state_values[non_final_mask] = self.target_model(non_final_next_states).max(1)[0].detach()
 
         # Get the expected Q values
-        expected_state_action_values = (next_state_values * config.settings.gamma) + reward_batch
+        expected_state_action_values = (next_state_values * config.deepspace.gamma) + reward_batch
         # compute loss: temporal difference error
         loss = self.loss(curr_state_action_values, expected_state_action_values.unsqueeze(1))
 
         # optimizer step
-        self.optim.zero_grad()
+        self.optimizer.zero_grad()
         loss.backward()
         for param in self.policy_model.parameters():
             param.grad.data.clamp_(-1, 1)
-        self.optim.step()
+        self.optimizer.step()
 
         return loss
 
@@ -167,18 +138,18 @@ class DQNAgent(BaseAgent):
         Training loop based on the number of episodes
         :return:
         """
-        for episode in tqdm(range(self.current_episode, config.settings.num_episodes)):
+        for episode in tqdm(range(self.current_episode, config.deepspace.num_episodes)):
             self.current_episode = episode
             # reset environment
             self.env.reset()
             self.train_one_epoch()
             # The target network has its weights kept frozen most of the time
-            if self.current_episode % config.settings.target_update == 0:
+            if self.current_episode % config.deepspace.target_update == 0:
                 self.target_model.load_state_dict(self.policy_model.state_dict())
 
         self.env.render()
         self.env.close()
-        self.save_checkpoint(config.settings.checkpoint_file)
+        self.save_checkpoint(config.deepspace.checkpoint_file)
 
     def train_one_epoch(self):
         """
