@@ -88,6 +88,8 @@ class BasicAgent(BaseAgent):
         self.data_loader = None
         self.current_episode = 0
         self.current_iteration = 0
+        self.current_epoch = 0
+        self.best_metric = 0
 
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False):
         filename = Path(config.swap.checkpoint_dir) / file_name
