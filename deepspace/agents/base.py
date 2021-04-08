@@ -113,7 +113,10 @@ class BasicAgent(BaseAgent):
         :return:
         """
         try:
-            self.train()
+            if config.deepspace.mode == 'test':
+                self.test()
+            elif config.deepspace.mode == 'train':
+                self.train()
 
         except KeyboardInterrupt:
             logger.info("You have entered CTRL+C.. Wait to finalize")

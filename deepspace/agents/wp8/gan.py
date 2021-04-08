@@ -1,5 +1,6 @@
 
 import shutil
+from ssl import ALERT_DESCRIPTION_UNSUPPORTED_CERTIFICATE
 import numpy as np
 import json
 from pprint import pprint
@@ -11,9 +12,12 @@ import torch
 from torch.optim import lr_scheduler
 from torch import nn
 from tensorboardX import SummaryWriter
+from torchsummary import summary
 
 from deepspace.agents.base import BasicAgent
 from deepspace.graphs.models.gan.dcgan_wp8 import Generator, Discriminator
+# from deepspace.graphs.models.gan.dcgan_wp8_simple import Generator, Discriminator
+# from deepspace.graphs.models.autoencoder.vanilla_vae import VanillaVAE
 from deepspace.datasets.wp8.wp8_break import BreakDataLoader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter, AverageMeterList
@@ -31,9 +35,17 @@ class GanAgent(BasicAgent):
 
         # define models
         self.generator = Generator()
+        # self.generator = VanillaVAE(
+        #     in_channels=config.deepspace.image_channels,
+        #     latent_dim=config.deepspace.latent_space_size,
+        #     hidden_dims=config.deepspace.hidden_dims,
+        #     resolution=config.deepspace.image_resolution
+        # )
         self.discriminator = Discriminator()
         self.generator = self.generator.to(self.device)
         self.discriminator = self.discriminator.to(self.device)
+        summary(self.generator, (config.deepspace.image_channels, config.deepspace.image_resolution, config.deepspace.image_resolution))
+        summary(self.discriminator, (config.deepspace.image_channels, config.deepspace.image_resolution, config.deepspace.image_resolution))
 
         # Create instance from the optimizer
         self.optimizer_gen = torch.optim.Adam(
@@ -140,6 +152,7 @@ class GanAgent(BasicAgent):
             # dis_loss_defect.backward()
 
             # # train the discriminator with fake data---
+            # fake_images, _, _, _ = self.generator(defect_images)
             fake_images = self.generator(defect_images)
             out_labels = self.discriminator(fake_images.detach())
             dis_loss_fake = self.loss(out_labels.squeeze(), self.fake_labels[0:defect_images.shape[0]])
@@ -189,8 +202,8 @@ class GanAgent(BasicAgent):
 
     def test(self):
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
-        self.generator.eval()
-        self.discriminator.eval()
+        # self.generator.eval()
+        # self.discriminator.eval()
         dis_epoch_loss = AverageMeter()
         dis_epoch_fake_loss = AverageMeter()
         dis_epoch_normal_loss = AverageMeter()
@@ -198,12 +211,12 @@ class GanAgent(BasicAgent):
         gen_epoch_dis_loss = AverageMeter()
         gen_epoch_image_loss = AverageMeter()
         with torch.no_grad():
-            for defect_images, normal_images, ground_truth_images, paths in tqdm_batch:
+            for defect_images, normal_images, paths in tqdm_batch:
                 defect_images = defect_images.to(self.device, dtype=torch.float32)
                 normal_images = normal_images.to(self.device, dtype=torch.float32)
-                ground_truth_images = ground_truth_images.to(self.device, dtype=torch.float32)
                 # test discriminator
-                fake_images = self.generator(defect_images,)
+                # fake_images = self.generator(defect_images,)
+                fake_images = self.generator(defect_images)
                 fake_labels = self.discriminator(fake_images)
                 dis_fake_loss = self.loss(fake_labels, self.fake_labels[0:defect_images.shape[0]])
                 normal_labels = self.discriminator(normal_images)
@@ -224,8 +237,7 @@ class GanAgent(BasicAgent):
                 fake_images = fake_images.squeeze().detach().cpu().numpy()
                 defect_images = defect_images.squeeze().detach().cpu().numpy()
                 normal_images = normal_images.squeeze().detach().cpu().numpy()
-                ground_truth_images = ground_truth_images.squeeze().detach().cpu().numpy()
-                self.save_output_images(fake_images, defect_images, normal_images, ground_truth_images, paths)
+                self.save_output_images(fake_images, defect_images, normal_images, paths)
             # logging
             logger.info("test Results at epoch-" + str(self.current_epoch) + " | " + ' dis_epoch_loss: ' + str(dis_epoch_loss.val) + " | " + ' gen_epoch_loss: ' + str(gen_epoch_loss.val)
                         + " | " + ' dis_epoch_fake_loss: ' + str(dis_epoch_fake_loss.val) + " | " + ' dis_epoch_normal_loss: ' + str(dis_epoch_normal_loss.val)
@@ -403,7 +415,7 @@ class GanAgent(BasicAgent):
         pprint(metrics_result)
         np.save(root / 'metrics_result.npy', metrics_result)
 
-    def save_output_images(self, out_images, defect_images=None, normal_images=None, ground_truth_images=None, paths=None):
+    def save_output_images(self, out_images, defect_images=None, normal_images=None, paths=None):
         """helper function to save recunstructed images
 
         Args:
@@ -433,44 +445,39 @@ class GanAgent(BasicAgent):
 
             else:
                 root = root / 'test'
-                defect_name = Path(paths[0][0]).parent.name
-                heatmap_path = root / 'heatmap' / defect_name
-                recon_path = root / 'recon' / defect_name
-                input_path = root / 'input' / defect_name
-                normal_path = root / 'normal' / defect_name
-                diff_path = root / 'diff' / defect_name
-                mask_diff_path = root / 'mask_diff' / defect_name
-                ground_truth_path = root / 'ground_truth' / defect_name
-                create_dirs([heatmap_path, recon_path, input_path, normal_path, diff_path, mask_diff_path, ground_truth_path])
+                heatmap_path = root / 'heatmap'
+                recon_path = root / 'recon'
+                input_path = root / 'input'
+                normal_path = root / 'normal'
+                diff_path = root / 'diff'
+                mask_diff_path = root / 'mask_diff'
+                create_dirs([heatmap_path, recon_path, input_path, normal_path, diff_path, mask_diff_path])
                 # calculate heatmap
-                image_paths = [heatmap_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
-                make_heatmaps(output_images=out_images, images=defect_images, paths=image_paths)
+                image_paths = [heatmap_path / Path(paths[index]).name for index in range(defect_images.shape[0])]
+                make_heatmaps(output_images=out_images, images=normal_images, paths=image_paths)
 
-                image_paths = [recon_path / Path(paths[0][index]).name for index in range(out_images.shape[0])]
+                image_paths = [recon_path / Path(paths[index]).name for index in range(out_images.shape[0])]
                 out_images = to_uint8(out_images)
                 save_images(out_images, image_paths)
-                image_paths = [input_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
+                image_paths = [input_path / Path(paths[index]).name for index in range(defect_images.shape[0])]
                 defect_images = to_uint8(defect_images)
                 save_images(defect_images, image_paths)
-                image_paths = [normal_path / Path(paths[0][index]).name for index in range(normal_images.shape[0])]
+                image_paths = [normal_path / Path(paths[index]).name for index in range(normal_images.shape[0])]
                 normal_images = to_uint8(normal_images)
                 save_images(normal_images, image_paths)
 
-                image_paths = [diff_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
-                diff_image = defect_images - out_images
+                image_paths = [diff_path / Path(paths[index]).name for index in range(defect_images.shape[0])]
+                diff_image = out_images - normal_images
                 diff_image = to_uint8(diff_image)
                 save_images(diff_image, image_paths)
 
                 # make mask diff
-                image_paths = [mask_diff_path / Path(paths[0][index]).name for index in range(defect_images.shape[0])]
-                defect_mask = make_masks(defect_images, threshold=1.0)
+                image_paths = [mask_diff_path / Path(paths[index]).name for index in range(defect_images.shape[0])]
+                defect_mask = make_masks(normal_images, threshold=1.0)
                 recon_mask = make_masks(out_images, threshold=1.0)
                 mask_diff_image = defect_mask - recon_mask
                 mask_diff_image = to_uint8(mask_diff_image)
                 save_images(mask_diff_image, image_paths)
 
-                image_paths = [ground_truth_path / Path(paths[0][index]).name for index in range(ground_truth_images.shape[0])]
-                ground_truth_images = to_uint8(ground_truth_images)
-                save_images(ground_truth_images, image_paths)
         except Exception as e:
             logger.error(e)

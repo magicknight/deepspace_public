@@ -6,6 +6,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from pathlib import Path
 from torchvision import transforms
+from torchvision.transforms.transforms import Resize
 
 from deepspace.augmentation.image import CornerErasing, RandomErasing, RandomBreak
 
@@ -61,9 +62,15 @@ class RingImages:
         image = imageio.imread(image_path)
         if self.transform is not None:
             broken_image, image = self.transform(image)
-            return broken_image, image
+            if self.mode == 'test':
+                return broken_image, image, str(image_path)
+            else:
+                return broken_image, image
         else:
-            return image, image
+            if self.mode == 'test':
+                return image, image, str(image_path)
+            else:
+                return image, image
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
@@ -76,7 +83,8 @@ class BreakDataLoader:
 
         self.input_transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.CenterCrop(config.deepspace.image_resolution),
+            transforms.CenterCrop(config.deepspace.crop_size),
+            # transforms.Resize(config.deepspace.image_resolution),
             # CornerErasing(config.deepspace.image_resolution/2)
             RandomBreak(
                 probability=config.deepspace.probability,

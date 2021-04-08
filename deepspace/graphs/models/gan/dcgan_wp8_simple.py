@@ -146,7 +146,6 @@ class Discriminator(nn.Module):
         self.batch_norm3 = nn.BatchNorm2d(config.deepspace.num_filt_d*8)
 
         self.conv5 = nn.Conv2d(in_channels=config.deepspace.num_filt_d*8, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False)
-        self.batch_norm4 = nn.BatchNorm2d(1)
 
         self.flatten = nn.Flatten()
         self.linear = nn.Linear((config.deepspace.image_resolution // (2 ** 5)) ** 2, 1)
@@ -170,7 +169,6 @@ class Discriminator(nn.Module):
         out = self.batch_norm3(out)
         out = self.relu(out)
         out = self.conv5(out)
-        out = self.batch_norm4(out)
         out = self.relu(out)
         out = self.flatten(out)
         out = self.linear(out)

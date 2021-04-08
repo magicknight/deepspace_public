@@ -66,7 +66,7 @@
     # data mode, 'image', 'numpy', 'tfrecord'... or anything when there exist corresponding dataloader
     data_mode = 'image'
     # mode = 'train', 'test', 'validate', 'metrics'
-    mode = 'train'
+    mode = 'test'
     # save ouput on first n images during validation, should be smaller than batch size
     save_images = [0, 3]
     # image loss weight
