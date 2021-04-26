@@ -1,0 +1,45 @@
+[summary]
+    # name of this experiment
+    name = 'pets_tpu_accelerate'
+    author = 'Zhihua Liang'
+    discription = 'Train resnet50 on pets dataset with accelerate on TPU '
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/tpu'
+[deepspace]
+    # root directory of the dataset
+    dataset_root = '/home/zhihua/data/public_datasets/pets/images'
+    # agent name
+    agent = 'deepspace.agents.tpu.pets.PetAgent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'tpu'
+    # accelerate config
+    fp16 = false
+    cpu = false
+    # batch
+    batch_size = 32
+    # random seed
+    seed = 999
+    # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+    learning_rate = 1e-4
+    # max epoches to for training.
+    max_epoch = 10
+    # save model every x steps
+    save_model_step = 30
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # workers for dataloader
+    data_loader_workers = 8
+    # data resolution
+    image_size = [512, 512]
+    # channels
+    image_channels = 3
+    # output format; png or tif
+    data_format = 'jpg'
+    # mode = 'train', 'test', 'validate'
+    mode = 'train'
+    # 
+
+
+
+
+

@@ -26,10 +26,10 @@
 # wp8 make plots
 # python3 experiments/wp8/make_plots.py --config configs/toml/defect/wp8_autoencoder_same_data.toml
 # wp8 gan break image
-python3 main.py --config configs/toml/wp8/gan.toml
+# python3 main.py --config configs/toml/wp8/gan.toml
 # python3 main.py --config configs/toml/wp8/gan_test.toml
 
 
 # dqn
-# python3 main.py --config configs/toml/reinforcement/dqn.toml
+python3 main.py --config configs/toml/poc2020/control/dqn.toml
 # python3 main.py --config configs/toml/defect/metrics_dqn.toml

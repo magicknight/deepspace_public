@@ -36,7 +36,7 @@ def get_device():
         torch.cuda.manual_seed_all(config.deepspace.seed)
         device = torch.device("cuda")
         torch.cuda.set_device(config.deepspace.gpu_device)
-        logger.info("Program will run on *****GPU-CUDA***** ")
+        logger.info("Program will run on *****GPU-CUDA*****, device $1".format(config.deepspace.gpu_device))
         print_cuda_statistics()
     else:
         device = torch.device("cpu")

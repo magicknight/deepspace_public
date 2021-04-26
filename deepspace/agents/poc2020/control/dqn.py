@@ -3,12 +3,11 @@ Main agent for DQN
 """
 import math
 import random
-import shutil
 
 import gym
 import torch
 from tensorboardX import SummaryWriter
-from torch.backends import cudnn
+# from torch.backends import cudnn
 from tqdm import tqdm
 
 from deepspace.agents.base import BasicAgent
@@ -17,7 +16,7 @@ from deepspace.graphs.models.reinforcement.dqn import DQN
 from deepspace.utils.replay_memory import ReplayMemory, Transition
 from commontools.setup import config, logger
 
-cudnn.benchmark = True
+# cudnn.benchmark = True
 
 
 class DQNAgent(BasicAgent):
@@ -39,8 +38,6 @@ class DQNAgent(BasicAgent):
         self.env = gym.make('deepspace.environments:detection-v0', max_projections=config.dxray.max_step, resolution=tuple(config.dxray.resolution)).unwrapped
 
         # initialize counter
-        self.current_episode = 0
-        self.current_iteration = 0
         self.episode_durations = []
 
         # Model Loading from the latest checkpoint if not found start from scratch.
