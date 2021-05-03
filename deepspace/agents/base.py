@@ -94,7 +94,7 @@ class BasicAgent(BaseAgent):
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False):
         filename = Path(config.swap.checkpoint_dir) / file_name
         # Save the state
-        save_checkpoint(self.checkpoint, filename, is_best)
+        save_checkpoint(self, filename, is_best)
 
     def load_checkpoint(self, file_name="checkpoint.pth.tar"):
         filename = Path(config.swap.checkpoint_dir) / file_name

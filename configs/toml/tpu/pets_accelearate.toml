@@ -7,9 +7,10 @@
     project_root = '/home/zhihua/data/work_space/tpu'
 [deepspace]
     # root directory of the dataset
-    dataset_root = '/home/zhihua/data/public_datasets/pets/images'
+    # dataset_root = '/home/zhihua/data/public_datasets/pets/images'
+    dataset_root = '/home/zhihua/data/pet/images'
     # agent name
-    agent = 'deepspace.agents.tpu.pets.PetAgent'
+    agent = 'deepspace.agents.tpu.pets_accelerate.PetAgent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'tpu'
     # accelerate config

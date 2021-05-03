@@ -80,7 +80,7 @@ def show_images(list_of_images, path=None):
     plt.close()
 
 
-def save_checkpoint(state, filename, is_best=False) -> None:
+def save_checkpoint(agent, filename, is_best=False) -> None:
     """io function for saveing checkpoint during training
 
     Args:
@@ -88,12 +88,15 @@ def save_checkpoint(state, filename, is_best=False) -> None:
         filename (pathlib Path): a path to the checkpoint file
         is_best (bool, optional): is it the best performance model. Defaults to False.
     """
-    for key, value in state.items():
+    state = {}
+    for key in agent.checkpoint:
         if '.' in key:
             name, attr = key.split('.')
-            state[key] = getattr(value, attr)()
-    # state['state_dict'] = {k: v.state_dict() for k, v in state['state_dict'].items()}
-    # Save the state
+            state[key] = getattr(getattr(agent, name), attr)()
+        else:
+            state[key] = getattr(agent, key)
+            # state['state_dict'] = {k: v.state_dict() for k, v in state['state_dict'].items()}
+            # Save the state
     torch.save(state, filename)
     # If it is the best copy it to another file 'model_best.pth.tar'
     if is_best:

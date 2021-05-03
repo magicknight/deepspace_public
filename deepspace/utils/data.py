@@ -34,6 +34,21 @@ def save_images(data, paths, is_tqdm=False):
         imwrite(path, image)
 
 
+def save_npy(data, paths, is_tqdm=False):
+    """a helper function to save data as npy
+
+    Args:
+        data (ndarray): a numpy array with n x w x h shape
+        paths (list): a list of paths
+    """
+    if is_tqdm:
+        data_and_paths = tqdm(zip(data, paths), desc='data sets', total=len(paths))
+    else:
+        data_and_paths = zip(data, paths)
+    for each_data, path in data_and_paths:
+        np.save(path, each_data)
+
+
 def make_heatmaps(output_images, images, paths):
     """plot heatmaps of two images
 
@@ -110,12 +125,13 @@ def read_numpy(path, shape, datatype=np.float32) -> np.array:
     return ct_data
 
 
-def normalization(image, epsilon=1e-9):
+def normalization(image, transverse=False, epsilon=1e-9):
     """
     projection to logs
 
     Args:
         projection ([type]): [description]
+        transverse(bool): if transverse values
         epsilon ([type], optional): [description]. Defaults to 1e-9.
 
     Returns:
@@ -125,7 +141,8 @@ def normalization(image, epsilon=1e-9):
     if this_range < epsilon:
         this_range = epsilon
     image = (image - np.min(image)) / this_range
-    image = 1 - image
+    if transverse:
+        image = 1 - image
     # image = image * 255
     return image
 
@@ -139,6 +156,6 @@ def to_uint8(images) -> np.array:
     Returns:
         np.array: np array in uint8 type
     """
-    images = normalization(images) * 255
+    images = normalization(images, transverse=True) * 255
     images = images.astype(np.uint8)
     return images

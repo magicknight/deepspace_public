@@ -13,7 +13,6 @@ from torch.optim.lr_scheduler import OneCycleLR
 from torch import nn
 from tensorboardX import SummaryWriter
 from torchsummary import summary
-from accelerate import Accelerator
 from timm import create_model
 
 from deepspace.agents.base import BasicAgent
@@ -25,20 +24,28 @@ from deepspace.utils.metrics import evaluate_decision
 from commontools.data.data import to_uint8
 from commontools.setup import config, logger
 
-accelerator = Accelerator(fp16=config.deepspace.fp16, cpu=config.deepspace.cpu)
+# XLA imports
+import torch_xla
+import torch_xla.debug.metrics as met
+import torch_xla.distributed.data_parallel as dp
+import torch_xla.distributed.parallel_loader as pl
+import torch_xla.utils.utils as xu
+import torch_xla.core.xla_model as xm
+import torch_xla.distributed.xla_multiprocessing as xmp
+import torch_xla.test.test_utils as test_utils
 
 
 class PetAgent(BasicAgent):
 
     def __init__(self):
         super().__init__()
-        # Initialize accelerator
 
         # dataloader
         self.train_loader, self.valid_loader, self.num_classes = get_data_loader()
         # define models (policy and target)
         # Instantiate the model (we build the model here so that the seed also control new weights initialization)
         self.model = create_model("resnet50d", pretrained=True, num_classes=self.num_classes)
+        self.model = xmp.MpModelWrapper(self.model)
         # Freezing the base model
         for param in self.model.parameters():
             param.requires_grad = False
@@ -54,8 +61,6 @@ class PetAgent(BasicAgent):
         self.optimizer = torch.optim.Adam(params=self.model.parameters(), lr=config.deepspace.learning_rate)
 
         # Prepare everything
-        # There is no specific order to remember, we just need to unpack the objects in the same order we gave them to the prepare method.
-        self.model, self.optimizer, self.train_loader, self.valid_loader, self.mean, self.std = accelerator.prepare(self.model, self.optimizer, self.train_loader, self.valid_loader, self.mean, self.std)
 
         # Instantiate learning rate scheduler after preparing the training dataloader as the prepare method
         # may change its length.
@@ -67,12 +72,13 @@ class PetAgent(BasicAgent):
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='Pet')
 
         # save checkpoint
-        self.checkpoint = {
-            'current_episode': self.current_episode,
-            'current_iteration': self.current_iteration,
-            'model.state_dict': self.model.state_dict(),
-            'optimizer.state_dict': self.optimizer.state_dict(),
-        }
+        self.checkpoint = ['current_episode', 'current_iteration', 'model.state_dict', 'optimizer.state_dict']
+        # self.checkpoint = {
+        #     'current_episode': self.current_episode,
+        #     'current_iteration': self.current_iteration,
+        #     'model.state_dict': self.model.state_dict(),
+        #     'optimizer.state_dict': self.optimizer.state_dict(),
+        # }
 
     def train(self):
         """
@@ -91,11 +97,9 @@ class PetAgent(BasicAgent):
         """
         self.model.train()
         for step, batch in enumerate(self.train_loader):
-            # We could avoid this line since we set the accelerator with `device_placement=True`.
             inputs = (batch["image"] - self.mean) / self.std
             outputs = self.model(inputs)
             loss = torch.nn.functional.cross_entropy(outputs, batch["label"])
-            accelerator.backward(loss)
             self.optimizer.step()
             self.lr_scheduler.step()
             self.optimizer.zero_grad()
@@ -109,10 +113,7 @@ class PetAgent(BasicAgent):
             with torch.no_grad():
                 outputs = self.model(inputs)
             predictions = outputs.argmax(dim=-1)
-            accurate_preds = accelerator.gather(predictions) == accelerator.gather(batch["label"])
             num_elems += accurate_preds.shape[0]
             accurate += accurate_preds.long().sum()
 
         eval_metric = accurate.item() / num_elems
-        # Use accelerator.print to print only on the main process.
-        accelerator.print(f"epoch {self.current_epoch}: {100 * eval_metric:.2f}")

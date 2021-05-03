@@ -14,7 +14,7 @@ from torch.utils import data
 from torch.utils.data import DataLoader, TensorDataset
 import torchvision.transforms as standard_transforms
 
-import deepspace.utils.voc_utils as extended_transforms
+from deepspace.utils import voc_utils as extended_transforms
 from deepspace.utils.voc_utils import make_dataset
 
 

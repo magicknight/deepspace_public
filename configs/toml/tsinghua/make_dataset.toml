@@ -1,0 +1,18 @@
+[summary]
+    # name of this experiment
+    name = 'tsinghua_dataset'
+    author = 'Zhihua Liang'
+    discription = 'make pet time dataset from raw datas'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/tsinghua'
+[deepspace]
+    # root directory of the dataset
+    dataset_root = '/home/zhihua/data/contest/tsinghua'
+    # raw_data_format
+    raw_data_format = 'h5'
+    # target datatype, target normalize...
+    target_data_type = 'float32'
+    # output format; png or tif or npy
+    data_format = 'npy'
+    # max length
+    data_size = 30000

@@ -1,0 +1,51 @@
+[summary]
+    # name of this experiment
+    name = 'wp8_npy'
+    author = 'Zhihua Liang'
+    discription = 'Pore detection for wp8 flanders maker'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space'    
+[deepspace]
+    # root directory of the dataset
+    # dataset_root = '/home/zhihua/data/anomaly/wp8/cy19_aligned_781x781x793_uint16_png'
+    dataset_root = '/home/zhihua/data/anomaly/wp8/cyl9_float32_npy'
+    # agent name
+    agent = 'deepspace.agents.defect.wp8_npy.DefectAgent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'gpu'
+    # which gpu device
+    gpu_device = 0
+    # batch
+    batch_size = 32
+    # random seed
+    seed = 999
+    # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+    learning_rate = 1e-3
+    # max epoches to for training.
+    max_epoch = 100
+    # validate every x epoches
+    validate_step = 1
+    # save model every x steps
+    save_model_step = 10
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # workers for dataloader
+    data_loader_workers = 8
+    # data resolution
+    image_resolution = [30, 30, 30]
+    # channels
+    image_channels = 1
+    # output format; png or tif
+    data_format = 'npy'
+    # data mode, 'image', 'numpy', 'tfrecord'... or anything when there exist corresponding dataloader
+    data_mode = 'numpy'
+    # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
+    # mode = 'test'
+    mode = 'train'
+    # save ouput on first n images during validation
+    save_images = [10, 20]
+
+
+
+
+
