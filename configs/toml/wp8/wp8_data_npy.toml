@@ -25,6 +25,6 @@
     # data transpose
     transpose = false
     # npy step
-    step = 10
+    step = 8
     # npy size
-    size = 30
+    size = 32

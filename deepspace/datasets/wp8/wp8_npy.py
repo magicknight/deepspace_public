@@ -11,6 +11,19 @@ import torchvision.transforms as standard_transforms
 from commontools.setup import config, logger
 
 
+class ToTensor(object):
+    """Convert 3D ndarrays in sample to Tensors."""
+
+    def __call__(self, image):
+        # # swap color axis because
+        # # numpy image: H x W x C
+        # # torch image: C X H X W
+        # image = image.transpose((2, 0, 1))
+        image = np.expand_dims(image, axis=0)
+        image = torch.from_numpy(image)
+        return image
+
+
 def get_paths():
     """return paths of images
 
@@ -24,7 +37,7 @@ def get_paths():
     """
     root = Path(config.deepspace.dataset_root)
     # return images path
-    images_path = list(config.swap.root.glob('**/*.' + config.deepspace.data_format))
+    images_path = list(root.glob('**/*.' + config.deepspace.data_format))
     return images_path
 
 
@@ -45,7 +58,8 @@ class NPYImages:
         """
         # get image path
         image_path = self.images_path[index]
-        # read in images
+
+        # read in images data.shape (30, 30, 30)
         image = np.load(image_path)
         if self.transform is not None:
             image = self.transform(image)
@@ -60,21 +74,21 @@ class NPYDataLoader:
     def __init__(self):
         # transform
         self.input_transform = standard_transforms.Compose([
-            standard_transforms.ToTensor(),
+            ToTensor(),
         ])
         # split dataset
         data_set = NPYImages(transform=self.input_transform)
-        train_size = int(0.9 * len(data_set))
+        train_size = int(config.deepspace.split_rate * len(data_set))
         valid_size = len(data_set) - train_size
         train_set, valid_set = torch.utils.data.random_split(data_set, [train_size, valid_size], generator=torch.Generator().manual_seed(config.deepspace.seed))
         if config.deepspace.mode == 'train':
             # training needs train dataset and validate dataset
             self.train_loader = DataLoader(train_set, batch_size=config.deepspace.batch_size, shuffle=True,
                                            num_workers=config.deepspace.data_loader_workers)
-            self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.batch_size, shuffle=False,
+            self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.validate_batch, shuffle=False,
                                            num_workers=config.deepspace.data_loader_workers)
             self.train_iterations = (len(train_set) + config.deepspace.batch_size) // config.deepspace.batch_size
-            self.valid_iterations = (len(valid_set) + config.deepspace.batch_size) // config.deepspace.batch_size
+            self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
 
         elif config.deepspace.mode == 'test':
             train_size = int(0.8 * len(data_set))

@@ -28,8 +28,8 @@
 # wp8 gan break image
 # python3 main.py --config configs/toml/wp8/gan.toml
 # python3 main.py --config configs/toml/wp8/gan_test.toml
-
+python3 main.py --config configs/toml/wp8/autoencoder_npy.toml
 
 # dqn
-python3 main.py --config configs/toml/poc2020/control/dqn.toml
+# python3 main.py --config configs/toml/poc2020/control/dqn.toml
 # python3 main.py --config configs/toml/defect/metrics_dqn.toml

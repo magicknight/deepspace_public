@@ -80,7 +80,7 @@ def show_images(list_of_images, path=None):
     plt.close()
 
 
-def save_checkpoint(agent, filename, is_best=False) -> None:
+def save_checkpoint(agent, filename, is_best=False, backup_checkpoint=False) -> None:
     """io function for saveing checkpoint during training
 
     Args:
@@ -101,6 +101,9 @@ def save_checkpoint(agent, filename, is_best=False) -> None:
     # If it is the best copy it to another file 'model_best.pth.tar'
     if is_best:
         shutil.copyfile(filename, filename.parent / 'model_best.pth.tar')
+    # If it is the time to backup the model on this episode to another file '[current_epoch].pth.tar'
+    if backup_checkpoint:
+        shutil.copyfile(filename, filename.parent / (str(agent.current_epoch) + '.pth.tar'))
 
 
 def load_checkpoint(agent, filename) -> None:
@@ -114,9 +117,9 @@ def load_checkpoint(agent, filename) -> None:
     for key, value in checkpoint.items():
         if '.' in key:
             name, attr = key.split('.')
-            agent[name].load_state_dict(value)
+            getattr(agent, name).load_state_dict(value)
         else:
-            agent[key] = value
+            setattr(agent, key, value)
     # for k, v in checkpoint['number'].items():
     #     agent[k] = v
     #     # property = getattr(agent, k)

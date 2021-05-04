@@ -91,19 +91,20 @@ class BasicAgent(BaseAgent):
         self.current_epoch = 0
         self.best_metric = 0
 
-    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False):
+    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False, backup_checkpoint=False):
         filename = Path(config.swap.checkpoint_dir) / file_name
         # Save the state
-        save_checkpoint(self, filename, is_best)
+        save_checkpoint(self, filename, is_best, backup_checkpoint)
 
     def load_checkpoint(self, file_name="checkpoint.pth.tar"):
         filename = Path(config.swap.checkpoint_dir) / file_name
         try:
             logger.info("Loading checkpoint '{}'".format(filename))
-            load_checkpoint(self, file_name)
+            load_checkpoint(self, filename)
             logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
                         .format(config.swap.checkpoint_dir, self.current_episode, self.current_iteration))
         except OSError as e:
+            logger.info(e)
             logger.info("No checkpoint exists from '{}'. Skipping...".format(config.swap.checkpoint_dir))
             logger.info("**First time to train**")
 
