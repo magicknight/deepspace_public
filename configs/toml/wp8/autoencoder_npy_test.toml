@@ -8,7 +8,8 @@
 [deepspace]
     # root directory of the dataset
     # dataset_root = '/home/zhihua/data/anomaly/wp8/cy19_aligned_781x781x793_uint16_png'
-    dataset_root = '/home/zhihua/data/anomaly/wp8/cy19_npy'
+    # dataset_root = '/home/zhihua/data/anomaly/wp8/cyl8_760_810_815_npy_test'
+    dataset_root = '/home/zhihua/data/anomaly/wp8/cyl9_npy_test/'
     # dataset_root = '/home/zhihua/data/anomaly/wp8/npy_test'
     # agent name
     agent = 'deepspace.agents.wp8.autoencoder_npy.WP8Agent'
@@ -48,15 +49,16 @@
     # data mode, 'image', 'numpy', 'tfrecord'... or anything when there exist corresponding dataloader
     data_mode = 'numpy'
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
-    # mode = 'test'
-    mode = 'train'
+    mode = 'test'
+    # mode = 'train'
     # save ouput on first n images during validation
     save_images = [3, 9]
-
+    
     # ------------------------------------------
     # for test
     test_batch = 8
-    test_output_dir = '/home/zhihua/data/work_space/wp8/test'
+    # test_output_dir = '/home/zhihua/data/work_space/wp8/test/cyl8'
+    test_output_dir = '/home/zhihua/data/work_space/wp8/test/cyl9'
 
 
 

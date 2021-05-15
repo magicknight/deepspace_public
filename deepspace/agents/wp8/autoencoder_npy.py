@@ -1,7 +1,7 @@
 
 import numpy as np
 from tqdm import tqdm
-
+from pathlib import Path
 
 import torch
 from torch.optim import lr_scheduler
@@ -15,6 +15,7 @@ from deepspace.graphs.models.autoencoder.ae3d import Residual3DAE
 from deepspace.datasets.wp8.wp8_npy import NPYDataLoader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
+from deepspace.utils.data import save_npy
 
 from commontools.setup import config, logger
 
@@ -25,14 +26,13 @@ class WP8Agent(BasicAgent):
 
         # define models
         self.model = Residual3DAE(
-            config.deepspace.image_size,
-            config.deepspace.encoder_sizes,
-            config.deepspace.fc_sizes,
+            input_shape=config.deepspace.image_size,
+            encoder_sizes=config.deepspace.encoder_sizes,
+            fc_sizes=config.deepspace.fc_sizes,
             color_channels=config.deepspace.image_channels,
             temporal_strides=config.deepspace.temporal_strides
         )
         self.model = self.model.to(self.device)
-        summary(self.model, (config.deepspace.image_channels, *config.deepspace.image_size))
 
         # Create instance from the optimizer
         self.optimizer = torch.optim.Adam(
@@ -62,6 +62,10 @@ class WP8Agent(BasicAgent):
 
         # Tensorboard Writer
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='wp8 ae3d_npy')
+        # add model to tensorboard and print parameter to screen
+        summary(self.model, (config.deepspace.image_channels, *config.deepspace.image_size))
+        dummy_input = torch.randn(1, config.deepspace.image_channels, *config.deepspace.image_size).to(self.device)
+        self.summary_writer.add_graph(self.model, (dummy_input), verbose=False)
 
     def train(self):
         """
@@ -95,7 +99,7 @@ class WP8Agent(BasicAgent):
         # Initialize average meters
         epoch_loss = AverageMeter()
         # loop images
-        for images in tqdm_batch:
+        for images, paths in tqdm_batch:
             images = images.to(self.device, dtype=torch.float32)
             images.requires_grad = True
             self.optimizer.zero_grad()
@@ -124,7 +128,7 @@ class WP8Agent(BasicAgent):
         input_images_sample = []
         index = 0
         with torch.no_grad():
-            for images in tqdm_batch:
+            for images, paths in tqdm_batch:
                 images = images.to(self.device, dtype=torch.float32)
                 # fake data---
                 recon_images = self.model(images)
@@ -151,5 +155,47 @@ class WP8Agent(BasicAgent):
             self.summary_writer.add_image('Input_images', input_canvas, self.current_epoch)
             # logging
             logger.info("validate Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
+            tqdm_batch.close()
+            return epoch_loss.val
+
+    def test(self):
+        test_root = Path(config.deepspace.test_output_dir)
+        tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        self.model.eval()
+        epoch_loss = AverageMeter()
+        recon_images_sample = []
+        input_images_sample = []
+        image_paths = []
+        index = 0
+        with torch.no_grad():
+            for images, paths in tqdm_batch:
+                images = images.to(self.device, dtype=torch.float32)
+                # fake data---
+                recon_images = self.model(images)
+                # train the model now---
+                loss = self.loss(recon_images, images)
+                epoch_loss.update(loss.item())
+
+                # save the reconstructed image
+                recon_images = recon_images.squeeze().detach().cpu().numpy()
+                recon_images_sample.append(recon_images)
+                images = images.squeeze().detach().cpu().numpy()
+                input_images_sample.append(images)
+                for each_path in paths:
+                    image_paths.append(Path(each_path).name)
+                index = index + 1
+
+            recon_images_sample = np.concatenate(recon_images_sample)
+            input_images_sample = np.concatenate(input_images_sample)
+
+            # recon_paths = [test_root / ('recon' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(recon_images_sample.shape[0])]
+            # input_paths = [test_root / ('input' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(input_images_sample.shape[0])]
+            recon_paths = [test_root / ('recon' + '_' + image_paths[index]) for index in range(recon_images_sample.shape[0])]
+            input_paths = [test_root / ('input' + '_' + image_paths[index]) for index in range(input_images_sample.shape[0])]
+            save_npy(recon_images_sample, paths=recon_paths)
+            save_npy(input_images_sample, paths=input_paths)
+
+            # logging
+            logger.info("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
             tqdm_batch.close()
             return epoch_loss.val

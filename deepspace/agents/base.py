@@ -86,7 +86,6 @@ class BasicAgent(BaseAgent):
         self.device = get_device()
         self.summary_writer = None
         self.data_loader = None
-        self.current_episode = 0
         self.current_iteration = 0
         self.current_epoch = 0
         self.best_metric = 0
@@ -102,7 +101,7 @@ class BasicAgent(BaseAgent):
             logger.info("Loading checkpoint '{}'".format(filename))
             load_checkpoint(self, filename)
             logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
-                        .format(config.swap.checkpoint_dir, self.current_episode, self.current_iteration))
+                        .format(config.swap.checkpoint_dir, self.current_epoch, self.current_iteration))
         except OSError as e:
             logger.info(e)
             logger.info("No checkpoint exists from '{}'. Skipping...".format(config.swap.checkpoint_dir))

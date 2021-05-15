@@ -63,7 +63,7 @@ class NPYImages:
         image = np.load(image_path)
         if self.transform is not None:
             image = self.transform(image)
-        return image
+        return image, str(image_path)
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
@@ -91,8 +91,8 @@ class NPYDataLoader:
             self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
 
         elif config.deepspace.mode == 'test':
-            train_size = int(0.8 * len(data_set))
-            test_size = int(0.2 * len(data_set))
+            train_size = int(0.0 * len(data_set))
+            test_size = len(data_set) - train_size
             train_set, test_set = torch.utils.data.random_split(data_set, [train_size, test_size])
             self.test_loader = DataLoader(test_set, batch_size=config.deepspace.batch_size, shuffle=False,
                                           num_workers=config.deepspace.data_loader_workers)

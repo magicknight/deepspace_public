@@ -10,5 +10,6 @@
 #python main.py configs/condensenet_exp_0.json
 #python main.py configs/mnist_exp_0.json
 # python3 main.py configs/erfnet_exp_0.json
-python3 main.py configs/toml/defect/defect_detection_test.toml
+# python3 main.py configs/toml/defect/defect_detection_test.toml
+python3 main.py --config configs/toml/wp8/autoencoder_npy_test.toml
 

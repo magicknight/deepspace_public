@@ -136,7 +136,6 @@ class Residual3DAE(nn.Module):
         _, c, t, h, w = dummy_output.shape
         self.intermediate_shape = (c, t, h, w)
         self.first_fc_size = (c, t * h * w)
-
         fc_dims = list(zip([self.first_fc_size[1], *fc_sizes], fc_sizes))
         if fc_dims:
             self.fc_encoder = nn.Sequential(
@@ -166,7 +165,7 @@ class Residual3DAE(nn.Module):
         y = self.conv_encoder(x)
         # Group together CWH indices, but keep time index separate
         # y = y.permute(0, 2, 1, 3, 4).contiguous().view(-1, *self.first_fc_size)
-        y = y.contiguous().view(-1,)
+        y = y.contiguous().view(-1, *self.first_fc_size)
         y = self.fc_encoder(y)
         return y
 
