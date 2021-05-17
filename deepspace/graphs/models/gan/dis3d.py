@@ -1,7 +1,17 @@
 import torch
 from torch import nn
 from deepspace.graphs.layers.ae.encoder3d import EncoderBlock
-from deepspace.graphs.layers.ae.misc import fc_layer
+
+
+def fc_layer(in_features, out_features, activation=None, batchnorm=True):
+    layers = [nn.Linear(in_features, out_features)]
+
+    if activation is not None:
+        layers += [activation]
+    if batchnorm:
+        layers += [nn.BatchNorm1d(out_features)]
+
+    return nn.Sequential(*layers)
 
 
 class Discriminator3D(nn.Module):
@@ -38,9 +48,9 @@ class Discriminator3D(nn.Module):
             dummy_output = self.conv_encoder(dummy_input)
         _, c, t, h, w = dummy_output.shape
         self.intermediate_shape = (c, t, h, w)
-        self.first_fc_size = (c, t * h * w)
+        self.first_fc_size = c * t * h * w
         # fully connected layer input size to fc_sizes last
-        fc_dims = list(zip([self.first_fc_size[1], *fc_sizes], fc_sizes))
+        fc_dims = list(zip([self.first_fc_size, *fc_sizes], fc_sizes))
         if fc_dims:
             self.fc_encoder = nn.Sequential(
                 *[fc_layer(d_in, d_out, activation=nn.LeakyReLU()) for d_in, d_out in fc_dims[:-1]],
@@ -57,7 +67,7 @@ class Discriminator3D(nn.Module):
         (2, 8, 4096)
         """
         y = self.conv_encoder(x)
-        y = y.contiguous().view(-1, *self.first_fc_size)
+        y = y.contiguous().view(-1, self.first_fc_size)
         y = self.fc_encoder(y)
         return y
 

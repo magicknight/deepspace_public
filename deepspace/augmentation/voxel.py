@@ -32,8 +32,11 @@ class RandomBreak(object):
         init_x = random.randint(0, data_3d.shape[1] - heigh)
         init_y = random.randint(0, data_3d.shape[2] - width)
         init_z = random.randint(0, data_3d.shape[3] - depth)
-
+        # print('==============================')
+        # print(init_x, init_y, init_z, heigh, width, depth)
+        # print('before', data_3d.shape, data_3d.min(), data_3d.max(), data_3d.mean())
         data_3d[:, init_x:init_x+heigh, init_y:init_y+width, init_z:init_z+depth] = self.value
+        # print('after', data_3d.shape, data_3d.min(), data_3d.max(), data_3d.mean())
 
         return data_3d
 

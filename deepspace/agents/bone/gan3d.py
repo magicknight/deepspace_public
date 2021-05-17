@@ -38,7 +38,7 @@ class BoneAgent(BasicAgent):
             input_shape=config.deepspace.image_size,
             encoder_sizes=config.deepspace.dis_encoder_sizes,
             fc_sizes=config.deepspace.dis_fc_sizes,
-            temporal_strides=config.deepspace.gen_temporal_strides,
+            temporal_strides=config.deepspace.dis_temporal_strides,
             color_channels=config.deepspace.image_channels,
             latent_activation=nn.Sigmoid()
         )
@@ -147,32 +147,33 @@ class BoneAgent(BasicAgent):
             self.optimizer_dis.zero_grad()
             out_labels = self.discriminator(normal_images)
             dis_loss_normal = self.dis_loss(out_labels.squeeze(), self.real_labels[0:normal_images.shape[0]])
-            dis_loss_normal.backward()
 
             # 1.2 train the discriminator with fake data---
             fake_images = self.generator(defect_images)
             out_labels = self.discriminator(fake_images.detach())
             dis_loss_fake = self.dis_loss(out_labels.squeeze(), self.fake_labels[0:defect_images.shape[0]])
-            dis_loss_fake.backward()
+            # calculate total loss
+            dis_loss = dis_loss_normal + dis_loss_fake
+            dis_loss.backward()
+
             # Update weights with gradients: optimizer step and update loss to averager
             self.optimizer_dis.step()
             dis_epoch_normal_loss.update(dis_loss_normal.item())
             dis_epoch_fake_loss.update(dis_loss_fake.item())
-            dis_epoch_loss.update(dis_loss_normal.item())
-            dis_epoch_loss.update(dis_loss_fake.item())
+            dis_epoch_loss.update(dis_loss.item())
 
             # train the generator now---
             self.optimizer_gen.zero_grad()
             out_labels = self.discriminator(fake_images)
             # fake labels are real for generator cost
-            gen_diss_loss = self.dis_loss(out_labels.squeeze(), self.real_labels[0:defect_images.shape[0]])
-            image_loss = self.image_loss(fake_images, normal_images)
-            gen_loss = (1 - config.deepspace.loss_weight) * gen_diss_loss + config.deepspace.loss_weight * image_loss
+            gen_dis_loss = self.dis_loss(out_labels.squeeze(), self.real_labels[0:defect_images.shape[0]])
+            gen_image_loss = self.image_loss(fake_images, normal_images)
+            gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
             gen_loss.backward()
             # Update weights with gradients: optimizer step and update loss to averager
             self.optimizer_gen.step()
-            gen_epoch_dis_loss.update(gen_diss_loss.item())
-            gen_epoch_image_loss.update(image_loss.item())
+            gen_epoch_dis_loss.update(gen_dis_loss.item())
+            gen_epoch_image_loss.update(gen_image_loss.item())
             gen_epoch_loss.update(gen_loss.item())
 
             # update iteration counter
@@ -182,7 +183,7 @@ class BoneAgent(BasicAgent):
         tqdm_batch.close()
         # logging
         self.summary_writer.add_scalar("epoch_training/gen_loss", gen_epoch_loss.val, self.current_iteration)
-        self.summary_writer.add_scalar("epoch_training/gen_diss_loss", gen_epoch_dis_loss.val, self.current_iteration)
+        self.summary_writer.add_scalar("epoch_training/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
         self.summary_writer.add_scalar("epoch_training/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
         self.summary_writer.add_scalar("epoch_training/dis_loss", dis_epoch_loss.val, self.current_iteration)
         self.summary_writer.add_scalar("epoch_training/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)
@@ -192,7 +193,7 @@ class BoneAgent(BasicAgent):
                     + "\n" + "gen_loss: " + str(gen_epoch_loss.val)
                     + "\n" + "dis_loss: " + str(dis_epoch_loss.val)
                     + "\n" + "- gen_image_loss: " + str(gen_epoch_image_loss.val)
-                    + "\n" + "- gen_diss_loss: " + str(gen_epoch_dis_loss.val)
+                    + "\n" + "- gen_dis_loss: " + str(gen_epoch_dis_loss.val)
                     + "\n" + "- dis_normal_loss: " + str(dis_epoch_normal_loss.val)
                     + "\n" + "- dis_fake_loss: " + str(dis_epoch_fake_loss.val))
 
@@ -229,8 +230,8 @@ class BoneAgent(BasicAgent):
                 gen_dis_loss = self.dis_loss(fake_labels.squeeze(), self.fake_labels[0:defect_images.shape[0]])
                 gen_image_loss = self.image_loss(fake_images, normal_images)
                 gen_epoch_dis_loss.update(gen_dis_loss.item())
-                gen_epoch_image_loss.update(gen_image_loss)
-                gen_loss = gen_dis_loss + gen_image_loss
+                gen_epoch_image_loss.update(gen_image_loss.item())
+                gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
                 gen_epoch_loss.update(gen_loss.item())
 
                 # save the reconstructed image
@@ -247,7 +248,7 @@ class BoneAgent(BasicAgent):
 
             # logging
             self.summary_writer.add_scalar("epoch_validate/gen_loss", gen_epoch_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_validate/gen_diss_loss", gen_epoch_dis_loss.val, self.current_iteration)
+            self.summary_writer.add_scalar("epoch_validate/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_validate/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_validate/dis_loss", dis_epoch_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_validate/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)

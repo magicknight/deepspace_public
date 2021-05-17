@@ -1,4 +1,7 @@
 
+"""
+https://github.com/dsuess/autoregressive-novelty-detection
+"""
 import torch
 from torch import nn
 from deepspace.graphs.layers.ae.encoder3d import EncoderBlock

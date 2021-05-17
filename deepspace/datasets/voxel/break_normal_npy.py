@@ -78,7 +78,7 @@ class NPYDataLoader:
         # transform
         self.train_trainsform = standard_transforms.Compose([
             ToTensor(),
-            RandomBreak()
+            RandomBreak(probability=config.deepspace.break_probability, sides_range=config.deepspace.break_range)
         ])
         self.target_transform = standard_transforms.Compose([
             ToTensor(),
