@@ -1,0 +1,72 @@
+[summary]
+    # name of this experiment
+    name = 'gan3d_npy'
+    author = 'Zhihua Liang'
+    discription = 'Bone reconstruction'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/bone'    
+[deepspace]
+    # data set 
+    # root directory of the dataset
+    train_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_noisy.npy'
+    target_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_original.npy'
+    # data resolution
+    image_size = [64, 64, 64]
+    # channels
+    image_channels = 1
+    # data set length
+    train_data_length = 65536
+    # train_data_length = 128
+    validate_data_length = 512
+    # batch
+    train_batch = 1024
+    validate_batch = 64
+
+    # agent 
+    # agent name
+    agent = 'deepspace.agents.bone.gan3d.BoneAgent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'gpu'
+    # which gpu device
+    gpu_device = 0
+    # max epoches to for training.
+    max_epoch = 300
+    # save model every x steps
+    save_model_step = 5
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # workers for dataloader
+    data_loader_workers = 2
+    # image loss and dis loss weight
+    loss_weight = 0.999
+    # seed
+    seed = 999
+
+    # model
+    # generator model
+    gen_encoder_sizes = [2, 8]
+    gen_temporal_strides = [2, 1]    
+    gen_fc_sizes = [512, 128]
+    # discriminator model
+    dis_encoder_sizes = [2, 1]
+    dis_temporal_strides = [2, 1]
+    dis_fc_sizes = [64, 1]
+
+    # output format; png or tif
+    data_format = 'npy'
+    # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
+    # mode = 'test'
+    mode = 'train'
+    # save ouput on first n images during validation
+    save_images = [3, 9]
+
+    # ------------------------------------------
+    # for test
+    test_data_length = 512
+    test_batch = 8
+    test_output_dir = '/home/zhihua/data/work_space/bone/test'
+
+
+
+
+

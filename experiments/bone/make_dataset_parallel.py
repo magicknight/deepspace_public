@@ -11,6 +11,10 @@ def make_npy(path):
     image_files = list(path.glob('**/*' + '.' + config.deepspace.source_data_format))
     data = list(map(imread, tqdm(image_files, desc='read data')))
     data = np.stack(data, axis=0)
+    data = normalization(data)
+    data = data.astype(np.float32)
+    # print(data.dtype, data.shape)
+    # print(data.min(), data.max(), data.mean())
     dataset_file = Path(config.deepspace.npy_root) / (path.name + '.' + config.deepspace.target_data_format)
     np.save(dataset_file, data)
 

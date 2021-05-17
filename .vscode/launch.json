@@ -37,5 +37,16 @@
             "program": "${file}",
             "console": "integratedTerminal"
         },
+        {
+            "name": "bone",
+            "args": [
+                "--config",
+                "configs/toml/bone/gan3d.toml"
+            ],
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
     ]
 }

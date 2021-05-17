@@ -37,4 +37,5 @@
 
 
 # bone
-python3 experiments/bone/make_dataset_parallel.py --config configs/toml/bone/make_data_npy.toml
+# python3 experiments/bone/make_dataset_parallel.py --config configs/toml/bone/make_data_npy.toml
+python3 main.py --config configs/toml/bone/gan3d.toml
