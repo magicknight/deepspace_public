@@ -227,7 +227,7 @@ class BoneAgent(BasicAgent):
                 dis_epoch_normal_loss.update(dis_normal_loss.item())
                 dis_epoch_loss.update(dis_loss.item())
                 # test generator
-                gen_dis_loss = self.dis_loss(fake_labels.squeeze(), self.fake_labels[0:defect_images.shape[0]])
+                gen_dis_loss = self.dis_loss(fake_labels.squeeze(), self.real_labels[0:defect_images.shape[0]])
                 gen_image_loss = self.image_loss(fake_images, normal_images)
                 gen_epoch_dis_loss.update(gen_dis_loss.item())
                 gen_epoch_image_loss.update(gen_image_loss.item())
@@ -272,43 +272,48 @@ class BoneAgent(BasicAgent):
             return gen_epoch_loss.val, dis_epoch_loss.val
 
     def test(self):
-        test_root = Path(config.deepspace.test_output_dir)
+        size = config.deepspace.image_size
+        recon_data = np.zeros_like(self.data_loader.test_data)
+        recon_data = np.squeeze(recon_data)
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
-        self.model.eval()
+        self.generator.eval()
+        self.discriminator.eval()
         epoch_loss = AverageMeter()
-        recon_images_sample = []
-        input_images_sample = []
-        image_paths = []
-        index = 0
+        gen_epoch_loss = AverageMeter()
+        gen_epoch_dis_loss = AverageMeter()
+        gen_epoch_image_loss = AverageMeter()
+        dis_epoch_loss = AverageMeter()
+
         with torch.no_grad():
-            for images, paths in tqdm_batch:
+            for images, coordinate in tqdm_batch:
                 images = images.to(self.device, dtype=torch.float32)
                 # fake data---
-                recon_images = self.model(images)
+                recon_images = self.generator(images)
+                fake_labels = self.discriminator(recon_images)
                 # train the model now---
-                loss = self.dis_loss(recon_images, images)
-                epoch_loss.update(loss.item())
+                gen_image_loss = self.image_loss(recon_images, images)
+                gen_dis_loss = self.dis_loss(fake_labels.squeeze(), self.real_labels[0:images.shape[0]])
+                dis_loss = self.dis_loss(fake_labels.squeeze(), self.fake_labels[0:images.shape[0]])
+                gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
 
+                gen_epoch_loss.update(gen_loss.item())
+                gen_epoch_image_loss.update(gen_image_loss.item())
+                gen_epoch_dis_loss.update(gen_dis_loss.item())
+                dis_epoch_loss.update(dis_loss.item())
                 # save the reconstructed image
                 recon_images = recon_images.squeeze().detach().cpu().numpy()
-                recon_images_sample.append(recon_images)
-                images = images.squeeze().detach().cpu().numpy()
-                input_images_sample.append(images)
-                for each_path in paths:
-                    image_paths.append(Path(each_path).name)
-                index = index + 1
+                for image, cord in zip(recon_images, coordinate):
+                    recon_data[cord[0]:cord[0]+size[0], cord[1]:cord[1]+size[1], cord[2]:cord[2]+size[2]] = image
 
-            recon_images_sample = np.concatenate(recon_images_sample)
-            input_images_sample = np.concatenate(input_images_sample)
-
-            # recon_paths = [test_root / ('recon' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(recon_images_sample.shape[0])]
-            # input_paths = [test_root / ('input' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(input_images_sample.shape[0])]
-            recon_paths = [test_root / ('recon' + '_' + image_paths[index]) for index in range(recon_images_sample.shape[0])]
-            input_paths = [test_root / ('input' + '_' + image_paths[index]) for index in range(input_images_sample.shape[0])]
-            save_npy(recon_images_sample, paths=recon_paths)
-            save_npy(input_images_sample, paths=input_paths)
-
+            # data.shape should be (N, h, w, d)
+            np.save(Path(config.deepspace.test_output_dir) / 'output.npy', recon_data)
             # logging
+            logger.info("test Results at epoch-" + str(self.current_epoch)
+                        + "\n" + ' gen_loss: ' + str(gen_epoch_loss.val)
+                        + "\n" + ' dis_loss: ' + str(dis_epoch_loss.val)
+                        + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val)
+                        + "\n" + '- gen_dis_loss: ' + str(gen_epoch_dis_loss.val))
+
             logger.info("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
             tqdm_batch.close()
             return epoch_loss.val

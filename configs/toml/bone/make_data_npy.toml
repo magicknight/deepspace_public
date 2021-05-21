@@ -3,11 +3,13 @@
     name = 'bone_data_to_npy'
     author = 'Zhihua Liang'
     discription = 'bone reconstruction data to npy format'
+    project_root = '/home/zhihua/data/work_space/bone/make_data'
 [deepspace]
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space/bone'
     # root directory of the dataset
     dataset_root = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/tif'
+    # dataset_root = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/test/'
     # dataset_root = '/home/zhihua/data/impainting/bone_reconstruction/temp/tif'
     # npy file root
     npy_root = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy'

@@ -41,7 +41,7 @@
             "name": "bone",
             "args": [
                 "--config",
-                "configs/toml/bone/gan3d.toml"
+                "configs/toml/bone/gan2d.toml"
             ],
             "type": "python",
             "request": "launch",

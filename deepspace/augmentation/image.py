@@ -44,17 +44,21 @@ class RandomBreak(object):
     -------------------------------------------------------------------------------------
     '''
 
-    def __init__(self, probability=0.5, sl=0.02, sh=0.4, r1=0.3, value=0):
+    def __init__(self, probability=0.5, sl=0.02, sh=0.4, r1=0.3, value=0, return_normal=True):
         self.probability = probability
         self.value = value
         self.sl = sl
         self.sh = sh
         self.r1 = r1
+        self.return_normal = return_normal
 
     def __call__(self, img):
 
         if random.uniform(0, 1) > self.probability:
-            return img
+            if self.return_normal:
+                return img, img
+            else:
+                return img
 
         for attempt in range(100):
             area = img.size()[1] * img.size()[2]
@@ -69,9 +73,14 @@ class RandomBreak(object):
                 x1 = random.randint(0, img.size()[1] - h)
                 y1 = random.randint(0, img.size()[2] - w)
                 img_bk = transforms.functional.erase(img, x1, y1, w, h, self.value)
-                return img_bk, img
-
-        return img, img
+                if self.return_normal:
+                    return img_bk, img
+                else:
+                    return img_bk
+        if self.return_normal:
+            return img, img
+        else:
+            return img
 
 
 class RandomErasing(object):

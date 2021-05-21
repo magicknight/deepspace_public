@@ -8,7 +8,7 @@ from commontools.setup import config, logger
 
 
 def make_npy(path):
-    image_files = list(path.glob('**/*' + '.' + config.deepspace.source_data_format))
+    image_files = sorted(list(path.glob('**/*' + '.' + config.deepspace.source_data_format)))
     data = list(map(imread, tqdm(image_files, desc='read data')))
     data = np.stack(data, axis=0)
     data = normalization(data)

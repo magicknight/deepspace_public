@@ -86,12 +86,16 @@ class RandomPatch(object):
 class ToTensor(object):
     """Convert 3D ndarrays in sample to Tensors."""
 
+    def __init__(self, add_dim=True):
+        self.add_dim = add_dim
+
     def __call__(self, image):
         # # swap color axis because
         # # numpy image: H x W x C
         # # torch image: C X H X W
         # image = image.transpose((2, 0, 1))
-        image = np.expand_dims(image, axis=0)
+        if self.add_dim:
+            image = np.expand_dims(image, axis=0)
         image = torch.from_numpy(image)
         return image
 

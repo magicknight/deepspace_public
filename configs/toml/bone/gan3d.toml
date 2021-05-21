@@ -39,7 +39,7 @@
     # checkpoint file name
     checkpoint_file = 'checkpoint.pth.tar'
     # workers for dataloader
-    data_loader_workers = 2
+    data_loader_workers = 1
     # image loss and dis loss weight
     loss_weight = 0.999
     # seed
@@ -47,13 +47,13 @@
 
     # model
     # generator model
-    gen_encoder_sizes = [8, 16, 32, 64]
-    gen_temporal_strides = [2, 2, 1, 1]    
-    gen_fc_sizes = [128, 64]
+    gen_encoder_sizes = [8, 16, 32]
+    gen_temporal_strides = [2, 2, 1]    
+    gen_fc_sizes = [128]
     # discriminator model
-    dis_encoder_sizes = [8, 16, 32, 64]
-    dis_temporal_strides = [2, 2, 1, 1]
-    dis_fc_sizes = [256, 64, 1]
+    dis_encoder_sizes = [8, 16, 32]
+    dis_temporal_strides = [2, 2, 1]
+    dis_fc_sizes = [64, 1]
 
     # output format; png or tif
     data_format = 'npy'
