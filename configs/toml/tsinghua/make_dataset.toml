@@ -7,12 +7,16 @@
     project_root = '/home/zhihua/data/work_space/tsinghua'
 [deepspace]
     # root directory of the dataset
-    dataset_root = '/home/zhihua/data/contest/tsinghua'
+    dataset_root = '/home/zhihua/data/contest/tsinghua/final'
+    # data patern
+    data_patern = '**/final-*'
     # raw_data_format
     raw_data_format = 'h5'
     # target datatype, target normalize...
     target_data_type = 'float32'
     # output format; png or tif or npy
     data_format = 'npy'
+    # image size
+    # size = [43212, 1000]
     # max length
-    data_size = 30000
+    # data_size = 30000

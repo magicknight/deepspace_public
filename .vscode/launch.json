@@ -48,5 +48,15 @@
             "program": "${file}",
             "console": "integratedTerminal"
         },
+        {
+            "name": "tsinghua",
+            "args": [
+                "--config",
+                "configs/toml/tsinghua/train.toml"
+            ],
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+        },
     ]
 }

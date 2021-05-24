@@ -3,7 +3,7 @@
 if [ $1 == "playground" ]; then
   url='http://hep.tsinghua.edu.cn/~orv/dc/2021/playground-'
 fi
-if [ $1 == "final" ]; then
+if [ $1 == "final" ] || [ $1 == "new" ]; then
   url='http://hep.tsinghua.edu.cn/~orv/dc/2021/final-'
 fi
 if [ $1 == "first" ]; then
@@ -16,6 +16,6 @@ echo $url
 for i in {2..20..1}
   do 
      echo "Downloading data ${url}${i}.h5"
-     wget -c ${url}${i}.h5  -P data/tsinghua/final > data/tsinghua/logs/${i}.log 2>&1 &
+     wget -c ${url}${i}.h5  -P data/tsinghua/$1 > data/tsinghua/logs/${i}.log 2>&1 &
      echo "---------------------------------"
  done

@@ -1,0 +1,65 @@
+[summary]
+    # name of this experiment
+    name = 'neutrino_mlp'
+    author = 'Zhihua Liang'
+    discription = 'Tsinghua Neutrino'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/tsinghua'    
+[deepspace]
+    # data set 
+    # root directory of the dataset
+    dataset_root = '/home/zhihua/data/contest/tsinghua/npy/final' 
+    # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
+    # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
+    shape = [43213, 1000] 
+    pad_size = 8000
+    # batch
+    train_batch = 256
+    validate_batch = 64
+    # data argument
+    # train validate split
+    ratio = 0.95
+
+
+    # agent 
+    agent = 'deepspace.agents.tsinghua.mlp.NeutrinoAgent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'gpu'
+    # which gpu device
+    gpu_device = 0
+    # max epoches to for training.
+    max_epoch = 100
+    # save model every x steps
+    save_model_step = 5
+    save_checkpoint_step = 1
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # workers for dataloader
+    data_loader_workers = 8
+    # learning rate
+    learning_rate = 0.001
+    lr_decay = 0.99
+    # seed
+    seed = 999
+
+    # model
+    wave_mlp_sizes = [ 256, 64, 1 ]
+    det_mlp_sizes = [ 256, 64, 1 ]
+
+
+    # output format; png or tif
+    data_format = 'npy'
+    # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
+    # mode = 'test'
+    mode = 'train'
+
+    # ------------------------------------------
+    # for test
+    test_data_length = 512
+    test_batch = 8
+    test_output_dir = '/home/zhihua/data/work_space/bone/test'
+
+
+
+
+

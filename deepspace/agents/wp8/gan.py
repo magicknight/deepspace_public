@@ -12,7 +12,7 @@ import torch
 from torch.optim import lr_scheduler
 from torch import nn
 from tensorboardX import SummaryWriter
-from torchsummary import summary
+from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
 from deepspace.graphs.models.gan.dcgan_wp8 import Generator, Discriminator

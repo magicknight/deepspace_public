@@ -12,7 +12,7 @@ import torch
 from torch.optim.lr_scheduler import OneCycleLR
 from torch import nn
 from tensorboardX import SummaryWriter
-from torchsummary import summary
+from torchinfo import summary
 from accelerate import Accelerator
 from timm import create_model
 

@@ -10,10 +10,9 @@ from commontools.setup import config, logger
 
 def get_paths():
     root = Path(config.deepspace.dataset_root)
-    first_round_root = root / 'first_round'
-    target_root = root / 'npy' / 'first_round'
-    geo_file = root / 'playground' / 'geo.h5'
-    paths = first_round_root.glob('**/pre-*.' + config.deepspace.raw_data_format)
+    target_root = root.parent / 'npy' / root.name
+    geo_file = root / 'geo.h5'
+    paths = root.glob(config.deepspace.data_patern + config.deepspace.raw_data_format)
     return paths, target_root, geo_file
 
 
@@ -41,7 +40,7 @@ def make_dataset():
         h5file = h5py.File(each_file, 'r', libver='latest', swmr=True)
         petruth = h5file['PETruth']
         patruth = h5file['ParticleTruth']
-        # watruth = h5file['Waveform']
+        watruth = h5file['Waveform']
         event_id_petruth, index_petruth_start = np.unique(petruth['EventID'], return_index=True)
         # index_petruth_end = np.append(index_petruth_start, len(petruth))[1:]
         # index_petruth = np.stack((index_petruth_start, index_petruth_end), axis=-1)

@@ -8,7 +8,7 @@ from torch.optim import lr_scheduler
 from torch import nn
 from tensorboardX.utils import make_grid
 from tensorboardX import SummaryWriter
-from torchsummary import summary
+from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
 from deepspace.graphs.models.autoencoder.ae3d import Residual3DAE

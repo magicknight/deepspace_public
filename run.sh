@@ -42,4 +42,10 @@
 # python3 main.py --config configs/toml/bone/gan3d.toml
 # python3 main.py --config configs/toml/bone/gan3d_test.toml
 # 2d
-python3 main.py --config configs/toml/bone/gan2d.toml
+# python3 main.py --config configs/toml/bone/gan2d.toml
+
+# tsinghua
+# make data
+# python3 experiments/competition/tsinghua/make_dataset_final.py --config configs/toml/tsinghua/make_dataset.toml
+# run
+python3 main.py --config configs/toml/tsinghua/train.toml
