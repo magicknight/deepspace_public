@@ -15,25 +15,16 @@ def norm_waveform(data):
     return data.astype(np.float32)
 
 
-def norm_p(data):
-    min_value, max_value = tuple(config.deepspace.p_range)
-    data = (data - min_value) / (max_value - min_value)
-    return data
-
-
 def save_data(args):
-    file_id, event_id, momentum, channel_ids, waveforms = args
-    momentum = norm_p(momentum)
-    # data = np.zeros(config.deepspace.size)
+    event_id, channel_ids, waveforms = args
     data = dict()
 
     def fill_data(args):
         index, waveform = args
-        # data[detector_index[index]] = waveform
         data[index] = norm_waveform(waveform)
 
     list(map(fill_data, zip(channel_ids, waveforms)))
-    filename = '_'.join([str(file_id), str(event_id), str(momentum)]) + '.' + config.deepspace.data_format
+    filename = str(event_id) + '.' + config.deepspace.data_format
     file_path = target_root / filename
     np.save(file_path, data)
 
@@ -41,24 +32,13 @@ def save_data(args):
 def make_dataset():
     # go through all h5 files
     for each_file in tqdm(paths, desc='files'):
-        file_index = each_file.name.split('-')[-1].split('.')[0]
         h5file = h5py.File(each_file, 'r', libver='latest', swmr=True)
-
-        # petruth = h5file['PETruth']
-        patruth = h5file['ParticleTruth']
         watruth = h5file['Waveform']
-
         event_id_watruth, index_watruth_start = np.unique(watruth['EventID'], return_index=True)
-        # index_watruth_end = np.append(index_watruth_start, len(watruth))[1:]
-        # index_watruth = np.stack((index_watruth_start, index_watruth_end), axis=-1)
-
         channel_ids = np.split(watruth['ChannelID'], index_watruth_start[1:])
         waveforms = np.split(watruth['Waveform'], index_watruth_start[1:])
 
-        momentum = patruth['p'].tolist()
-        file_ids = [file_index] * len(event_id_watruth)
-
-        list(map(save_data, tqdm(zip(file_ids, event_id_watruth, momentum, channel_ids, waveforms), total=len(event_id_watruth))))
+        list(map(save_data, tqdm(zip(event_id_watruth, channel_ids, waveforms), total=len(event_id_watruth))))
 
 
 if __name__ == '__main__':

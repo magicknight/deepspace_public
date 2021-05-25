@@ -2,7 +2,7 @@ from torch import nn
 import torch
 
 
-def Linear(in_features, out_features, activation=None, batchnorm=True):
+def Linear(in_features, out_features, activation=None, batchnorm=False):
     layers = [nn.Linear(in_features, out_features)]
 
     if activation is not None:
@@ -35,14 +35,14 @@ class MLP(nn.Module):
         # wave mlp
         wave_dims = list(zip([input_shape[1], *wave_mlp_sizes], wave_mlp_sizes))
         self.wave_mlp = nn.Sequential(
-            *[Linear(*features, activation=nn.GELU()) for features in wave_dims[:-1]],
-            Linear(*wave_dims[-1], activation=activation, batchnorm=True)
+            *[Linear(*features, activation=nn.GELU(), batchnorm=False) for features in wave_dims[:-1]],
+            Linear(*wave_dims[-1], activation=activation, batchnorm=False)
         )
         # detector mlp
         det_dims = list(zip([input_shape[0], *det_mlp_sizes], det_mlp_sizes))
         self.det_mlp = nn.Sequential(
-            *[Linear(*features, activation=nn.GELU()) for features in det_dims[:-1]],
-            Linear(*det_dims[-1], activation=activation, batchnorm=True)
+            *[Linear(*features, activation=nn.GELU(), batchnorm=False) for features in det_dims[:-1]],
+            Linear(*det_dims[-1], activation=activation, batchnorm=False)
         )
 
     def wave(self, x):
@@ -54,10 +54,12 @@ class MLP(nn.Module):
         return y
 
     def detector(self, index, x):
-        y = torch.zeros(x.shape[0], self.input_shape[0], requires_grad=True).to(x.device)
+        y = torch.zeros(x.shape[0], self.input_shape[0] + 1, requires_grad=True).to(x.device)
         # for each_index, each_x, each_y in zip(index, x, y):
         #     each_y[each_index] = each_x
-        y.scatter(1, index, x)
+        y = y.scatter(1, index.type(torch.int64), x)
+        # since index = 0 are addition data, drop it.
+        y = y[:, 1:]
         y = self.det_mlp(y)
         return y
 

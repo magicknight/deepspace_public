@@ -102,6 +102,7 @@ class BasicAgent(BaseAgent):
             load_checkpoint(self, filename)
             logger.info("Checkpoint loaded successfully from '{}' at (epoch {}) at (iteration {})\n"
                         .format(config.swap.checkpoint_dir, self.current_epoch, self.current_iteration))
+            self.current_epoch = self.current_epoch + 1
         except OSError as e:
             logger.info(e)
             logger.info("No checkpoint exists from '{}'. Skipping...".format(config.swap.checkpoint_dir))

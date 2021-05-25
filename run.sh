@@ -47,5 +47,8 @@
 # tsinghua
 # make data
 # python3 experiments/competition/tsinghua/make_dataset_final.py --config configs/toml/tsinghua/make_dataset.toml
+# python3 experiments/competition/tsinghua/make_dataset_problem.py --config configs/toml/tsinghua/make_dataset_problem.toml
 # run
-python3 main.py --config configs/toml/tsinghua/train.toml
+# python3 main.py --config configs/toml/tsinghua/train.toml
+# test
+python3 main.py --config configs/toml/tsinghua/test.toml

@@ -1,6 +1,7 @@
 
 import numpy as np
 from torch._C import device
+from torch.nn import MSELoss
 from tqdm import tqdm
 from pathlib import Path
 
@@ -31,7 +32,7 @@ class NeutrinoAgent(BasicAgent):
             input_shape=config.deepspace.shape,
             wave_mlp_sizes=config.deepspace.wave_mlp_sizes,
             det_mlp_sizes=config.deepspace.det_mlp_sizes,
-            activation=nn.Sigmoid(),
+            activation=nn.GELU(),
         )
         self.model = self.model.to(self.device)
 
@@ -49,6 +50,7 @@ class NeutrinoAgent(BasicAgent):
 
         # define loss
         self.loss = NeutrinoLoss()
+        # self.loss = MSELoss()
         self.loss = self.loss.to(self.device)
 
         # metric
@@ -62,7 +64,7 @@ class NeutrinoAgent(BasicAgent):
         # Tensorboard Writer
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='tsinghua-neutrino-mlp')
         # add model to tensorboard and print parameter to screen
-        summary(self.model, input_size=[(1, 3000), (1, 3000, 1000)], dtypes=[torch.int64, torch.float], device=self.device)
+        summary(self.model, input_size=[(1, 3000), (1, 3000, 1000)], dtypes=[torch.float32, torch.float32], device=self.device)
 
         # add graph to tensorboard only if at epoch 0
         if self.current_epoch == 0:
@@ -106,16 +108,19 @@ class NeutrinoAgent(BasicAgent):
         # loop datas
         for index, data, label in tqdm_batch:
             # data to device, autograd
-            index = index.to(self.device, dtype=torch.int64)
+            index = index.to(self.device, dtype=torch.float32)
             data = data.to(self.device, dtype=torch.float32)
-            label = label.to(self.device, dtype=torch.float64)
-            # index.requires_grad = True
+            label = label.to(self.device, dtype=torch.float32)
+            index.requires_grad = True
             data.requires_grad = True
             label.requires_grad = True
 
             # train the model now---
             self.optimizer.zero_grad()
             pred_label = self.model(index, data)
+            # print('-----------------')
+            # print(pred_label)
+            # print(label)
             loss = self.loss(pred_label.squeeze(), label)
             loss.backward()
             # Update weights with gradients: optimizer step and update loss to averager
@@ -139,18 +144,17 @@ class NeutrinoAgent(BasicAgent):
         with torch.no_grad():
             for index, data, label in tqdm_batch:
                 # data to device, autograd
-                index = index.to(self.device, dtype=torch.int64)
+                index = index.to(self.device, dtype=torch.float32)
                 data = data.to(self.device, dtype=torch.float32)
-                label = label.to(self.device, dtype=torch.float64)
+                label = label.to(self.device, dtype=torch.float32)
 
                 # test model
                 pred_label = self.model(index, data)
+                # print('-----------------')
+                # print(pred_label)
+                # print(label)
                 loss = self.loss(pred_label.squeeze(), label)
                 epoch_loss.update(loss.item())
-
-                # save the waveform image
-                if self.current_epoch % config.deepspace.save_image_step == 0:
-                    data = data.squeeze().detach().cpu().numpy()
 
             tqdm_batch.close()
 
@@ -162,46 +166,28 @@ class NeutrinoAgent(BasicAgent):
             return epoch_loss.val
 
     def test(self):
-        recon_data = []
+        # load test checkpoint
+        if 'test_model_file' in config.deepspace:
+            self.load_checkpoint(file_name=config.deepspace.test_model_file)
+        # prepare dataset
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.model.eval()
-        self.discriminator.eval()
-        epoch_loss = AverageMeter()
-        epoch_loss = AverageMeter()
-        gen_epoch_dis_loss = AverageMeter()
-        gen_epoch_image_loss = AverageMeter()
-        dis_epoch_loss = AverageMeter()
-
+        prediction = []
         with torch.no_grad():
-            for images, coordinate in tqdm_batch:
-                images = images.to(self.device, dtype=torch.float32)
-                # fake data---
-                recon_images = self.model(images)
-                fake_labels = self.discriminator(recon_images)
-                # train the model now---
-                gen_image_loss = self.loss(recon_images, images)
-                gen_dis_loss = self.dis_loss(fake_labels.squeeze(), self.real_labels[0:images.shape[0]])
-                dis_loss = self.dis_loss(fake_labels.squeeze(), self.fake_labels[0:images.shape[0]])
-                loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
+            for index, data, event_id in tqdm_batch:
+                # data to device, autograd
+                index = index.to(self.device, dtype=torch.float32)
+                data = data.to(self.device, dtype=torch.float32)
 
-                epoch_loss.update(loss.item())
-                gen_epoch_image_loss.update(gen_image_loss.item())
-                gen_epoch_dis_loss.update(gen_dis_loss.item())
-                dis_epoch_loss.update(dis_loss.item())
-                # save the reconstructed image
-                recon_images = recon_images.squeeze().detach().cpu().numpy()
-                recon_data.append(recon_images)
-
-            # data.shape should be (N, h, w, d)
-            recon_data = np.stack(recon_data)
-            np.save(Path(config.deepspace.test_output_dir) / 'output.npy', recon_data)
-            # logging
-            logger.info("test Results at epoch-" + str(self.current_epoch)
-                        + "\n" + ' loss: ' + str(epoch_loss.val)
-                        + "\n" + ' dis_loss: ' + str(dis_epoch_loss.val)
-                        + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val)
-                        + "\n" + '- gen_dis_loss: ' + str(gen_epoch_dis_loss.val))
-
-            logger.info("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
+                # test model
+                pred_label = self.model(index, data)
+                predict = np.stack((event_id, pred_label.squeeze().detach().cpu().numpy()), axis=1)
+                prediction.append(predict)
             tqdm_batch.close()
-            return epoch_loss.val
+            prediction = np.concatenate(prediction, axis=0)
+            logger.info(str(prediction.shape))
+            np.save(Path(config.deepspace.test_output_dir) / 'prediction.npy', prediction)
+
+            # logging
+
+            # print info

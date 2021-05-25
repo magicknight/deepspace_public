@@ -8,13 +8,13 @@
 [deepspace]
     # data set 
     # root directory of the dataset
-    dataset_root = '/home/zhihua/data/contest/tsinghua/npy/new' 
+    dataset_root = '/home/zhihua/data/contest/tsinghua/npy/problem' 
     # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
     # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
     shape = [43212, 1000] 
     pad_size = 8000
     # batch
-    train_batch = 128
+    train_batch = 64
     validate_batch = 16
     # data argument
     # train validate split
@@ -35,7 +35,7 @@
     # checkpoint file name
     checkpoint_file = 'checkpoint.pth.tar'
     # workers for dataloader
-    data_loader_workers = 8
+    data_loader_workers = 1
     # learning rate
     learning_rate = 0.001
     lr_decay = 0.99
@@ -50,12 +50,13 @@
     # output format; png or tif
     data_format = 'npy'
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
-    mode = 'train'
+    mode = 'test'
 
     # ------------------------------------------
     # for test
-    test_batch = 8
-    test_output_dir = '/home/zhihua/data/work_space/bone/test'
+    test_batch = 64
+    test_output_dir = '/home/zhihua/data/work_space/tsinghua/final_predict'
+    test_model_file = 'model_best.pth.tar'
 
 
 
