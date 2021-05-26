@@ -67,7 +67,7 @@ class NPYDataSet:
         return len(self.paths)
 
 
-class NPYTestDataSet:
+class NPYPredictDataSet:
     def __init__(self, transform=None):
         # get all the image paths
         self.paths = get_paths()
@@ -121,9 +121,14 @@ class NPYDataLoader:
             self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
 
         elif config.deepspace.mode == 'test':
-            data_set = NPYTestDataSet(transform=self.input_transform)
+            data_set = NPYDataSet(transform=self.input_transform)
             self.test_loader = DataLoader(data_set, batch_size=config.deepspace.test_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
             self.test_iterations = (len(data_set) + config.deepspace.test_batch) // config.deepspace.test_batch
+
+        elif config.deepspace.mode == 'predict':
+            data_set = NPYPredictDataSet(transform=self.input_transform)
+            self.predict_loader = DataLoader(data_set, batch_size=config.deepspace.predict_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
+            self.predict_iterations = (len(data_set) + config.deepspace.predict_batch) // config.deepspace.predict_batch
 
         else:
             raise Exception('Please choose a proper mode for data loading')

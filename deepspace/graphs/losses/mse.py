@@ -49,6 +49,6 @@ class NeutrinoLoss(MSELoss):
         Returns:
             float: return the percentage of the overlap area
         """
-        p_1 = torch.div(p_1, p_2 + eps)
-        p_2 = torch.div(p_2, p_2 + eps)
+        # p_1 = torch.div(p_1, p_2 + eps)
+        # p_2 = torch.div(p_2, p_2 + eps)
         return super().forward(p_1, p_2)

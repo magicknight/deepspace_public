@@ -7,10 +7,9 @@
     project_root = '/home/zhihua/data/work_space/tsinghua'
 [deepspace]
     # root directory of the dataset
-    # dataset_root = '/home/zhihua/data/contest/tsinghua/new'
-    dataset_root = '/home/zhihua/data/contest/tsinghua/problem'
+    # dataset_root = '/home/zhihua/data/contest/tsinghua/problem'
+    dataset_root = '/home/zhihua/data/contest/tsinghua/fake'
     # data patern
-    # data_patern = '**/final-*'
     data_patern = '**/problem*'
     # raw_data_format
     raw_data_format = 'h5'

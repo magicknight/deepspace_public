@@ -32,6 +32,7 @@ class NeutrinoAgent(BasicAgent):
             input_shape=config.deepspace.shape,
             wave_mlp_sizes=config.deepspace.wave_mlp_sizes,
             det_mlp_sizes=config.deepspace.det_mlp_sizes,
+            # activation=nn.Sigmoid(),
             activation=nn.GELU(),
         )
         self.model = self.model.to(self.device)
@@ -49,8 +50,8 @@ class NeutrinoAgent(BasicAgent):
         self.data_loader = NPYDataLoader()
 
         # define loss
-        self.loss = NeutrinoLoss()
-        # self.loss = MSELoss()
+        # self.loss = NeutrinoLoss()
+        self.loss = MSELoss()
         self.loss = self.loss.to(self.device)
 
         # metric
@@ -64,12 +65,12 @@ class NeutrinoAgent(BasicAgent):
         # Tensorboard Writer
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='tsinghua-neutrino-mlp')
         # add model to tensorboard and print parameter to screen
-        summary(self.model, input_size=[(1, 3000), (1, 3000, 1000)], dtypes=[torch.float32, torch.float32], device=self.device)
+        summary(self.model, input_size=[(1, 8000), (1, 8000, 1000)], dtypes=[torch.float32, torch.float32], device=self.device)
 
         # add graph to tensorboard only if at epoch 0
         if self.current_epoch == 0:
-            dummy_input = torch.randn(1, 300, 1000).to(self.device)
-            index = torch.from_numpy(np.random.randint(0, 43212, [1, 300])).to(self.device)
+            dummy_input = torch.randn(1, 8000, 1000).to(self.device)
+            index = torch.from_numpy(np.random.randint(0, 43212, [1, 8000])).to(self.device)
             self.summary_writer.add_graph(self.model, [index, dummy_input], verbose=False)
 
     def train(self):
@@ -169,8 +170,36 @@ class NeutrinoAgent(BasicAgent):
         # load test checkpoint
         if 'test_model_file' in config.deepspace:
             self.load_checkpoint(file_name=config.deepspace.test_model_file)
-        # prepare dataset
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        self.model.eval()
+        epoch_loss = AverageMeter()
+        result = []
+        with torch.no_grad():
+            for index, data, label in tqdm_batch:
+                # data to device, autograd
+                index = index.to(self.device, dtype=torch.float32)
+                data = data.to(self.device, dtype=torch.float32)
+                label = label.to(self.device, dtype=torch.float32)
+
+                # test model
+                pred_label = self.model(index, data)
+                result.append(np.stack((pred_label.squeeze().detach().cpu().numpy(), label.squeeze().detach().cpu().numpy()), axis=1))
+                loss = self.loss(pred_label.squeeze(), label)
+                epoch_loss.update(loss.item())
+
+            tqdm_batch.close()
+            # print info
+            logger.info("validate Results at epoch-" + str(self.current_epoch) + ' loss: ' + str(epoch_loss.val))
+            # save result
+            result = np.concatenate(result, axis=0)
+            np.save(Path(config.deepspace.test_output_dir) / 'test.npy', result)
+
+    def predict(self):
+        # load test checkpoint
+        if 'predict_model_file' in config.deepspace:
+            self.load_checkpoint(file_name=config.deepspace.predict_model_file)
+        # prepare dataset
+        tqdm_batch = tqdm(self.data_loader.predict_loader, total=self.data_loader.predict_iterations, desc="predict at -{}-".format(self.current_epoch))
         self.model.eval()
         prediction = []
         with torch.no_grad():
@@ -179,14 +208,13 @@ class NeutrinoAgent(BasicAgent):
                 index = index.to(self.device, dtype=torch.float32)
                 data = data.to(self.device, dtype=torch.float32)
 
-                # test model
+                # predict
                 pred_label = self.model(index, data)
                 predict = np.stack((event_id, pred_label.squeeze().detach().cpu().numpy()), axis=1)
                 prediction.append(predict)
             tqdm_batch.close()
             prediction = np.concatenate(prediction, axis=0)
-            logger.info(str(prediction.shape))
-            np.save(Path(config.deepspace.test_output_dir) / 'prediction.npy', prediction)
+            np.save(Path(config.deepspace.predict_output_dir) / 'prediction.npy', prediction)
 
             # logging
 

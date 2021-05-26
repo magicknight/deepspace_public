@@ -8,8 +8,9 @@
 [deepspace]
     # data set 
     # root directory of the dataset
-    # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/problem' 
-    dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
+    dataset_root = '/home/zhihua/data/contest/tsinghua/npy/problem' 
+    # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/fake' 
+    # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
     # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
     shape = [43212, 1000] 
     pad_size = 8000
@@ -50,13 +51,14 @@
     # output format; png or tif
     data_format = 'npy'
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
-    mode = 'test'
+    mode = 'predict'
 
     # ------------------------------------------
-    # for test
-    test_batch = 64
-    test_output_dir = '/home/zhihua/data/work_space/tsinghua/test'
-    test_model_file = 'model_best.pth.tar'
+    # for predict
+    predict_batch = 64
+    predict_output_dir = '/home/zhihua/data/work_space/tsinghua/final_predict'
+    # predict_model_file = 'model_best.pth.tar'
+    predict_model_file = '33.pth.tar'
 
 
 

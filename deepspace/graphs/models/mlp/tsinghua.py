@@ -61,6 +61,7 @@ class MLP(nn.Module):
         # since index = 0 are addition data, drop it.
         y = y[:, 1:]
         y = self.det_mlp(y)
+        # y = self.det_mlp(x)
         return y
 
     def forward(self, index, x):

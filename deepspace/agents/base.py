@@ -118,7 +118,8 @@ class BasicAgent(BaseAgent):
                 self.test()
             elif config.deepspace.mode == 'train':
                 self.train()
-
+            elif config.deepspace.mode == 'predict':
+                self.predict()
         except KeyboardInterrupt:
             logger.info("You have entered CTRL+C.. Wait to finalize")
 

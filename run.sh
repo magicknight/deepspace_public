@@ -50,5 +50,7 @@
 # python3 experiments/competition/tsinghua/make_dataset_problem.py --config configs/toml/tsinghua/make_dataset_problem.toml
 # run
 # python3 main.py --config configs/toml/tsinghua/train.toml
+# redict
+python3 main.py --config configs/toml/tsinghua/predict.toml
 # test
-python3 main.py --config configs/toml/tsinghua/test.toml
+# python3 main.py --config configs/toml/tsinghua/test.toml
