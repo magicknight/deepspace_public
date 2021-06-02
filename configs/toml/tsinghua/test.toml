@@ -1,6 +1,7 @@
 [summary]
     # name of this experiment
     name = 'neutrino_norm_mlp'
+    # name = 'old2_neutrino_norm_mlp'
     author = 'Zhihua Liang'
     discription = 'Tsinghua Neutrino'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -12,7 +13,7 @@
     dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
     # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
     shape = [43212, 1000] 
-    pad_size = 8000
+    pad_size = 6000
     # batch
     train_batch = 64
     validate_batch = 16
@@ -56,7 +57,7 @@
     # for test
     test_batch = 64
     test_output_dir = '/home/zhihua/data/work_space/tsinghua/test'
-    test_model_file = 'model_best.pth.tar'
+    # test_model_file = 'model_best.pth.tar'
 
 
 

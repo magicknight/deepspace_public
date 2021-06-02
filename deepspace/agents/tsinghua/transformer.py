@@ -13,9 +13,8 @@ from tensorboardX import SummaryWriter
 from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
-# from deepspace.graphs.models.mlp.tsinghua import MLP
-from deepspace.graphs.models.mlp.position_mlp import MLP
-from deepspace.datasets.tsinghua.npy import NPYDataLoader
+from deepspace.graphs.models.transformer.vit_line import ViT
+from deepspace.datasets.tsinghua.npy_transformer import NPYDataLoader
 from deepspace.graphs.losses.mse import NeutrinoLoss
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
@@ -29,12 +28,15 @@ class NeutrinoAgent(BasicAgent):
         super().__init__()
 
         # define models
-        self.model = MLP(
-            input_shape=config.deepspace.shape,
-            wave_mlp_sizes=config.deepspace.wave_mlp_sizes,
-            det_mlp_sizes=config.deepspace.det_mlp_sizes,
-            # activation=nn.Sigmoid(),
-            activation=nn.GELU(),
+        self.model = ViT(
+            image_size=config.deepspace.image_size,
+            num_classes=config.deepspace.num_classes,
+            dim=config.deepspace.dim,
+            depth=config.deepspace.depth,
+            heads=config.deepspace.heads,
+            mlp_dim=config.deepspace.mlp_dim,
+            dropout=config.deepspace.dropout,
+            emb_dropout=config.deepspace.emb_dropout
         )
         self.model = self.model.to(self.device)
 
@@ -66,12 +68,12 @@ class NeutrinoAgent(BasicAgent):
         # Tensorboard Writer
         self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='tsinghua-neutrino-mlp')
         # add model to tensorboard and print parameter to screen
-        summary(self.model, input_size=[(1, 6000), (1, 6000, 1000)], dtypes=[torch.float32, torch.float32], device=self.device)
+        summary(self.model, input_size=[(1, 6001), (1, 6000, 1000)], dtypes=[torch.float32, torch.float32], device=self.device, depth=6)
 
         # add graph to tensorboard only if at epoch 0
         if self.current_epoch == 0:
             dummy_input = torch.randn(1, 6000, 1000).to(self.device)
-            index = torch.from_numpy(np.random.randint(0, 43212, [1, 6000])).to(self.device)
+            index = torch.from_numpy(np.random.randint(0, 43212, [1, 6001])).to(self.device)
             self.summary_writer.add_graph(self.model, [index, dummy_input], verbose=False)
 
     def train(self):

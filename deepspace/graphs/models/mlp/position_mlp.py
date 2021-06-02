@@ -1,16 +1,6 @@
+from numpy.lib.index_tricks import _diag_indices_from
 from torch import nn
 import torch
-
-
-def Conv(in_features, out_features, activation=None, batchnorm=False):
-    layers = [nn.Conv1d(in_features, out_features, kernel_size=3, stride=2, padding=1)]
-
-    if activation is not None:
-        layers += [activation]
-    if batchnorm:
-        layers += [nn.BatchNorm1d(out_features)]
-
-    return nn.Sequential(*layers)
 
 
 def Linear(in_features, out_features, activation=None, batchnorm=False):
@@ -46,56 +36,30 @@ class MLP(nn.Module):
         # wave mlp
         wave_dims = list(zip([input_shape[1], *wave_mlp_sizes], wave_mlp_sizes))
         self.wave_mlp = nn.Sequential(
-            *[Linear(*features, activation=nn.LeakyReLU(), batchnorm=False) for features in wave_dims[:-1]],
+            *[Linear(*features, activation=nn.GELU(), batchnorm=False) for features in wave_dims[:-1]],
             Linear(*wave_dims[-1], activation=activation, batchnorm=False)
         )
-        # wave conv
-        # wave_dims = list(zip([input_shape[1], *wave_mlp_sizes], wave_mlp_sizes))
-        # self.wave_mlp = nn.Sequential(
-        #     *[Conv(*features, activation=nn.GELU(), batchnorm=True) for features in wave_dims[:-1]],
-        #     Linear(*wave_dims[-1], activation=activation, batchnorm=False)
-        # )
 
         # # detector mlp
         det_dims = list(zip([input_shape[0], *det_mlp_sizes], det_mlp_sizes))
         self.det_mlp = nn.Sequential(
-            *[Linear(*features, activation=nn.LeakyReLU(), batchnorm=False) for features in det_dims[:-1]],
+            *[Linear(*features, activation=nn.GELU(), batchnorm=False) for features in det_dims[:-1]],
             Linear(*det_dims[-1], activation=activation, batchnorm=False)
         )
-        # # detector conv
-        # det_dims = list(zip([input_shape[0], *det_mlp_sizes], det_mlp_sizes))
-        # self.det_mlp = nn.Sequential(
-        #     *[Conv(*features, activation=nn.GELU(), batchnorm=True) for features in det_dims[:-1]],
-        #     Linear(*det_dims[-1], activation=activation, batchnorm=False)
-        # )
 
     def wave(self, x):
         # [batch, column, row] => [column, batch, row]? no, we will make it like [batch * column, row]
-        shape = x.shape[1]
-        # x = x.view(-1, self.input_shape[1])
         y = self.wave_mlp(x)
-        y = y.view(-1, shape)
         return y
 
     def detector(self, index, x):
-        y = torch.zeros(x.shape[0], self.input_shape[0] + 1, requires_grad=True).to(x.device)
-        # for each_index, each_x, each_y in zip(index, x, y):
-        #     each_y[each_index] = each_x
-        y = y.scatter(1, index.type(torch.int64), x)
-        # since index = 0 are addition data, drop it.
-        y = y[:, 1:]
-        y = self.det_mlp(y)
-        # y = self.det_mlp(x)
+        x = torch.stack((index, x.squeeze(dim=-1)), dim=-1)
+        x = x.view(x.shape[0], -1)
+        y = self.det_mlp(x)
         return y
 
     def forward(self, index, x):
         """
-        model = MLP([43212, 1000], [ 256, 64, 1 ], [ 256, 64, 1 ], activation=nn.Sigmoid())
-        summary(model, (1, *config.deepspace.shape))
-        x = torch.randn(2, *config.deepspace.shape)
-        y = model(x)
-        tuple(y.shape)
-        (2, 1)
         """
         # print(shape)
         # index = index[:, :shape]

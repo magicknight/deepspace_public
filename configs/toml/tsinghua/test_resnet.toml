@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'neutrino_norm_mlp'
+    name = 'neutrino_norm_resnet'
     author = 'Zhihua Liang'
     discription = 'Tsinghua Neutrino'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -8,21 +8,21 @@
 [deepspace]
     # data set 
     # root directory of the dataset
-    dataset_root = '/home/zhihua/data/contest/tsinghua/npy/new' 
-    # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
+    # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/problem' 
+    dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
     # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
     shape = [43212, 1000] 
     pad_size = 6000
     # batch
-    train_batch = 256
-    validate_batch = 16
+    train_batch = 4
+    validate_batch = 1
     # data argument
     # train validate split
     ratio = 0.95
 
 
     # agent 
-    agent = 'deepspace.agents.tsinghua.mlp.NeutrinoAgent'
+    agent = 'deepspace.agents.tsinghua.resnet.NeutrinoAgent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
     # which gpu device
@@ -35,7 +35,7 @@
     # checkpoint file name
     checkpoint_file = 'checkpoint.pth.tar'
     # workers for dataloader
-    data_loader_workers = 4
+    data_loader_workers = 1
     # learning rate
     learning_rate = 0.001
     lr_decay = 0.99
@@ -43,19 +43,20 @@
     seed = 999
 
     # model
-    wave_mlp_sizes = [256,  64, 16, 1 ]
-    det_mlp_sizes = [256,  64, 16, 1 ]
+    wave_mlp_sizes = [256, 64, 16, 1 ]
+    det_mlp_sizes = [ 256, 64, 16, 1 ]
 
 
     # output format; png or tif
     data_format = 'npy'
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
-    mode = 'train'
+    mode = 'test'
 
     # ------------------------------------------
     # for test
-    test_batch = 8
-    test_output_dir = '/home/zhihua/data/work_space/bone/test'
+    test_batch = 4
+    test_output_dir = '/home/zhihua/data/work_space/tsinghua/test'
+    # test_model_file = 'model_best.pth.tar'
 
 
 

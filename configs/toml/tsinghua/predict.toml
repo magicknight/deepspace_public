@@ -1,6 +1,7 @@
 [summary]
     # name of this experiment
     name = 'neutrino_norm_mlp'
+    # name = 'old2_neutrino_norm_mlp'
     author = 'Zhihua Liang'
     discription = 'Tsinghua Neutrino'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -10,10 +11,9 @@
     # root directory of the dataset
     dataset_root = '/home/zhihua/data/contest/tsinghua/npy/problem' 
     # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/fake' 
-    # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
     # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
     shape = [43212, 1000] 
-    pad_size = 8000
+    pad_size = 6000
     # batch
     train_batch = 64
     validate_batch = 16
@@ -44,8 +44,8 @@
     seed = 999
 
     # model
-    wave_mlp_sizes = [256, 64, 16, 1 ]
-    det_mlp_sizes = [ 256, 64, 16, 1 ]
+    wave_mlp_sizes = [256,  64, 16, 1 ]
+    det_mlp_sizes = [256,  64, 16, 1 ]
 
 
     # output format; png or tif
@@ -58,7 +58,6 @@
     predict_batch = 64
     predict_output_dir = '/home/zhihua/data/work_space/tsinghua/final_predict'
     # predict_model_file = 'model_best.pth.tar'
-    predict_model_file = '33.pth.tar'
 
 
 

@@ -50,7 +50,12 @@
 # python3 experiments/competition/tsinghua/make_dataset_problem.py --config configs/toml/tsinghua/make_dataset_problem.toml
 # run
 # python3 main.py --config configs/toml/tsinghua/train.toml
+# python3 main.py --config configs/toml/tsinghua/train_position.toml
+python3 main.py --config configs/toml/tsinghua/train_transformer.toml
+# python3 main.py --config configs/toml/tsinghua/train_resnet.toml
 # redict
-python3 main.py --config configs/toml/tsinghua/predict.toml
+# python3 main.py --config configs/toml/tsinghua/predict.toml
+# python3 main.py --config configs/toml/tsinghua/predict_resnet.toml
 # test
 # python3 main.py --config configs/toml/tsinghua/test.toml
+# python3 main.py --config configs/toml/tsinghua/test_resnet.toml

@@ -54,7 +54,7 @@ class NPYDataSet:
         data_values = np.array(list(data.item().values()))
         # pad to avoid torch error on non equal size
         real_shape = np.array(data_keys.shape[0], dtype=np.int)
-        data_keys = np.pad(data_keys, ((0, config.deepspace.pad_size - real_shape)), 'constant', constant_values=0)
+        data_keys = np.pad(data_keys, ((0, config.deepspace.pad_size - real_shape + 1)), 'constant', constant_values=0)
         data_values = np.pad(data_values, ((0, config.deepspace.pad_size - real_shape), (0, 0)), 'constant', constant_values=0)
 
         if self.transform is not None:
@@ -91,7 +91,7 @@ class NPYPredictDataSet:
         data_values = np.array(list(data.item().values()))
         # pad to avoid torch error on non equal size
         real_shape = np.array(data_keys.shape[0], dtype=np.int)
-        data_keys = np.pad(data_keys, ((0, config.deepspace.pad_size - real_shape)), 'constant', constant_values=0)
+        data_keys = np.pad(data_keys, ((0, config.deepspace.pad_size - real_shape + 1)), 'constant', constant_values=0)
         data_values = np.pad(data_values, ((0, config.deepspace.pad_size - real_shape), (0, 0)), 'constant', constant_values=0)
 
         if self.transform is not None:

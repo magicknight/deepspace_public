@@ -51,11 +51,11 @@ class NPYDataSet:
         data = np.load(path, allow_pickle=True)
         # position 0 will be use for addition data, so all index move to the next position
         data_keys = np.array(list(data.item().keys())) + 1
-        data_values = np.array(list(data.item().values()))
+        data_values = np.expand_dims(np.array(list(data.item().values())), axis=0)
         # pad to avoid torch error on non equal size
         real_shape = np.array(data_keys.shape[0], dtype=np.int)
         data_keys = np.pad(data_keys, ((0, config.deepspace.pad_size - real_shape)), 'constant', constant_values=0)
-        data_values = np.pad(data_values, ((0, config.deepspace.pad_size - real_shape), (0, 0)), 'constant', constant_values=0)
+        data_values = np.pad(data_values, ((0, 0), (0, config.deepspace.pad_size - real_shape), (0, 0)), 'constant', constant_values=0)
 
         if self.transform is not None:
             data_keys = self.transform(data_keys)
@@ -88,11 +88,11 @@ class NPYPredictDataSet:
         # read in data. data shape: [2856, 1000], index shape: [2856]
         data = np.load(path, allow_pickle=True)
         data_keys = np.array(list(data.item().keys())) + 1
-        data_values = np.array(list(data.item().values()))
+        data_values = np.expand_dims(np.array(list(data.item().values())), axis=0)
         # pad to avoid torch error on non equal size
         real_shape = np.array(data_keys.shape[0], dtype=np.int)
         data_keys = np.pad(data_keys, ((0, config.deepspace.pad_size - real_shape)), 'constant', constant_values=0)
-        data_values = np.pad(data_values, ((0, config.deepspace.pad_size - real_shape), (0, 0)), 'constant', constant_values=0)
+        data_values = np.pad(data_values, ((0, 0), (0, config.deepspace.pad_size - real_shape), (0, 0)), 'constant', constant_values=0)
 
         if self.transform is not None:
             data_keys = self.transform(data_keys)

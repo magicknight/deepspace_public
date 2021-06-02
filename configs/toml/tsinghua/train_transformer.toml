@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'neutrino_norm_mlp'
+    name = 'neutrino_norm_transformer'
     author = 'Zhihua Liang'
     discription = 'Tsinghua Neutrino'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -11,18 +11,18 @@
     dataset_root = '/home/zhihua/data/contest/tsinghua/npy/new' 
     # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
     # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
-    shape = [43212, 1000] 
+    image_size = [6000, 1000]
     pad_size = 6000
     # batch
-    train_batch = 256
-    validate_batch = 16
+    train_batch = 4
+    validate_batch = 2
     # data argument
     # train validate split
     ratio = 0.95
 
 
     # agent 
-    agent = 'deepspace.agents.tsinghua.mlp.NeutrinoAgent'
+    agent = 'deepspace.agents.tsinghua.transformer.NeutrinoAgent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
     # which gpu device
@@ -43,9 +43,13 @@
     seed = 999
 
     # model
-    wave_mlp_sizes = [256,  64, 16, 1 ]
-    det_mlp_sizes = [256,  64, 16, 1 ]
-
+    num_classes = 1
+    dim = 1
+    depth = 2
+    heads = 8
+    mlp_dim = 64
+    dropout = 0.1
+    emb_dropout = 0.1
 
     # output format; png or tif
     data_format = 'npy'

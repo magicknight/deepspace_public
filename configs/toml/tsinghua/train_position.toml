@@ -11,7 +11,7 @@
     dataset_root = '/home/zhihua/data/contest/tsinghua/npy/new' 
     # dataset_root = '/home/zhihua/data/contest/tsinghua/npy/test' 
     # data size. original is 43213, but we have to move a bit to allow padding data to fill in it
-    shape = [43212, 1000] 
+    shape = [12000, 1000] 
     pad_size = 6000
     # batch
     train_batch = 256

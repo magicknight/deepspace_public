@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'neutrino_norm_mlp'
+    name = 'neutrino_norm_resnet'
     author = 'Zhihua Liang'
     discription = 'Tsinghua Neutrino'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -14,15 +14,15 @@
     shape = [43212, 1000] 
     pad_size = 6000
     # batch
-    train_batch = 256
-    validate_batch = 16
+    train_batch = 4
+    validate_batch = 1
     # data argument
     # train validate split
     ratio = 0.95
 
 
     # agent 
-    agent = 'deepspace.agents.tsinghua.mlp.NeutrinoAgent'
+    agent = 'deepspace.agents.tsinghua.resnet.NeutrinoAgent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'gpu'
     # which gpu device

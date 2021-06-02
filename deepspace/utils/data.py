@@ -106,7 +106,7 @@ def make_masks_tensor(images, device, threshold=None):
     return masks
 
 
-def read_numpy(path, shape, datatype=np.float32) -> np.array:
+def read_bin(path, shape, datatype=np.float32) -> np.array:
     """read in numpy binary data
 
     Args:
