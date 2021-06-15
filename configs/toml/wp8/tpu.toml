@@ -1,0 +1,67 @@
+[summary]
+    # name of this experiment
+    name = 'gan3d_tpu'
+    author = 'Zhihua Liang'
+    discription = 'Train wp8 on TPU'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/wp8'
+[deepspace]
+    ########### agent ###########
+    # agent name
+    agent = 'deepspace.agents.wp8.gan3d_tpu.WP8Agent'
+    # device config
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'tpu'    
+    fp16 = false
+    cpu = false    
+    # distribute setting
+    world_size = 8
+    # random seed
+    seed = 999
+    # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+    learning_rate = 1e-4
+    # max epoches to for training.
+    max_epoch = 10
+    # save ouput on first n images during validation
+    save_images = [0, 1]
+    # mode = 'train', 'test', 'validate'
+    mode = 'train'
+
+    ######## dataset ############
+    # root directory of the dataset
+    train_dataset = '/home/zhihua/data/anomaly/wp8/cyl9_npy'
+    # train_dataset = '/home/zhihua/data/anomaly/wp8/cyl9_npy_test_more'
+    # batch
+    train_batch = 64
+    validate_batch = 16
+    # channels
+    image_channels = 1   
+    # data resolution
+    image_size = [32, 32, 32]  
+    # output format; png or tif
+    data_format = 'npy'      
+    # workers for dataloader
+    data_loader_workers = 4
+    
+    split_rate = 0.99
+
+    ########## model ############
+    # save model every x steps
+    save_model_step = 3
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+
+    encoder_sizes = [2, 8]
+    fc_sizes = [128, 16]
+    temporal_strides = [2, 1]
+
+    ##### test ######
+    test_dataset = '/home/zhihua/data/anomaly/wp8/cyl9_npy_test'
+    test_batch = 8
+    test_output_dir = '/home/zhihua/data/work_space/wp8/test'
+
+[common]
+    distribute = true
+
+
+

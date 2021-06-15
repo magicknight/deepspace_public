@@ -29,7 +29,13 @@
 # python3 main.py --config configs/toml/wp8/gan.toml
 # python3 main.py --config configs/toml/wp8/gan_test.toml
 # python3 main.py --config configs/toml/wp8/autoencoder_npy.toml
+# tpu
+# PT_XLA_DEBUG=1 TF_CPP_LOG_THREAD_ID=1 TF_CPP_MIN_LOG_LEVEL=0 TF_CPP_VMODULE=tensor=5,computation_client=5,xrt_computation_client=5,aten_xla_type=1 python main.py --config configs/toml/wp8/tpu.toml
+python main.py --config configs/toml/wp8/tpu.toml
 # wp8 data
+# wp8 data
+# python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy.toml
+# python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy_test.toml
 
 # dqn
 # python3 main.py --config configs/toml/poc2020/control/dqn.toml
@@ -43,6 +49,7 @@
 # python3 main.py --config configs/toml/bone/gan3d_test.toml
 # 2d
 # python3 main.py --config configs/toml/bone/gan2d.toml
+# python3 main.py --config configs/toml/bone/gan2d_test.toml
 
 # tsinghua
 # make data
@@ -51,7 +58,7 @@
 # run
 # python3 main.py --config configs/toml/tsinghua/train.toml
 # python3 main.py --config configs/toml/tsinghua/train_position.toml
-python3 main.py --config configs/toml/tsinghua/train_transformer.toml
+# python3 main.py --config configs/toml/tsinghua/train_transformer.toml
 # python3 main.py --config configs/toml/tsinghua/train_resnet.toml
 # redict
 # python3 main.py --config configs/toml/tsinghua/predict.toml
@@ -59,3 +66,7 @@ python3 main.py --config configs/toml/tsinghua/train_transformer.toml
 # test
 # python3 main.py --config configs/toml/tsinghua/test.toml
 # python3 main.py --config configs/toml/tsinghua/test_resnet.toml
+
+
+# tpu
+# python main.py --config configs/toml/tpu/fairseq.toml

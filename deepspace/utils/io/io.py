@@ -80,7 +80,7 @@ def show_images(list_of_images, path=None):
     plt.close()
 
 
-def save_checkpoint(agent, filename, is_best=False, backup_checkpoint=False) -> None:
+def save_checkpoint(agent, filename, is_best=False, backup_checkpoint=False, save_func=torch.save) -> None:
     """io function for saveing checkpoint during training
 
     Args:
@@ -97,7 +97,7 @@ def save_checkpoint(agent, filename, is_best=False, backup_checkpoint=False) -> 
             state[key] = getattr(agent, key)
             # state['state_dict'] = {k: v.state_dict() for k, v in state['state_dict'].items()}
             # Save the state
-    torch.save(state, filename)
+    save_func(state, filename)
     # If it is the best copy it to another file 'model_best.pth.tar'
     if is_best:
         shutil.copyfile(filename, filename.parent / 'model_best.pth.tar')

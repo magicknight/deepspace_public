@@ -31,13 +31,19 @@ def get_device():
     if is_cuda and not use_cuda:
         logger.warn("You have a CUDA device, so you should probably enable CUDA!")
     cuda = is_cuda and use_cuda
-    # set the manual seed for torch
     if cuda:
+        # set the manual seed for torch
         torch.cuda.manual_seed_all(config.deepspace.seed)
         device = torch.device("cuda")
         torch.cuda.set_device(config.deepspace.gpu_device)
-        logger.info("Program will run on *****GPU-CUDA*****, device $1".format(config.deepspace.gpu_device))
+        logger.info("Program will run on *****GPU-CUDA*****, device {name}".format(name=config.deepspace.gpu_device))
         print_cuda_statistics()
+    elif config.deepspace.device == 'tpu':
+        import torch_xla.core.xla_model as xm
+        device = xm.xla_device()
+        xm.set_rng_state(config.deepspace.seed)
+        torch.manual_seed(config.deepspace.seed)
+        logger.info("Program will run on *****TPU*****, device {ordinal}, this process is {is_master}".format(ordinal=xm.get_ordinal(-1), is_master='MASTER' if xm.is_master_ordinal() else 'WORKER'))
     else:
         device = torch.device("cpu")
         torch.manual_seed(config.deepspace.seed)

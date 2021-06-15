@@ -49,11 +49,17 @@ class NPYImages:
 
 
 class NPYTestImages:
-    def __init__(self, transform=None):
-        self.transform = transform
-        # process data first
-        self.data = np.load(config.deepspace.train_data, allow_pickle=True)
-        self.transform = transform
+    def __init__(self, train_file=None, target_file=None, train_transform=None, target_transform=None):
+        # get all the image paths
+        self.input_data = np.load(train_file, allow_pickle=True)
+        self.normal_data = np.load(target_file, allow_pickle=True)
+
+        image_size = config.deepspace.image_size
+        self.input_data = np.pad(self.input_data, [(0, 0), (0, image_size[0] - self.input_data.shape[1]), (0, image_size[1] - self.input_data.shape[2])])
+        self.normal_data = np.pad(self.normal_data, [(0, 0), (0, image_size[0] - self.normal_data.shape[1]), (0, image_size[1] - self.normal_data.shape[2])])
+
+        self.input_transform = train_transform
+        self.normal_transform = target_transform
 
     def __getitem__(self, index):
         """return png images
@@ -64,14 +70,18 @@ class NPYTestImages:
         Returns:
             Tensor: images
         """
-        data = self.data[index, :, :]
-        if self.transform is not None:
-            data = self.transform(data)
-        return data
+        input_data = self.input_data[index, :, :]
+        normal_data = self.normal_data[index, :, :]
+        if self.input_transform is not None:
+            input_data = self.input_transform(input_data)
+        if self.normal_transform is not None:
+            normal_data = self.normal_transform(normal_data)
+
+        return input_data, normal_data
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
-        return self.data.shape[0]
+        return self.input_data.shape[0]
 
 
 class NPYDataLoader:
@@ -106,10 +116,9 @@ class NPYDataLoader:
             self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
 
         elif config.deepspace.mode == 'test':
-            test_set = NPYTestImages(train_file=config.deepspace.valid_data, target_file=config.deepspace.valid_target_data, transform=self.test_transform)
+            test_set = NPYTestImages(train_file=config.deepspace.test_input_data, target_file=config.deepspace.test_normal_data, train_transform=self.train_trainsform, target_transform=self.target_transform)
             self.test_loader = DataLoader(test_set, batch_size=config.deepspace.test_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
             self.test_iterations = (len(test_set) + config.deepspace.test_batch) // config.deepspace.test_batch
-            self.test_data = test_set.data
 
         else:
             raise Exception('Please choose a proper mode for data loading')

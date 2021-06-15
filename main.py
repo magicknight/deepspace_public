@@ -7,9 +7,10 @@ Main
 -Create an agent instance
 -Run the agent
 """
-import gc
 import importlib
-from commontools.setup import config, logger
+import torch
+from commontools.setup import config
+# from deepspace.utils.distribute import suppress_output
 
 
 def run():
@@ -21,12 +22,27 @@ def run():
     agent.finalize()
 
 
+def _mp_fn(index, args):
+    import dis
+    import torch_xla.core.xla_model as xm
+    torch.set_default_tensor_type('torch.FloatTensor')
+    # suppress_output(xm.is_master_ordinal())
+    run()
+
+
 def main():
+    # if running on tpu
     if config.deepspace.device == 'tpu':
+        # import the distributed tools from torch_xla.
+        import torch_xla
+        import torch_xla.debug.metrics as met
+        import torch_xla.distributed.parallel_loader as pl
+        import torch_xla.utils.utils as xu
+        import torch_xla.core.xla_model as xm
         import torch_xla.distributed.xla_multiprocessing as xmp
-        gc.collect()
+        # From here on out we are in TPU context
         FLAGS = {}
-        xmp.spawn(run, args=(FLAGS,), nprocs=config.deepspace.tpu_cores, start_method='spawn')
+        xmp.spawn(_mp_fn, args=(FLAGS,), nprocs=config.deepspace.world_size, join=True, daemon=False, start_method='fork')
     else:
         run()
 

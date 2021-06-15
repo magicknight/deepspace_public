@@ -1,0 +1,83 @@
+[summary]
+    # name of this experiment
+    name = '2dgan_npy'
+    author = 'Zhihua Liang'
+    discription = 'Bone reconstruction'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/bone'    
+[deepspace]
+    # data set 
+    # root directory of the dataset
+    train_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_noisy.npy'
+    target_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_original.npy'
+    valid_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_noisy.npy'
+    valid_target_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_origin.npy'    
+    # channels
+    image_channels = 1
+    # image_size = [1120, 1120]
+    image_size = [1152, 1152]
+    # batch
+    train_batch = 32
+    validate_batch = 8
+    # data argument
+    drop_probability = [0.05, 0.3]
+    break_probability = 1
+    min_erasing_area = 0.01
+    max_erasing_area = 0.1
+    min_aspect_ratio = 0.3
+    value = 0
+
+    # agent 
+    agent = 'deepspace.agents.bone.gan2d.BoneAgent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'gpu'
+    # which gpu device
+    gpu_device = 0
+    # max epoches to for training.
+    max_epoch = 2000
+    # save model every x steps
+    save_model_step = 30
+    save_checkpoint_step = 10
+    save_image_step = 1
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # workers for dataloader
+    data_loader_workers = 1
+    # image loss and dis loss weight
+    loss_weight = 0.999
+    # learning rate
+    learning_rate = 0.001
+    lr_decay = 0.999
+    # seed
+    seed = 999
+    # train only discriminator?
+    trani_dis_only = false
+
+    # model
+    # generator model
+    gen_encoder_sizes = [ 8, 16, 32, 64, 128, 256, 512,]
+    gen_fc_sizes = [ 256,]
+    # discriminator model
+    dis_encoder_sizes = [ 8, 16, 32, 64, 128, 256, 512,]
+    dis_fc_sizes = [ 64, 16, 1,]
+
+    # output format; png or tif
+    data_format = 'npy'
+    # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
+    mode = 'test'
+    # save ouput on first n images during validation
+    save_images = [0, 2]
+
+    # ------------------------------------------
+    # for test
+    test_input_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_noisy.npy'
+    test_normal_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_original.npy'
+    # test_input_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_noisy.npy'
+    # test_normal_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_origin.npy'        
+    test_batch = 8
+    test_output_dir = '/home/zhihua/data/work_space/bone/test'
+
+
+
+
+

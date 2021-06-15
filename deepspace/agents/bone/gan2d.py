@@ -73,10 +73,10 @@ class BoneAgent(BasicAgent):
         self.load_checkpoint(file_name=config.deepspace.checkpoint_file)
 
         # Tensorboard Writer
-        self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='bone_gan3d_npy')
+        self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='bone_gan2d_npy')
         # add model to tensorboard and print parameter to screen
-        summary(self.generator, (config.deepspace.image_channels, *config.deepspace.image_size))
-        summary(self.discriminator, (config.deepspace.image_channels, *config.deepspace.image_size))
+        summary(self.generator, (1, config.deepspace.image_channels, *config.deepspace.image_size))
+        summary(self.discriminator, (1, config.deepspace.image_channels, *config.deepspace.image_size))
 
         # add graph to tensorboard only if at epoch 0
         if self.current_epoch == 0:
@@ -278,46 +278,42 @@ class BoneAgent(BasicAgent):
             return gen_epoch_loss.val, dis_epoch_loss.val
 
     def test(self):
+        input_data = []
         recon_data = []
+        normal_data = []
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.generator.eval()
         self.discriminator.eval()
-        epoch_loss = AverageMeter()
-        gen_epoch_loss = AverageMeter()
-        gen_epoch_dis_loss = AverageMeter()
         gen_epoch_image_loss = AverageMeter()
-        dis_epoch_loss = AverageMeter()
 
         with torch.no_grad():
-            for images, coordinate in tqdm_batch:
-                images = images.to(self.device, dtype=torch.float32)
+            for input_images, normal_images in tqdm_batch:
+                input_images = input_images.to(self.device, dtype=torch.float32)
                 # fake data---
-                recon_images = self.generator(images)
-                fake_labels = self.discriminator(recon_images)
-                # train the model now---
-                gen_image_loss = self.image_loss(recon_images, images)
-                gen_dis_loss = self.dis_loss(fake_labels.squeeze(), self.real_labels[0:images.shape[0]])
-                dis_loss = self.dis_loss(fake_labels.squeeze(), self.fake_labels[0:images.shape[0]])
-                gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
+                normal_images = normal_images.to(self.device, dtype=torch.float32)
+                # test discriminator
+                recon_images = self.generator(input_images)
 
-                gen_epoch_loss.update(gen_loss.item())
+                # test generator
+                gen_image_loss = self.image_loss(recon_images, normal_images)
                 gen_epoch_image_loss.update(gen_image_loss.item())
-                gen_epoch_dis_loss.update(gen_dis_loss.item())
-                dis_epoch_loss.update(dis_loss.item())
-                # save the reconstructed image
+
+                # save the  images
+                input_images = input_images.squeeze().detach().cpu().numpy()
                 recon_images = recon_images.squeeze().detach().cpu().numpy()
-                recon_data.append(recon_images)
+                normal_images = normal_images.squeeze().detach().cpu().numpy()
+                input_data += [*input_images]
+                recon_data += [*recon_images]
+                normal_data += [*normal_images]
 
-            # data.shape should be (N, h, w, d)
+            # data.shape should be (N, w, d)
+            input_data = np.stack(input_data)
             recon_data = np.stack(recon_data)
-            np.save(Path(config.deepspace.test_output_dir) / 'output.npy', recon_data)
+            normal_data = np.stack(normal_data)
+            np.save(Path(config.deepspace.test_output_dir) / 'input.npy', input_data)
+            np.save(Path(config.deepspace.test_output_dir) / 'recon.npy', recon_data)
+            np.save(Path(config.deepspace.test_output_dir) / 'normal.npy', normal_data)
             # logging
-            logger.info("test Results at epoch-" + str(self.current_epoch)
-                        + "\n" + ' gen_loss: ' + str(gen_epoch_loss.val)
-                        + "\n" + ' dis_loss: ' + str(dis_epoch_loss.val)
-                        + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val)
-                        + "\n" + '- gen_dis_loss: ' + str(gen_epoch_dis_loss.val))
-
-            logger.info("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
+            logger.info("test Results at epoch-" + str(self.current_epoch) + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val))
             tqdm_batch.close()
-            return epoch_loss.val
+            return gen_epoch_image_loss.val

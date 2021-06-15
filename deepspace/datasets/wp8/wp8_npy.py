@@ -24,7 +24,7 @@ class ToTensor(object):
         return image
 
 
-def get_paths():
+def get_paths(path):
     """return paths of images
 
     Args:
@@ -35,16 +35,16 @@ def get_paths():
     Returns:
         list: items list, and masks list if in test mode
     """
-    root = Path(config.deepspace.dataset_root)
+    root = Path(path)
     # return images path
     images_path = list(root.glob('**/*.' + config.deepspace.data_format))
     return images_path
 
 
 class NPYImages:
-    def __init__(self, transform=None):
+    def __init__(self, path, transform=None):
         # get all the image paths
-        self.images_path = get_paths()
+        self.images_path = get_paths(path)
         self.transform = transform
 
     def __getitem__(self, index):
@@ -77,29 +77,22 @@ class NPYDataLoader:
             ToTensor(),
         ])
         # split dataset
-        data_set = NPYImages(transform=self.input_transform)
-        train_size = int(config.deepspace.split_rate * len(data_set))
-        valid_size = len(data_set) - train_size
-        train_set, valid_set = torch.utils.data.random_split(data_set, [train_size, valid_size], generator=torch.Generator().manual_seed(config.deepspace.seed))
-        if config.deepspace.mode == 'train':
-            # training needs train dataset and validate dataset
-            self.train_loader = DataLoader(train_set, batch_size=config.deepspace.batch_size, shuffle=True,
-                                           num_workers=config.deepspace.data_loader_workers)
-            self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.validate_batch, shuffle=False,
-                                           num_workers=config.deepspace.data_loader_workers)
-            self.train_iterations = (len(train_set) + config.deepspace.batch_size) // config.deepspace.batch_size
-            self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
+        train_dataset = NPYImages(path=config.deepspace.train_dataset, transform=self.input_transform)
+        train_size = int(config.deepspace.split_rate * len(train_dataset))
+        valid_size = len(train_dataset) - train_size
+        train_set, valid_set = torch.utils.data.random_split(train_dataset, [train_size, valid_size], generator=torch.Generator().manual_seed(config.deepspace.seed))
+        # training needs train dataset and validate dataset
+        self.train_loader = DataLoader(train_set, batch_size=config.deepspace.train_batch, shuffle=True,
+                                       num_workers=config.deepspace.data_loader_workers)
+        self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.validate_batch, shuffle=False,
+                                       num_workers=config.deepspace.data_loader_workers)
+        self.train_iterations = (len(train_set) + config.deepspace.train_batch) // config.deepspace.train_batch
+        self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
 
-        elif config.deepspace.mode == 'test':
-            train_size = int(0.0 * len(data_set))
-            test_size = len(data_set) - train_size
-            train_set, test_set = torch.utils.data.random_split(data_set, [train_size, test_size])
-            self.test_loader = DataLoader(test_set, batch_size=config.deepspace.batch_size, shuffle=False,
-                                          num_workers=config.deepspace.data_loader_workers)
-            self.test_iterations = (len(test_set) + config.deepspace.batch_size) // config.deepspace.batch_size
-
-        else:
-            raise Exception('Please choose a proper mode for data loading')
+        test_dataset = NPYImages(path=config.deepspace.test_dataset, transform=self.input_transform)
+        self.test_loader = DataLoader(test_dataset, batch_size=config.deepspace.test_batch, shuffle=False,
+                                      num_workers=config.deepspace.data_loader_workers)
+        self.test_iterations = (len(test_dataset) + config.deepspace.test_batch) // config.deepspace.test_batch
 
     def finalize(self):
         pass

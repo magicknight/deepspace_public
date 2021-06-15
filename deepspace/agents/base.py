@@ -92,8 +92,14 @@ class BasicAgent(BaseAgent):
 
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False, backup_checkpoint=False):
         filename = Path(config.swap.checkpoint_dir) / file_name
+        # if on distribute
+        if 'distribute' in config.common and config.common.distribute:
+            from torch_xla.core import xla_model
+            save_func = xla_model.save
+        else:
+            save_func = torch.save
         # Save the state
-        save_checkpoint(self, filename, is_best, backup_checkpoint)
+        save_checkpoint(self, filename, is_best, backup_checkpoint, save_func=save_func)
 
     def load_checkpoint(self, file_name="checkpoint.pth.tar"):
         filename = Path(config.swap.checkpoint_dir) / file_name
@@ -108,7 +114,7 @@ class BasicAgent(BaseAgent):
             logger.info("No checkpoint exists from '{}'. Skipping...".format(config.swap.checkpoint_dir))
             logger.info("**First time to train**")
 
-    def run(self):
+    def run(self, *kargs):
         """
         This function will the operator
         :return:
@@ -149,8 +155,11 @@ class BasicAgent(BaseAgent):
         Finalizes all the operations of the 2 Main classes of the process, the operator and the data loader
         :return:
         """
+        self.data_loader.finalize()
+        if 'distribute' in config.common and config.common.distribute:
+            if not self.master:
+                return
         logger.info("Please wait while finalizing the operation.. Thank you")
         self.summary_writer.export_scalars_to_json(config.swap.summary_dir / "all_scalars.json")
         self.summary_writer.close()
         save_settings(config, config.swap.work_space / 'config.toml')
-        self.data_loader.finalize()
