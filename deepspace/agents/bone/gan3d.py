@@ -235,7 +235,7 @@ class BoneAgent(BasicAgent):
                 gen_epoch_loss.update(gen_loss.item())
 
                 # save the reconstructed image
-                if index > config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
+                if index >= config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
                     fake_images = fake_images.view(fake_images.shape[0], fake_images.shape[1], int(fake_images.shape[2] * fake_images.shape[3] / 8), -1)
                     normal_images = normal_images.view(normal_images.shape[0], normal_images.shape[1], int(normal_images.shape[2] * normal_images.shape[3] / 8), -1)
                     fake_images = fake_images.squeeze().detach().cpu().numpy()

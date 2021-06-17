@@ -165,7 +165,8 @@ class Residual3DAE(nn.Module):
         y = self.conv_encoder(x)
         # Group together CWH indices, but keep time index separate
         # y = y.permute(0, 2, 1, 3, 4).contiguous().view(-1, *self.first_fc_size)
-        y = y.contiguous().view(-1, *self.first_fc_size)
+        # y = y.contiguous().view(-1, *self.first_fc_size)
+        y = y.view(-1, *self.first_fc_size)
         y = self.fc_encoder(y)
         return y
 

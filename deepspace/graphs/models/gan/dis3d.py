@@ -67,7 +67,8 @@ class Discriminator3D(nn.Module):
         (2, 8, 4096)
         """
         y = self.conv_encoder(x)
-        y = y.contiguous().view(-1, self.first_fc_size)
+        # y = y.contiguous().view(-1, self.first_fc_size)
+        y = y.view(-1, self.first_fc_size)
         y = self.fc_encoder(y)
         return y
 

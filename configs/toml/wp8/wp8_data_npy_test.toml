@@ -27,8 +27,8 @@
     # data transpose
     transpose = false
     # npy step
-    step = 32
+    step = 64
     # npy size
-    size = 32
+    size = 64
     #  recon path
     recon_file = '/mnt/data/anomaly/wp8/recon/cyl9_recon_ae3dn.npy'

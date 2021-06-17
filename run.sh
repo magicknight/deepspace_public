@@ -31,7 +31,12 @@
 # python3 main.py --config configs/toml/wp8/autoencoder_npy.toml
 # tpu
 # PT_XLA_DEBUG=1 TF_CPP_LOG_THREAD_ID=1 TF_CPP_MIN_LOG_LEVEL=0 TF_CPP_VMODULE=tensor=5,computation_client=5,xrt_computation_client=5,aten_xla_type=1 python main.py --config configs/toml/wp8/tpu.toml
-python main.py --config configs/toml/wp8/tpu.toml
+# python main.py --config configs/toml/wp8/tpu.toml
+# TF_CPP_MIN_LOG_LEVEL=4 XLA_USE_F16=1 python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
+# python main.py --config configs/toml/wp8/tpu_gan3d_break.toml > ~/temp/logs 2>&1 &
+# TF_CPP_LOG_THREAD_ID=1 TF_CPP_MIN_LOG_LEVEL=3 python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
+python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
+
 # wp8 data
 # wp8 data
 # python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy.toml

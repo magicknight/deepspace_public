@@ -6,6 +6,7 @@ import os
 from sklearn.metrics import precision_recall_curve, roc_curve, auc, average_precision_score
 import numpy as np
 from commontools.setup import config, logger
+import torch
 
 
 class IOUMetric:
@@ -44,18 +45,19 @@ class AverageMeter:
     Class to be an average meter for any average metric like loss, accuracy, etc..
     """
 
-    def __init__(self):
-        self.value = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
+    def __init__(self, device):
+        self.value = torch.tensor(0, device=device)
+        self.avg = torch.tensor(0, device=device)
+        self.sum = torch.tensor(0, device=device)
+        self.count = torch.tensor(0, device=device)
+        self.device = device
         self.reset()
 
     def reset(self):
-        self.value = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
+        self.value = torch.tensor(0, device=self.device)
+        self.avg = torch.tensor(0, device=self.device)
+        self.sum = torch.tensor(0, device=self.device)
+        self.count = torch.tensor(0, device=self.device)
 
     def update(self, val, n=1):
         self.value = val
@@ -65,7 +67,7 @@ class AverageMeter:
 
     @property
     def val(self):
-        return self.avg
+        return self.avg.item()
 
 
 class AverageMeterList:
