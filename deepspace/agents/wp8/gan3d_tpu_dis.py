@@ -1,31 +1,49 @@
+'''
+ ┌─────────────────────────────────────────────────────────────┐
+ │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
+ ││Esc│!1 │@2 │#3 │$4 │%5 │^6 │&7 │*8 │(9 │)0 │_- │+= │|\ │`~ ││
+ │├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┤│
+ ││ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │{[ │}] │ BS  ││
+ │├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴─────┤│
+ ││ Ctrl │ A │ S │ D │ F │ G │ H │ J │ K │ L │: ;│" '│ Enter  ││
+ │├──────┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴────┬───┤│
+ ││ Shift  │ Z │ X │ C │ V │ B │ N │ M │< ,│> .│? /│Shift │Fn ││
+ │└─────┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴──┬┴───┴┬──┴┬─────┴───┘│
+ │      │Fn │ Alt │         Space         │ Alt │Win│   HHKB   │
+ │      └───┴─────┴───────────────────────┴─────┴───┘          │
+ └─────────────────────────────────────────────────────────────┘
+
+Description: Train the discriminator alone
+Author: Zhihua Liang
+Github: https://github.com/magicknight
+Date: 2021-06-23 17:02:17
+LastEditors: Zhihua Liang
+LastEditTime: 2021-06-23 17:04:39
+FilePath: /dxray/home/zhihua/framework/deepspace/deepspace/agents/wp8/gan3d_tpu_dis.py
+'''
+
 
 import numpy as np
 from torch._C import device
 from tqdm import tqdm
 from pathlib import Path
-
 import torch
 from torch.optim import lr_scheduler
 from torch import nn
-
 from torch_xla.core import xla_model
 from torch_xla.distributed import parallel_loader, xla_multiprocessing
 from torch_xla.test import test_utils
-
 from tensorboardX.utils import make_grid
 from tensorboardX import SummaryWriter
 from torchinfo import summary
-
 from deepspace.agents.base import BasicAgent
 from deepspace.graphs.models.autoencoder.ae3d import Residual3DAE
 from deepspace.graphs.models.gan.dis3d import Discriminator3D
 from deepspace.graphs.layers.misc.wrapper import Wrapper
-# from deepspace.datasets.wp8.npy_3d_break import NPYDataLoader
 from deepspace.datasets.wp8.wp8_npy_break import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
-
 from commontools.setup import config
 
 
@@ -77,7 +95,7 @@ class WP8Agent(BasicAgent):
 
         # define data_loader
         # load dataset with parallel data loader
-        self.data_loader = NPYDataLoader()
+        self.data_loader = Loader()
         if config.deepspace.mode == 'train':
             self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
             self.train_iterations = self.data_loader.train_iterations
@@ -151,7 +169,7 @@ class WP8Agent(BasicAgent):
         # Initialize tqdm dataset
         tqdm_batch = tqdm(
             self.train_loader,
-            total=self.train_iterations,
+            total=self.train_iterations // xla_model.xrt_world_size(),
             # desc="train on Epoch-{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
             desc="train on Epoch-{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
         )
@@ -239,7 +257,7 @@ class WP8Agent(BasicAgent):
         tracker = xla_model.RateTracker()
         tqdm_batch = tqdm(
             self.valid_loader,
-            total=self.valid_iterations,
+            total=self.valid_iterations // xla_model.xrt_world_size(),
             # desc="validate at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
             desc="validate at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
         )

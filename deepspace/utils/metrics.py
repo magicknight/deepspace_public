@@ -46,18 +46,18 @@ class AverageMeter:
     """
 
     def __init__(self, device):
-        self.value = torch.tensor(0, device=device)
-        self.avg = torch.tensor(0, device=device)
-        self.sum = torch.tensor(0, device=device)
-        self.count = torch.tensor(0, device=device)
+        self.value = torch.tensor(0.0, device=device, dtype=torch.float32, requires_grad=False)
+        self.avg = torch.tensor(0.0, device=device, dtype=torch.float32, requires_grad=False)
+        self.sum = torch.tensor(0.0, device=device, dtype=torch.float32, requires_grad=False)
+        self.count = torch.tensor(0.0, device=device, dtype=torch.float32, requires_grad=False)
         self.device = device
         self.reset()
 
     def reset(self):
-        self.value = torch.tensor(0, device=self.device)
-        self.avg = torch.tensor(0, device=self.device)
-        self.sum = torch.tensor(0, device=self.device)
-        self.count = torch.tensor(0, device=self.device)
+        self.value = torch.tensor(0.0, device=self.device, dtype=torch.float32, requires_grad=False)
+        self.avg = torch.tensor(0.0, device=self.device, dtype=torch.float32, requires_grad=False)
+        self.sum = torch.tensor(0.0, device=self.device, dtype=torch.float32, requires_grad=False)
+        self.count = torch.tensor(0.0, device=self.device, dtype=torch.float32, requires_grad=False)
 
     def update(self, val, n=1):
         self.value = val

@@ -75,3 +75,5 @@ python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
 
 # tpu
 # python main.py --config configs/toml/tpu/fairseq.toml
+# imagenet training
+# python main.py --config configs/toml/tpu/imagenet.toml

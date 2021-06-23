@@ -87,7 +87,8 @@ class BasicAgent(BaseAgent):
         self.summary_writer = None
         self.data_loader = None
         self.current_iteration = 0
-        self.current_epoch = 0
+        # current epoch sets to 1 to avoid possible problem on current_epoch % some_step happens on the very beginning of the trainning.
+        self.current_epoch = 1
         self.best_metric = 0
 
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False, backup_checkpoint=False):

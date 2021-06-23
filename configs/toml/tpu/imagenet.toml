@@ -1,14 +1,14 @@
 [summary]
     # name of this experiment
-    name = 'gan3d_tpu'
+    name = 'tpu_imagenet'
     author = 'Zhihua Liang'
-    discription = 'Train wp8 on TPU'
+    discription = 'Train on imagenet on TPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
-    project_root = '/home/zhihua/data/work_space/wp8'
+    project_root = '/home/zhihua/data/work_space/tpu'
 [deepspace]
     ########### agent ###########
     # agent name
-    agent = 'deepspace.agents.wp8.gan3d_tpu.WP8Agent'
+    agent = 'deepspace.agents.tpu.imagenet.Agent'
     # device config
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'tpu'    
@@ -19,8 +19,17 @@
     # random seed
     seed = 999
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
-    gen_lr = 1e-3
-    dis_lr = 1e-1
+    gen_lr = 1e-5
+    dis_lr = 1e-3
+    learning_rate = 0.1
+    # scheduler
+    scheduler = 'WarmupAndExponentialDecayScheduler'
+    scheduler_divisor = 5
+    scheduler_divide_every_n_epochs = 20
+    # logs
+    log_step = 200
+    # debug?
+    debug = true
     # image loss and dis loss weight
     loss_weight = 0.999    
     # max epoches to for training.
@@ -32,28 +41,31 @@
 
     ######## dataset ############
     # root directory of the dataset
-    train_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy'
-    # data set length   
-    split_rate = 0.99
+    dataset = '/home/zhihua/ssd/imagenet'  
     # batch
-    train_batch = 64
-    validate_batch = 16
+    train_batch = 128
+    validate_batch = 64
     # channels
-    image_channels = 1   
+    image_channels = 3   
     # data resolution
-    image_size = [64, 64, 64]
-    # data argument, probability to break the sample
-    break_range=[[0.1, 0.3], [0.1, 0.3], [0.1, 0.3]]
-    break_probability = 0.5
-    # dataloader options
-    drop_last = true
-    shuffle = false
+    image_size = 256
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
     # output format; png or tif
-    data_format = 'npy'      
+    data_format = 'png'    
+    # drop last sample?
+    drop_last = true  
     # workers for dataloader
-    data_loader_workers = 16
+    data_loader_workers = 8
     
     ########## model ############
+#     SUPPORTED_MODELS = [
+#     'alexnet', 'densenet121', 'densenet161', 'densenet169', 'densenet201',
+#     'inception_v3', 'resnet101', 'resnet152', 'resnet18', 'resnet34',
+#     'resnet50', 'squeezenet1_0', 'squeezenet1_1', 'vgg11', 'vgg11_bn', 'vgg13',
+#     'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn'
+# ]
+    model = 'resnet50'
     # save model every x steps
     save_model_step = 3
     # checkpoint file name
@@ -69,9 +81,9 @@
     dis_fc_sizes = [64, 1]
 
     ##### test ######
-    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
+    test_dataset = ''
     test_batch = 8
-    test_output_dir = '/home/zhihua/data/work_space/wp8/test'
+    test_output_dir = '/home/zhihua/data/work_space/tpu/test'
 
 [common]
     distribute = true

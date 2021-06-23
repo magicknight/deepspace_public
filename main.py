@@ -23,8 +23,6 @@ def run():
 
 
 def _mp_fn(index, args):
-    import dis
-    import torch_xla.core.xla_model as xm
     torch.set_default_tensor_type('torch.FloatTensor')
     # suppress_output(xm.is_master_ordinal())
     run()
@@ -34,10 +32,6 @@ def main():
     # if running on tpu
     if config.deepspace.device == 'tpu':
         # import the distributed tools from torch_xla.
-        import torch_xla
-        import torch_xla.debug.metrics as met
-        import torch_xla.distributed.parallel_loader as pl
-        import torch_xla.utils.utils as xu
         import torch_xla.core.xla_model as xm
         import torch_xla.distributed.xla_multiprocessing as xmp
         # From here on out we are in TPU context

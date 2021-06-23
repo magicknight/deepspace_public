@@ -21,7 +21,7 @@ from deepspace.graphs.models.autoencoder.ae3d import Residual3DAE
 from deepspace.graphs.models.gan.dis3d import Discriminator3D
 from deepspace.graphs.layers.misc.wrapper import Wrapper
 # from deepspace.datasets.wp8.npy_3d_break import NPYDataLoader
-from deepspace.datasets.wp8.wp8_npy_break import NPYDataLoader
+from deepspace.datasets.wp8.wp8_npy_break import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
@@ -77,7 +77,7 @@ class WP8Agent(BasicAgent):
 
         # define data_loader
         # load dataset with parallel data loader
-        self.data_loader = NPYDataLoader()
+        self.data_loader = Loader()
         if config.deepspace.mode == 'train':
             self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
             self.train_iterations = self.data_loader.train_iterations
@@ -151,7 +151,7 @@ class WP8Agent(BasicAgent):
         # Initialize tqdm dataset
         tqdm_batch = tqdm(
             self.train_loader,
-            total=self.train_iterations,
+            total=self.train_iterations // xla_model.xrt_world_size(),
             # desc="train on Epoch-{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
             desc="train on Epoch-{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
         )
@@ -239,7 +239,7 @@ class WP8Agent(BasicAgent):
         tracker = xla_model.RateTracker()
         tqdm_batch = tqdm(
             self.valid_loader,
-            total=self.valid_iterations,
+            total=self.valid_iterations // xla_model.xrt_world_size(),
             # desc="validate at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
             desc="validate at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
         )
