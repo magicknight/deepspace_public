@@ -88,7 +88,7 @@ class BasicAgent(BaseAgent):
         self.data_loader = None
         self.current_iteration = 0
         # current epoch sets to 1 to avoid possible problem on current_epoch % some_step happens on the very beginning of the trainning.
-        self.current_epoch = 1
+        self.current_epoch = 0
         self.best_metric = 0
 
     def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=False, backup_checkpoint=False):
@@ -161,6 +161,8 @@ class BasicAgent(BaseAgent):
             if not self.master:
                 return
         logger.info("Please wait while finalizing the operation.. Thank you")
-        self.summary_writer.export_scalars_to_json(config.swap.summary_dir / "all_scalars.json")
-        self.summary_writer.close()
-        save_settings(config, config.swap.work_space / 'config.toml')
+        if self.summary_writer:
+            self.summary_writer.export_scalars_to_json(config.swap.summary_dir / "all_scalars.json")
+            self.summary_writer.close()
+        if self.deepspace.mode == 'train':
+            save_settings(config, config.swap.work_space / 'config.toml')

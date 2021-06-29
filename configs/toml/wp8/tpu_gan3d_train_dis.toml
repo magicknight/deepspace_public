@@ -1,14 +1,16 @@
 [summary]
     # name of this experiment
-    name = 'gan3d_tpu_break'
+    name = 'gan3d_tpu_dis'
     author = 'Zhihua Liang'
-    discription = 'Train wp8 on TPU'
+    discription = 'Train wp8 discriminator on TPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space/wp8'
 [deepspace]
     ########### agent ###########
     # agent name
-    agent = 'deepspace.agents.wp8.gan3d_tpu.Agent'
+    agent = 'deepspace.agents.wp8.gan3d_tpu_dis.Agent'
+    # generator checkpoint
+    gen_checkpoint = '/home/zhihua/data/work_space/wp8/gan3d_simple_tpu_break/checkpoints/checkpoint.pth.tar'
     # device config
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'tpu'    
@@ -19,16 +21,16 @@
     # random seed
     seed = 999
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
-    gen_lr = 1e-1
-    dis_lr = 1e-2
+    gen_lr = 1e-3
+    dis_lr = 1e-1
     # scheduler
     scheduler = 'WarmupAndExponentialDecayScheduler'
     scheduler_divisor = 5
-    scheduler_divide_every_n_epochs = 20      
+    scheduler_divide_every_n_epochs = 20    
     # image loss and dis loss weight
     loss_weight = 0.999    
     # max epoches to for training.
-    max_epoch = 300
+    max_epoch = 100
     # save ouput on first n images during validation
     save_images = [0, 1]
     # mode = 'train', 'test', 'validate'
@@ -55,7 +57,7 @@
     # output format; png or tif
     data_format = 'npy'      
     # workers for dataloader
-    data_loader_workers = 16
+    data_loader_workers = 32
     
     ########## model ############
     # save model every x steps
@@ -63,22 +65,18 @@
     # checkpoint file name
     checkpoint_file = 'checkpoint.pth.tar'
 
-    leak_value = 0.1
     # generator model
     gen_encoder_sizes = [8, 32, 128]
     gen_temporal_strides = [2, 2, 1]    
     gen_fc_sizes = [64]
     # discriminator model
-    dis_encoder_sizes = [8, 32, 128]
-    dis_temporal_strides = [2, 2, 1]
-    dis_fc_sizes = [64, 1]
+    leak_value = 0.1
+    bias = false
 
     ##### test ######
     test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
     test_batch = 8
     test_output_dir = '/home/zhihua/data/work_space/wp8/test'
-
-    
 
 [common]
     distribute = true

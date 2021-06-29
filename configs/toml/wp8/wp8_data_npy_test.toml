@@ -12,7 +12,7 @@
     dataset_root = '/home/zhihua/data/anomaly/wp8/cyl9_npy_test'
     # bin object path
     # bin_file_path = '/mnt/data/anomaly/wp8/cyl8_760_810_815.bin'
-    bin_file_path = '/mnt/data/anomaly/wp8/cyl9_aligned_781x781x793_uint16.bin'
+    bin_file_path = '/home/zhihua/ssd/anomaly/wp8/cyl9_aligned_781x781x793_uint16.bin'
     # bin file shape
     # bin_shape = [760,810,815]
     bin_shape = [781,781,793]

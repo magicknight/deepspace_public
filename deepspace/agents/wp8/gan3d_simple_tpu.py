@@ -16,10 +16,10 @@
 Description: 
 Author: Zhihua Liang
 Github: https://github.com/magicknight
-Date: 2021-06-25 22:15:28
+Date: 2021-06-25 09:35:50
 LastEditors: Zhihua Liang
-LastEditTime: 2021-06-25 22:15:36
-FilePath: /home/zhihua/framework/deepspace/deepspace/agents/wp8/gan3d_tpu.py
+LastEditTime: 2021-06-25 14:18:17
+FilePath: /home/zhihua/framework/deepspace/deepspace/agents/wp8/gan3d_simple_tpu.py
 '''
 
 
@@ -40,9 +40,11 @@ from tensorboardX.utils import make_grid
 from tensorboardX import SummaryWriter
 from torchinfo import summary
 
+# from deepspace.graphs.losses.ssim import SSIM
+
 from deepspace.agents.base import BasicAgent
-from deepspace.graphs.models.autoencoder.ae3d import Residual3DAE
-from deepspace.graphs.models.gan.dis3d import Discriminator3D
+from deepspace.graphs.models.autoencoder.ae3d_alpha import Residual3DAE
+from deepspace.graphs.models.gan.dis3d_simple import Discriminator3D
 from deepspace.graphs.layers.misc.wrapper import Wrapper
 # from deepspace.datasets.wp8.npy_3d_break import NPYDataLoader
 from deepspace.datasets.wp8.wp8_npy_break import Loader
@@ -66,18 +68,14 @@ class Agent(BasicAgent):
             input_shape=config.deepspace.image_size,
             encoder_sizes=config.deepspace.gen_encoder_sizes,
             fc_sizes=config.deepspace.gen_fc_sizes,
-            temporal_strides=config.deepspace.gen_temporal_strides,
             leak_value=config.deepspace.leak_value,
+            temporal_strides=config.deepspace.gen_temporal_strides,
             color_channels=config.deepspace.image_channels,
         )
         self.discriminator = Discriminator3D(
-            input_shape=config.deepspace.image_size,
-            encoder_sizes=config.deepspace.dis_encoder_sizes,
-            fc_sizes=config.deepspace.dis_fc_sizes,
-            temporal_strides=config.deepspace.dis_temporal_strides,
+            cube_len=config.deepspace.image_size,
             leak_value=config.deepspace.leak_value,
-            color_channels=config.deepspace.image_channels,
-            latent_activation=nn.Sigmoid()
+            bias=config.deepspace.bias,
         )
         # logger.info('========== device is =================== {device}, on {master}'.format(device=self.device, master='master' if self.master else 'worker'))
         # model go to tpu
@@ -86,18 +84,6 @@ class Agent(BasicAgent):
 
         self.generator.apply(xavier_weights)
         self.discriminator.apply(xavier_weights)
-
-        # define data_loader
-        # load dataset with parallel data loader
-        self.data_loader = Loader()
-        if config.deepspace.mode == 'train':
-            self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
-            self.train_iterations = self.data_loader.train_iterations
-            self.valid_loader = parallel_loader.MpDeviceLoader(self.data_loader.valid_loader, self.device)
-            self.valid_iterations = self.data_loader.valid_iterations
-        elif config.deepspace.mode == 'test':
-            self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
-            self.test_iterations = self.data_loader.test_iterations
 
         # Create instance from the optimizer
         self.optimizer_gen = torch.optim.Adam(
@@ -108,29 +94,53 @@ class Agent(BasicAgent):
             self.discriminator.parameters(),
             lr=config.deepspace.dis_lr if 'dis_lr' in config.deepspace else 1e-3,
         )
+        # self.optimizer_dis = torch.optim.SGD(
+        #     self.discriminator.parameters(),
+        #     lr=config.deepspace.dis_lr,
+        # )
 
-        # Define Scheduler
-        self.scheduler_gen = wrap_optimizer_with_scheduler(
-            self.optimizer_gen,
-            scheduler_type=config.deepspace.scheduler,
-            scheduler_divisor=config.deepspace.scheduler_divisor,
-            scheduler_divide_every_n_epochs=config.deepspace.scheduler_divide_every_n_epochs,
-            num_steps_per_epoch=self.train_iterations,
-            summary_writer=self.summary_writer
-        )
-        self.scheduler_dis = wrap_optimizer_with_scheduler(
-            self.optimizer_dis,
-            scheduler_type=config.deepspace.scheduler,
-            scheduler_divisor=config.deepspace.scheduler_divisor,
-            scheduler_divide_every_n_epochs=config.deepspace.scheduler_divide_every_n_epochs,
-            num_steps_per_epoch=self.train_iterations,
-            summary_writer=self.summary_writer
-        )
+        # define data_loader
+        # load dataset with parallel data loader
+        self.data_loader = Loader()
+        if config.deepspace.mode == 'train':
+            self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
+            self.train_iterations = self.data_loader.train_iterations
+            self.valid_loader = parallel_loader.MpDeviceLoader(self.data_loader.valid_loader, self.device)
+            self.valid_iterations = self.data_loader.valid_iterations
+
+            # Define Scheduler
+            self.scheduler_gen = wrap_optimizer_with_scheduler(
+                self.optimizer_gen,
+                scheduler_type=config.deepspace.scheduler,
+                scheduler_divisor=config.deepspace.scheduler_divisor,
+                scheduler_divide_every_n_epochs=config.deepspace.scheduler_divide_every_n_epochs,
+                num_steps_per_epoch=self.train_iterations,
+                summary_writer=self.summary_writer
+            )
+            self.scheduler_dis = wrap_optimizer_with_scheduler(
+                self.optimizer_dis,
+                scheduler_type=config.deepspace.scheduler,
+                scheduler_divisor=config.deepspace.scheduler_divisor,
+                scheduler_divide_every_n_epochs=config.deepspace.scheduler_divide_every_n_epochs,
+                num_steps_per_epoch=self.train_iterations,
+                summary_writer=self.summary_writer
+            )
+
+        elif config.deepspace.mode == 'test':
+            self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
+            self.test_iterations = self.data_loader.test_iterations
 
         # define loss
         self.dis_loss = nn.BCELoss()
         # self.dis_loss = self.dis_loss.to(self.device)
         self.image_loss = nn.MSELoss()
+        # self.image_loss = SSIM(
+        #     data_range=1.0,
+        #     size_average=True,
+        #     channel=config.deepspace.image_channels,
+        #     win_size=3,
+        #     win_sigma=0.1,
+        # )
         # self.image_loss = self.image_loss.to(self.device)
         # metric
         self.gen_best_metric = 100.0
@@ -218,8 +228,8 @@ class Agent(BasicAgent):
             dis_loss_normal = self.dis_loss(out_labels.squeeze(), self.real_labels[0:target_images.shape[0]])
 
             # 1.2 train the discriminator with fake data---
-            fake_images = self.generator(input_images)
-            out_labels = self.discriminator(fake_images.detach())
+            fake_images_dis = self.generator(input_images)
+            out_labels = self.discriminator(fake_images_dis.detach())
             dis_loss_fake = self.dis_loss(out_labels.squeeze(), self.fake_labels[0:input_images.shape[0]])
             # calculate total loss
             dis_loss = dis_loss_normal + dis_loss_fake
@@ -227,25 +237,27 @@ class Agent(BasicAgent):
             # Update weights with gradients: optimizer step and update loss to averager
             xla_model.optimizer_step(self.optimizer_dis)
 
-            # train the generator now---
-            self.optimizer_gen.zero_grad()
-            fake_images = self.generator(input_images)
-            gen_image_loss = self.image_loss(fake_images, target_images)
-            out_labels = self.discriminator(fake_images.detach())
-            # fake labels are real for generator cost
-            gen_dis_loss = self.dis_loss(out_labels.squeeze(), self.real_labels[0:input_images.shape[0]])
-            gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
-            gen_loss.backward()
-            # Update weights with gradients: optimizer step and update loss to averager
-            xla_model.optimizer_step(self.optimizer_gen)
+            if self.current_epoch % config.deepspace.gen_epoch == 0:
+                # train the generator now---
+                self.optimizer_gen.zero_grad()
+                fake_images_gen = self.generator(input_images)
+                gen_image_loss = self.image_loss(fake_images_gen, target_images)
+                out_labels = self.discriminator(fake_images_gen)
+                # fake labels are real for generator cost
+                gen_dis_loss = self.dis_loss(out_labels.squeeze(), self.real_labels[0:input_images.shape[0]])
+                gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
+                gen_loss.backward()
+                # Update weights with gradients: optimizer step and update loss to averager
+                xla_model.optimizer_step(self.optimizer_gen)
 
             with torch.no_grad():
                 dis_epoch_normal_loss.update(dis_loss_normal)
                 dis_epoch_fake_loss.update(dis_loss_fake)
                 dis_epoch_loss.update(dis_loss)
-                gen_epoch_dis_loss.update(gen_dis_loss)
-                gen_epoch_image_loss.update(gen_image_loss)
-                gen_epoch_loss.update(gen_loss)
+                if self.current_epoch % config.deepspace.gen_epoch == 0:
+                    gen_epoch_dis_loss.update(gen_dis_loss)
+                    gen_epoch_image_loss.update(gen_image_loss)
+                    gen_epoch_loss.update(gen_loss)
 
             # update iteration counter
             self.current_iteration += 1
@@ -256,9 +268,10 @@ class Agent(BasicAgent):
 
         # logging
         if self.master:
-            self.summary_writer.add_scalar("epoch_training/gen_loss", gen_epoch_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_training/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_training/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
+            if self.current_epoch % config.deepspace.gen_epoch == 0:
+                self.summary_writer.add_scalar("epoch_training/gen_loss", gen_epoch_loss.val, self.current_iteration)
+                self.summary_writer.add_scalar("epoch_training/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
+                self.summary_writer.add_scalar("epoch_training/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_training/dis_loss", dis_epoch_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_training/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_training/dis_fake_loss", dis_epoch_fake_loss.val, self.current_iteration)
@@ -360,45 +373,46 @@ class Agent(BasicAgent):
 
     def test(self):
         test_root = Path(config.deepspace.test_output_dir)
-        tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
-        self.model.eval()
+        tqdm_batch = tqdm(
+            self.test_loader,
+            total=self.test_iterations // xla_model.xrt_world_size(),
+            desc="test at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
+        )
+        self.generator.eval()
         epoch_loss = AverageMeter(device=self.device)
         recon_images_sample = []
         input_images_sample = []
         image_paths = []
-        index = 0
         with torch.no_grad():
             for images, paths in tqdm_batch:
-                images = images.to(self.device, dtype=torch.float32)
+                # images = images.to(self.device, dtype=torch.float32)
                 # fake data---
-                recon_images = self.model(images)
-                # train the model now---
-                loss = self.loss(recon_images, images)
+                recon_images = self.generator(images)
+                loss = self.image_loss(recon_images, images)
                 epoch_loss.update(loss)
 
                 # save the reconstructed image
-                recon_images = recon_images.squeeze().detach().cpu().numpy()
+                # recon_images = recon_images.squeeze().detach().cpu().numpy()
                 recon_images_sample.append(recon_images)
-                images = images.squeeze().detach().cpu().numpy()
                 input_images_sample.append(images)
-                for each_path in paths:
-                    image_paths.append(Path(each_path).name)
-                index = index + 1
+                image_paths.append(paths)
 
-            recon_images_sample = np.concatenate(recon_images_sample)
-            input_images_sample = np.concatenate(input_images_sample)
+        tqdm_batch.close()
 
-            # recon_paths = [test_root / ('recon' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(recon_images_sample.shape[0])]
-            # input_paths = [test_root / ('input' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(input_images_sample.shape[0])]
-            recon_paths = [test_root / ('recon' + '_' + image_paths[index]) for index in range(recon_images_sample.shape[0])]
-            input_paths = [test_root / ('input' + '_' + image_paths[index]) for index in range(input_images_sample.shape[0])]
-            save_npy(recon_images_sample, paths=recon_paths)
-            save_npy(input_images_sample, paths=input_paths)
+        image_paths = np.concatenate(np.array(image_paths))
+        recon_images_sample = torch.cat(recon_images_sample).squeeze().detach().cpu().numpy()
+        input_images_sample = torch.cat(input_images_sample).squeeze().detach().cpu().numpy()
 
-            # logging
-            xla_model.master_print("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
-            tqdm_batch.close()
-            return epoch_loss.val
+        # recon_paths = [test_root / ('recon' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(recon_images_sample.shape[0])]
+        # input_paths = [test_root / ('input' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(input_images_sample.shape[0])]
+        recon_paths = [test_root / ('recon' + '_' + Path(image_paths[index]).name) for index in range(recon_images_sample.shape[0])]
+        input_paths = [test_root / ('input' + '_' + Path(image_paths[index]).name) for index in range(input_images_sample.shape[0])]
+        save_npy(recon_images_sample, paths=recon_paths)
+        save_npy(input_images_sample, paths=input_paths)
+
+        # logging
+        xla_model.master_print("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
+        return epoch_loss.val
 
     def train_update(self, device, step, loss, tracker, epoch, writer):
         test_utils.print_training_update(

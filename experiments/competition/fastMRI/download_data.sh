@@ -26,7 +26,7 @@
 # To download Knee MRI files, we recommend using curl with recovery mode turned on:
 
 outdir='/home/zhihua/data/public_datasets/fastMRI/'
-logdir='/home/zhihua/temp'
+logdir='/home/zhihua/temp/'
 
 echo "Bash version ${BASH_VERSION}..."
 echo "Downloading fastMRI data"

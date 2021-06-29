@@ -1,4 +1,28 @@
 #!/usr/bin/env bash
+###
+ #  ┌─────────────────────────────────────────────────────────────┐
+ #  │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
+ #  ││Esc│!1 │@2 │#3 │$4 │%5 │^6 │&7 │*8 │(9 │)0 │_- │+= │|\ │`~ ││
+ #  │├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┤│
+ #  ││ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │{[ │}] │ BS  ││
+ #  │├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴─────┤│
+ #  ││ Ctrl │ A │ S │ D │ F │ G │ H │ J │ K │ L │: ;│" '│ Enter  ││
+ #  │├──────┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴────┬───┤│
+ #  ││ Shift  │ Z │ X │ C │ V │ B │ N │ M │< ,│> .│? /│Shift │Fn ││
+ #  │└─────┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴──┬┴───┴┬──┴┬─────┴───┘│
+ #  │      │Fn │ Alt │         Space         │ Alt │Win│   HHKB   │
+ #  │      └───┴─────┴───────────────────────┴─────┴───┘          │
+ #  └─────────────────────────────────────────────────────────────┘
+ # 
+ # @Description: script to run deepspace tasks
+ # @Author: Zhihua Liang
+ # @Github: https://github.com/magicknight
+ # @Date: 2021-06-23 17:44:59
+ # @LastEditors: Zhihua Liang
+ # @LastEditTime: 2021-06-23 17:45:00
+ # @FilePath: /dxray/home/zhihua/framework/deepspace/run.sh
+###
+
 
 #use this line to run the main.py file with a specified config file
 #python3 main.py --config PATH_OF_THE_CONFIG_FILE
@@ -35,8 +59,14 @@
 # TF_CPP_MIN_LOG_LEVEL=4 XLA_USE_F16=1 python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
 # python main.py --config configs/toml/wp8/tpu_gan3d_break.toml > ~/temp/logs 2>&1 &
 # TF_CPP_LOG_THREAD_ID=1 TF_CPP_MIN_LOG_LEVEL=3 python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
-python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
-
+# python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
+# python main.py --config configs/toml/wp8/tpu_gan3d_train_dis.toml
+# python main.py --config configs/toml/wp8/tpu_gan3d_simple_break.toml
+# python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_data_aug.toml
+python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_data_aug.toml > /home/zhihua/temp/tpu.logs 2>&1 &
+# python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_data_aug_test.toml
+# python main.py --config configs/toml/wp8/tpu_gan3d_simple_break.toml > /home/zhihua/temp/tpu.logs 2>&1 &
+# python main.py --config configs/toml/wp8/tpu_gan3d_train_dis.toml --log-cli-level=ERROR
 # wp8 data
 # wp8 data
 # python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy.toml

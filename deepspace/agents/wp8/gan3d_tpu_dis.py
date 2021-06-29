@@ -37,17 +37,21 @@ from tensorboardX.utils import make_grid
 from tensorboardX import SummaryWriter
 from torchinfo import summary
 from deepspace.agents.base import BasicAgent
-from deepspace.graphs.models.autoencoder.ae3d import Residual3DAE
-from deepspace.graphs.models.gan.dis3d import Discriminator3D
+from deepspace.graphs.models.autoencoder.ae3d_alpha import Residual3DAE
+# from deepspace.graphs.models.gan.dis3d import Discriminator3D
+from deepspace.graphs.models.gan.dis3d_simple import Discriminator3D
+# from deepspace.graphs.models.gan.dis3d_simple import Discriminator3D
 from deepspace.graphs.layers.misc.wrapper import Wrapper
 from deepspace.datasets.wp8.wp8_npy_break import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
+from deepspace.graphs.scheduler.scheduler import wrap_optimizer_with_scheduler
+
 from commontools.setup import config
 
 
-class WP8Agent(BasicAgent):
+class Agent(BasicAgent):
     def __init__(self):
         super().__init__()
 
@@ -59,38 +63,28 @@ class WP8Agent(BasicAgent):
             input_shape=config.deepspace.image_size,
             encoder_sizes=config.deepspace.gen_encoder_sizes,
             fc_sizes=config.deepspace.gen_fc_sizes,
+            leak_value=config.deepspace.leak_value,
             temporal_strides=config.deepspace.gen_temporal_strides,
             color_channels=config.deepspace.image_channels,
         )
+        # self.discriminator = Discriminator3D(
+        #     input_shape=config.deepspace.image_size,
+        #     encoder_sizes=config.deepspace.dis_encoder_sizes,
+        #     fc_sizes=config.deepspace.dis_fc_sizes,
+        #     temporal_strides=config.deepspace.dis_temporal_strides,
+        #     color_channels=config.deepspace.image_channels,
+        #     latent_activation=nn.Sigmoid()
+        # )
         self.discriminator = Discriminator3D(
-            input_shape=config.deepspace.image_size,
-            encoder_sizes=config.deepspace.dis_encoder_sizes,
-            fc_sizes=config.deepspace.dis_fc_sizes,
-            temporal_strides=config.deepspace.dis_temporal_strides,
-            color_channels=config.deepspace.image_channels,
-            latent_activation=nn.Sigmoid()
+            cube_len=config.deepspace.image_size,
+            leak_value=config.deepspace.leak_value,
+            bias=config.deepspace.bias,
         )
         # logger.info('========== device is =================== {device}, on {master}'.format(device=self.device, master='master' if self.master else 'worker'))
         # model go to tpu
         self.generator = self.generator.to(self.device)
         self.discriminator = self.discriminator.to(self.device)
 
-        # Create instance from the optimizer
-        self.optimizer_gen = torch.optim.Adam(
-            self.generator.parameters(),
-            lr=config.deepspace.gen_lr if 'gen_lr' in config.deepspace else 1e-4,
-        )
-        self.optimizer_dis = torch.optim.Adam(
-            self.discriminator.parameters(),
-            lr=config.deepspace.dis_lr if 'dis_lr' in config.deepspace else 1e-3,
-        )
-
-        # Define Scheduler
-        def lambda1(epoch): return pow(1 - epoch / config.deepspace.max_epoch, 0.9)
-        self.scheduler_gen = lr_scheduler.LambdaLR(self.optimizer_gen, lr_lambda=lambda1)
-        self.scheduler_dis = lr_scheduler.LambdaLR(self.optimizer_dis, lr_lambda=lambda1)
-
-        self.generator.apply(xavier_weights)
         self.discriminator.apply(xavier_weights)
 
         # define data_loader
@@ -105,13 +99,32 @@ class WP8Agent(BasicAgent):
             self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
             self.test_iterations = self.data_loader.test_iterations
 
+        # Create instance from the optimizer
+        self.optimizer_gen = torch.optim.Adam(
+            self.generator.parameters(),
+            lr=config.deepspace.gen_lr if 'gen_lr' in config.deepspace else 1e-4,
+        )
+        self.optimizer_dis = torch.optim.Adam(
+            self.discriminator.parameters(),
+            lr=config.deepspace.dis_lr if 'dis_lr' in config.deepspace else 1e-3,
+        )
+
+        # Define Scheduler
+        self.scheduler_dis = wrap_optimizer_with_scheduler(
+            self.optimizer_dis,
+            scheduler_type=config.deepspace.scheduler,
+            scheduler_divisor=config.deepspace.scheduler_divisor,
+            scheduler_divide_every_n_epochs=config.deepspace.scheduler_divide_every_n_epochs,
+            num_steps_per_epoch=self.train_iterations,
+            summary_writer=self.summary_writer
+        )
+
         # define loss
         self.dis_loss = nn.BCELoss()
         # self.dis_loss = self.dis_loss.to(self.device)
         self.image_loss = nn.MSELoss()
         # self.image_loss = self.image_loss.to(self.device)
         # metric
-        self.gen_best_metric = 100.0
         self.dis_best_metric = 100.0
 
         # positive and negative labels
@@ -121,7 +134,7 @@ class WP8Agent(BasicAgent):
 
         if self.master:
             # Tensorboard Writer
-            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='wp8 gan3d npy on tpu')
+            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='wp8 gan3d dis npy on tpu')
             # add model to tensorboard and print parameter to screen
             summary(self.generator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
             summary(self.discriminator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
@@ -135,6 +148,11 @@ class WP8Agent(BasicAgent):
         # Model Loading from the latest checkpoint if not found start from scratch.
         self.load_checkpoint(file_name=config.deepspace.checkpoint_file)
 
+        # if first time, load the trained generator from checkpoint
+        if self.current_epoch == 0:
+            xla_model.master_print('=========== loading generator checkpoint =============')
+            self.load_gen()
+
     def train(self):
         """
         Main training loop
@@ -144,14 +162,11 @@ class WP8Agent(BasicAgent):
         for epoch in range(self.current_epoch, config.deepspace.max_epoch):
             xla_model.master_print('Epoch {} train begin {}'.format(epoch, test_utils.now()))
             self.current_epoch = epoch
-            train_gen_loss, train_dis_loss = self.train_one_epoch()
+            train_dis_loss = self.train_one_epoch()
             xla_model.master_print('Epoch {} train end {}'.format(epoch, test_utils.now()))
-            valid_gen_loss, valid_dis_loss = self.validate()
-            self.scheduler_gen.step()
+            valid_dis_loss = self.validate()
             self.scheduler_dis.step()
-            is_best = valid_gen_loss < self.gen_best_metric or valid_dis_loss < self.dis_best_metric
-            if valid_gen_loss < self.gen_best_metric:
-                self.gen_best_metric = valid_gen_loss
+            is_best = valid_dis_loss < self.dis_best_metric
             if valid_dis_loss < self.dis_best_metric:
                 self.dis_best_metric = valid_dis_loss
             backup_checkpoint = False
@@ -186,8 +201,8 @@ class WP8Agent(BasicAgent):
         gen_epoch_image_loss = AverageMeter(device=self.device)
         # loop images
         for input_images, target_images in tqdm_batch:
-            input_images.requires_grad = True
-            target_images.requires_grad = True
+            # input_images.requires_grad = True
+            # target_images.requires_grad = True
 
             # 1.1 start the discriminator by training with real data---
             # Reset gradients
@@ -202,19 +217,18 @@ class WP8Agent(BasicAgent):
             # calculate total loss
             dis_loss = dis_loss_normal + dis_loss_fake
             dis_loss.backward()
-
             # Update weights with gradients: optimizer step and update loss to averager
             xla_model.optimizer_step(self.optimizer_dis)
 
             # train the generator now---
             self.optimizer_gen.zero_grad()
-            out_labels = self.discriminator(fake_images)
+            fake_images = self.generator(input_images)
+            gen_image_loss = self.image_loss(fake_images, target_images)
+            out_labels = self.discriminator(fake_images.detach())
             # fake labels are real for generator cost
             gen_dis_loss = self.dis_loss(out_labels.squeeze(), self.real_labels[0:input_images.shape[0]])
-            gen_image_loss = self.image_loss(fake_images, target_images)
             gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
             gen_loss.backward()
-
             # Update weights with gradients: optimizer step and update loss to averager
             xla_model.optimizer_step(self.optimizer_gen)
 
@@ -235,22 +249,19 @@ class WP8Agent(BasicAgent):
 
         # logging
         if self.master:
-            self.summary_writer.add_scalar("epoch_training/gen_loss", gen_epoch_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_training/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_training/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_training/dis_loss", dis_epoch_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_training/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)
             self.summary_writer.add_scalar("epoch_training/dis_fake_loss", dis_epoch_fake_loss.val, self.current_iteration)
         # print info
         xla_model.master_print("Training Results at epoch-" + str(self.current_epoch)
                                + "\n" + "gen_loss: " + str(gen_epoch_loss.val)
-                               + "\n" + "dis_loss: " + str(dis_epoch_loss.val)
                                + "\n" + "- gen_image_loss: " + str(gen_epoch_image_loss.val)
                                + "\n" + "- gen_dis_loss: " + str(gen_epoch_dis_loss.val)
+                               + "\n" + "dis_loss: " + str(dis_epoch_loss.val)
                                + "\n" + "- dis_normal_loss: " + str(dis_epoch_normal_loss.val)
                                + "\n" + "- dis_fake_loss: " + str(dis_epoch_fake_loss.val))
-        xla_model.add_step_closure(self.train_update, args=(self.device, self.current_iteration, gen_epoch_loss, tracker, self.current_epoch, self.summary_writer))
-        return gen_epoch_loss.val, dis_epoch_loss.val
+        xla_model.add_step_closure(self.train_update, args=(self.device, self.current_iteration, dis_epoch_loss, tracker, self.current_epoch, self.summary_writer))
+        return dis_epoch_loss.val
 
     def validate(self):
         # distribute tracker
@@ -266,13 +277,6 @@ class WP8Agent(BasicAgent):
         dis_epoch_loss = AverageMeter(device=self.device)
         dis_epoch_fake_loss = AverageMeter(device=self.device)
         dis_epoch_normal_loss = AverageMeter(device=self.device)
-        gen_epoch_loss = AverageMeter(device=self.device)
-        gen_epoch_dis_loss = AverageMeter(device=self.device)
-        gen_epoch_image_loss = AverageMeter(device=self.device)
-        recon_images_sample = []
-        input_images_sample = []
-        target_images_sample = []
-        index = 0
         with torch.no_grad():
             for input_images, target_images in tqdm_batch:
                 # test discriminator
@@ -285,57 +289,22 @@ class WP8Agent(BasicAgent):
                 dis_epoch_fake_loss.update(dis_fake_loss)
                 dis_epoch_normal_loss.update(dis_normal_loss)
                 dis_epoch_loss.update(dis_loss)
-                # test generator
-                gen_dis_loss = self.dis_loss(fake_labels.squeeze(), self.real_labels[0:input_images.shape[0]])
-                gen_image_loss = self.image_loss(recon_images, target_images)
-                gen_epoch_dis_loss.update(gen_dis_loss)
-                gen_epoch_image_loss.update(gen_image_loss)
-                gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
-                gen_epoch_loss.update(gen_loss)
 
-                # save the reconstructed image
-                if index >= config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
-                    input_images = input_images.view(input_images.shape[0], input_images.shape[1], int(input_images.shape[2] * input_images.shape[3] / 8), -1)
-                    recon_images = recon_images.view(recon_images.shape[0], recon_images.shape[1], int(recon_images.shape[2] * recon_images.shape[3] / 8), -1)
-                    target_images = target_images.view(target_images.shape[0], target_images.shape[1], int(target_images.shape[2] * target_images.shape[3] / 8), -1)
-                    input_images = input_images.squeeze().detach().cpu().numpy()
-                    input_images_sample.append(np.expand_dims(input_images, axis=1))
-                    target_images = target_images.squeeze().detach().cpu().numpy()
-                    target_images_sample.append(np.expand_dims(target_images, axis=1))
-                    recon_images = recon_images.squeeze().detach().cpu().numpy()
-                    recon_images_sample.append(np.expand_dims(recon_images, axis=1))
-                index = index + 1
                 tracker.add(config.deepspace.validate_batch)
 
             tqdm_batch.close()
 
             if self.master:
-                self.summary_writer.add_scalar("epoch_validate/gen_loss", gen_epoch_loss.val, self.current_iteration)
-                self.summary_writer.add_scalar("epoch_validate/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
-                self.summary_writer.add_scalar("epoch_validate/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
                 self.summary_writer.add_scalar("epoch_validate/dis_loss", dis_epoch_loss.val, self.current_iteration)
                 self.summary_writer.add_scalar("epoch_validate/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)
                 self.summary_writer.add_scalar("epoch_validate/dis_fake_loss", dis_epoch_fake_loss.val, self.current_iteration)
-                # save reconstruct image to tensorboard
-                input_images_sample = np.concatenate(input_images_sample)
-                target_images_sample = np.concatenate(target_images_sample)
-                recon_images_sample = np.concatenate(recon_images_sample)
-                recon_canvas = make_grid(recon_images_sample)
-                self.summary_writer.add_image('recon_images', recon_canvas, self.current_epoch)
-                input_canvas = make_grid(input_images_sample)
-                self.summary_writer.add_image('input_images', input_canvas, self.current_epoch)
-                target_canvas = make_grid(target_images_sample)
-                self.summary_writer.add_image('target_images', target_canvas, self.current_epoch)
             # logging
             xla_model.master_print("validate Results at epoch-" + str(self.current_epoch)
-                                   + "\n" + ' gen_loss: ' + str(gen_epoch_loss.val)
                                    + "\n" + ' dis_loss: ' + str(dis_epoch_loss.val)
-                                   + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val)
-                                   + "\n" + '- gen_dis_loss: ' + str(gen_epoch_dis_loss.val)
                                    + "\n" + '- dis_normal_loss: ' + str(dis_epoch_normal_loss.val)
                                    + "\n" + '- dis_fake_loss: ' + str(dis_epoch_fake_loss.val))
-            xla_model.add_step_closure(self.test_update, args=(self.device, self.current_iteration, gen_epoch_loss, self.current_epoch))
-            return gen_epoch_loss.val, dis_epoch_loss.val
+            xla_model.add_step_closure(self.test_update, args=(self.device, self.current_iteration, dis_epoch_loss, self.current_epoch))
+            return dis_epoch_loss.val
 
     def test(self):
         test_root = Path(config.deepspace.test_output_dir)
@@ -395,3 +364,10 @@ class WP8Agent(BasicAgent):
             1.0 - loss.val,
             epoch,
             step)
+
+    def load_gen(self):
+        """load generator
+        """
+        checkpoint = torch.load(config.deepspace.gen_checkpoint)
+        self.generator.load_state_dict(checkpoint['generator.state_dict'])
+        self.optimizer_gen.load_state_dict(checkpoint['optimizer_gen.state_dict'])

@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'w8_dataset'
+    name = 'w8_dataset_npy'
     author = 'Zhihua Liang'
     discription = 'Defect detection for wp8 ai product flanders'
     project_root = '/home/zhihua/data/work_space/wp8'
@@ -8,10 +8,10 @@
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
     # root directory of the dataset
-    dataset_root = '/home/zhihua/data/anomaly/wp8/cyl9_npy'
+    dataset_root = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_more'
     # bin object path
     # bin_file_path = '/mnt/data/anomaly/wp8/cyl8.bin'
-    bin_file_path = '/mnt/data/anomaly/wp8/cyl9_aligned_781x781x793_uint16.bin'
+    bin_file_path = '/mnt/ssd/anomaly/wp8/cyl9_aligned_781x781x793_uint16.bin'
     # bin file shape
     # bin_shape = [760,810,815]
     bin_shape = [781,781,793]
@@ -26,6 +26,6 @@
     # data transpose
     transpose = false
     # npy step
-    step = 16
+    step = 8
     # npy size
     size = 64

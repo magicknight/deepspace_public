@@ -14,7 +14,9 @@ class EncoderBlock(nn.Module):
         self.residual_path = nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=1,
                       stride=(temporal_stride, 2, 2)),
-            nn.BatchNorm3d(out_channels))
+            nn.BatchNorm3d(out_channels),
+            nn.LeakyReLU(leak_value),
+        )
 
         self.conv_path = nn.Sequential(
             Conv3d(in_channels, out_channels, kernel_size=3,
@@ -27,7 +29,9 @@ class EncoderBlock(nn.Module):
             nn.LeakyReLU(leak_value),
             Conv3d(out_channels, out_channels, kernel_size=3, stride=1,
                    padding=1),
-            nn.BatchNorm3d(out_channels))
+            nn.BatchNorm3d(out_channels),
+            nn.LeakyReLU(leak_value),
+        )
 
     def forward(self, x):
         """
@@ -48,21 +52,25 @@ class DecoderBlock(nn.Module):
             nn.ConvTranspose3d(in_channels, out_channels, kernel_size=1,
                                stride=(temporal_stride, 2, 2),
                                output_padding=(temporal_stride - 1, 1, 1)),
-            nn.BatchNorm3d(out_channels))
+            nn.BatchNorm3d(out_channels),
+            nn.LeakyReLU(leak_value),
+        )
 
         self.conv_path = nn.Sequential(
             nn.ConvTranspose3d(in_channels, out_channels, kernel_size=3,
                                stride=(temporal_stride, 2, 2), padding=1,
                                output_padding=(temporal_stride - 1, 1, 1)),
-            nn.LeakyReLU(leak_value),
+            nn.LeakyReLU(),
             nn.BatchNorm3d(out_channels),
             nn.Conv3d(out_channels, out_channels, kernel_size=3, stride=1,
                       padding=1),
-            nn.LeakyReLU(leak_value),
+            nn.LeakyReLU(),
             nn.BatchNorm3d(out_channels),
             nn.Conv3d(out_channels, out_channels, kernel_size=3, stride=1,
                       padding=1),
-            nn.BatchNorm3d(out_channels))
+            nn.BatchNorm3d(out_channels),
+            nn.LeakyReLU(leak_value),
+        )
 
     def forward(self, x):
         """
@@ -82,7 +90,7 @@ class ParallelBatchNorm1d(nn.BatchNorm1d):
         y = y_reshaped.view(*x.shape)
         return y
 
-    @staticmethod
+    @ staticmethod
     def _get_name():
         return 'ParallelBatchNorm1d'
 
@@ -99,7 +107,7 @@ def fc_layer(in_features, out_features, activation=None, batchnorm=True):
 
 
 class Residual3DAE(nn.Module):
-    """   
+    """
     print('Setting up models')
     encoder = novelly.Residual3DAE(
         input_shape=(time_steps, height, width),
@@ -114,8 +122,8 @@ class Residual3DAE(nn.Module):
         nn (nn): torch.nn
     """
 
-    def __init__(self, input_shape, encoder_sizes, fc_sizes, *, temporal_strides,
-                 leak_value=0.1, decoder_sizes=None, color_channels=1, latent_activation=None):
+    def __init__(self, input_shape, encoder_sizes, fc_sizes, leak_value, *, temporal_strides,
+                 decoder_sizes=None, color_channels=1, latent_activation=None):
         super().__init__()
         decoder_sizes = decoder_sizes if decoder_sizes is not None \
             else list(reversed(encoder_sizes))

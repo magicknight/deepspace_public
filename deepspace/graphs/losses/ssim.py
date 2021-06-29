@@ -131,8 +131,9 @@ def ssim(
     if len(X.shape) not in (4, 5):
         raise ValueError(f"Input images should be 4-d or 5-d tensors, but got {X.shape}")
 
-    if not X.type() == Y.type():
-        raise ValueError("Input images should have the same dtype.")
+    # comment for xla device. non implemented on xla device
+    # if not X.type() == Y.type():
+    #     raise ValueError("Input images should have the same dtype.")
 
     if win is not None:  # set win_size
         win_size = win.shape[-1]

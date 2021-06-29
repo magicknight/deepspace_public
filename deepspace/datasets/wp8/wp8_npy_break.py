@@ -85,7 +85,7 @@ class DatasetTest:
         data = np.load(data_path)
         if self.transform is not None:
             data = self.transform(data)
-        return data
+        return data, str(data_path)
 
     def __len__(self):
         # the size defect data is the size of this dataset, not the size of normal data
