@@ -32,10 +32,6 @@ import torch
 from torch.optim import lr_scheduler
 from torch import nn
 
-from torch_xla.core import xla_model
-from torch_xla.distributed import parallel_loader, xla_multiprocessing
-from torch_xla.test import test_utils
-
 from tensorboardX.utils import make_grid
 from tensorboardX import SummaryWriter
 from torchinfo import summary
@@ -55,13 +51,21 @@ from deepspace.graphs.scheduler.scheduler import wrap_optimizer_with_scheduler
 
 from commontools.setup import config
 
+if config.deepspace.device == 'tpu':
+    from torch_xla.core import xla_model
+    from torch_xla.distributed import parallel_loader, xla_multiprocessing
+    from torch_xla.test import test_utils
+
 
 class Agent(BasicAgent):
     def __init__(self):
         super().__init__()
 
         # distribute: is master process?
-        self.master = xla_model.is_master_ordinal()
+        if config.deepspace.device == 'tpu':
+            self.master = xla_model.is_master_ordinal()
+        else:
+            self.master = None
 
         # define models
         self.generator = Residual3DAE(
@@ -127,8 +131,13 @@ class Agent(BasicAgent):
             )
 
         elif config.deepspace.mode == 'test':
-            self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
-            self.test_iterations = self.data_loader.test_iterations
+            if config.common.distribute:
+                self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
+                self.test_iterations = self.data_loader.test_iterations // xla_model.xrt_world_size()
+            else:
+                # if not on distribution.
+                self.test_loader = self.data_loader.test_loader
+                self.test_iterations = self.data_loader.test_iterations
 
         # define loss
         self.dis_loss = nn.BCELoss()
@@ -375,8 +384,9 @@ class Agent(BasicAgent):
         test_root = Path(config.deepspace.test_output_dir)
         tqdm_batch = tqdm(
             self.test_loader,
-            total=self.test_iterations // xla_model.xrt_world_size(),
-            desc="test at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
+            total=self.test_iterations,
+            # desc="test at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
+            desc="test at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
         )
         self.generator.eval()
         epoch_loss = AverageMeter(device=self.device)
@@ -411,7 +421,10 @@ class Agent(BasicAgent):
         save_npy(input_images_sample, paths=input_paths)
 
         # logging
-        xla_model.master_print("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
+        if config.deepspace.device == 'tpu':
+            xla_model.master_print("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
+        else:
+            print(("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | "))
         return epoch_loss.val
 
     def train_update(self, device, step, loss, tracker, epoch, writer):

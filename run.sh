@@ -62,11 +62,16 @@
 # python main.py --config configs/toml/wp8/tpu_gan3d_break.toml
 # python main.py --config configs/toml/wp8/tpu_gan3d_train_dis.toml
 # python main.py --config configs/toml/wp8/tpu_gan3d_simple_break.toml
+# python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_test.toml
 # python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_data_aug.toml
-python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_data_aug.toml > /home/zhihua/temp/tpu.logs 2>&1 &
+# python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_data_aug.toml > /home/zhihua/temp/tpu.logs 2>&1 &
 # python main.py --config configs/toml/wp8/tpu_gan3d_simple_break_data_aug_test.toml
 # python main.py --config configs/toml/wp8/tpu_gan3d_simple_break.toml > /home/zhihua/temp/tpu.logs 2>&1 &
 # python main.py --config configs/toml/wp8/tpu_gan3d_train_dis.toml --log-cli-level=ERROR
+
+python main.py --config configs/toml/wp8/tpu_ae3d_npy.toml
+
+
 # wp8 data
 # wp8 data
 # python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy.toml

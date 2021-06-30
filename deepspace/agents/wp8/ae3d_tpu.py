@@ -1,3 +1,27 @@
+'''
+ ┌─────────────────────────────────────────────────────────────┐
+ │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
+ ││Esc│!1 │@2 │#3 │$4 │%5 │^6 │&7 │*8 │(9 │)0 │_- │+= │|\ │`~ ││
+ │├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┤│
+ ││ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │{[ │}] │ BS  ││
+ │├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴─────┤│
+ ││ Ctrl │ A │ S │ D │ F │ G │ H │ J │ K │ L │: ;│" '│ Enter  ││
+ │├──────┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴────┬───┤│
+ ││ Shift  │ Z │ X │ C │ V │ B │ N │ M │< ,│> .│? /│Shift │Fn ││
+ │└─────┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴──┬┴───┴┬──┴┬─────┴───┘│
+ │      │Fn │ Alt │         Space         │ Alt │Win│   HHKB   │
+ │      └───┴─────┴───────────────────────┴─────┴───┘          │
+ └─────────────────────────────────────────────────────────────┘
+
+Description: 
+Author: Zhihua Liang
+Github: https://github.com/magicknight
+Date: 2021-06-30 19:41:16
+LastEditors: Zhihua Liang
+LastEditTime: 2021-06-30 19:41:26
+FilePath: /home/zhihua/framework/deepspace/deepspace/agents/wp8/ae3d_tpu.py
+'''
+
 
 import numpy as np
 from torch._C import device
@@ -8,30 +32,35 @@ import torch
 from torch.optim import lr_scheduler
 from torch import nn
 
-from torch_xla.core import xla_model
-from torch_xla.distributed import parallel_loader, xla_multiprocessing
-from torch_xla.test import test_utils
-
 from tensorboardX.utils import make_grid
 from tensorboardX import SummaryWriter
 from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
 from deepspace.graphs.models.autoencoder.ae3d import Residual3DAE
-from deepspace.datasets.wp8.wp8_npy import NPYDataLoader
+from deepspace.datasets.wp8.wp8_npy_break import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
+from deepspace.graphs.scheduler.scheduler import wrap_optimizer_with_scheduler
 
 from commontools.setup import config
 
+if config.deepspace.device == 'tpu':
+    from torch_xla.core import xla_model
+    from torch_xla.distributed import parallel_loader, xla_multiprocessing
+    from torch_xla.test import test_utils
 
-class WP8Agent(BasicAgent):
+
+class Agent(BasicAgent):
     def __init__(self):
         super().__init__()
 
         # distribute: is master process?
-        self.master = xla_model.is_master_ordinal()
+        if config.deepspace.device == 'tpu':
+            self.master = xla_model.is_master_ordinal()
+        else:
+            self.master = None
 
         # define models
         self.model = Residual3DAE(
@@ -41,9 +70,10 @@ class WP8Agent(BasicAgent):
             color_channels=config.deepspace.image_channels,
             temporal_strides=config.deepspace.temporal_strides
         )
-        # logger.info('========== device is =================== {device}, on {master}'.format(device=self.device, master='master' if self.master else 'worker'))
         # model go to tpu
         self.model = self.model.to(self.device)
+
+        self.model.apply(xavier_weights)
 
         # Create instance from the optimizer
         self.optimizer = torch.optim.Adam(
@@ -51,25 +81,35 @@ class WP8Agent(BasicAgent):
             lr=config.deepspace.learning_rate if 'learning_rate' in config.deepspace else 1e-3,
         )
 
-        # Define Scheduler
-        def lambda1(epoch): return pow(1 - epoch / config.deepspace.max_epoch, 0.9)
-        self.scheduler = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda1)
-
-        self.model.apply(xavier_weights)
-
         # define data_loader
         # load dataset with parallel data loader
-        self.data_loader = NPYDataLoader()
-        self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
-        self.train_iterations = self.data_loader.train_iterations
-        self.valid_loader = parallel_loader.MpDeviceLoader(self.data_loader.valid_loader, self.device)
-        self.valid_iterations = self.data_loader.valid_iterations
-        self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
-        self.test_iterations = self.data_loader.test_iterations
+        self.data_loader = Loader()
+        if config.deepspace.mode == 'train':
+            self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
+            self.train_iterations = self.data_loader.train_iterations
+            self.valid_loader = parallel_loader.MpDeviceLoader(self.data_loader.valid_loader, self.device)
+            self.valid_iterations = self.data_loader.valid_iterations
+
+            # Define Scheduler
+            self.scheduler = wrap_optimizer_with_scheduler(
+                self.optimizer_gen,
+                scheduler_type=config.deepspace.scheduler,
+                scheduler_divisor=config.deepspace.scheduler_divisor,
+                scheduler_divide_every_n_epochs=config.deepspace.scheduler_divide_every_n_epochs,
+                num_steps_per_epoch=self.train_iterations,
+                summary_writer=self.summary_writer
+            )
+        elif config.deepspace.mode == 'test':
+            if config.common.distribute:
+                self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
+                self.test_iterations = self.data_loader.test_iterations // xla_model.xrt_world_size()
+            else:
+                # if not on distribution.
+                self.test_loader = self.data_loader.test_loader
+                self.test_iterations = self.data_loader.test_iterations
 
         # define loss
         self.loss = nn.MSELoss()
-        # self.loss = self.loss.to(self.device)
         # metric
         self.best_metric = 100
 
@@ -91,16 +131,16 @@ class WP8Agent(BasicAgent):
         Main training loop
         :return:
         """
-        # for epoch in tqdm(range(self.current_epoch, config.deepspace.max_epoch), desc="traing at -{}-, total epoches -{}-".format(self.current_epoch, config.deepspace.max_epoch)):
         for epoch in range(self.current_epoch, config.deepspace.max_epoch):
-            xla_model.master_print('Epoch {} train begin {}'.format(epoch, test_utils.now()))
+            xla_model.master_print('========= Epoch {} train begin {} =========='.format(epoch, test_utils.now()))
             self.current_epoch = epoch
             train_loss = self.train_one_epoch()
-            xla_model.master_print('Epoch {} train end {}'.format(epoch, test_utils.now()))
+            xla_model.master_print('========= Epoch {} train end {} =========='.format(epoch, test_utils.now()))
             valid_loss = self.validate()
             self.scheduler.step()
             is_best = valid_loss < self.best_metric
-            self.best_metric = valid_loss
+            if valid_loss < self.best_metric:
+                self.best_metric = valid_loss
             backup_checkpoint = False
             if self.current_epoch % config.deepspace.save_model_step == 0:
                 backup_checkpoint = True
@@ -116,37 +156,34 @@ class WP8Agent(BasicAgent):
         # Initialize tqdm dataset
         tqdm_batch = tqdm(
             self.train_loader,
-            total=self.train_iterations,
-            desc="train on Epoch-{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal()))
+            total=self.train_iterations // xla_model.xrt_world_size(),
+            desc="train on Epoch-{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
+        )
         # Set the model to be in training mode (for batchnorm)
         self.model.train()
         # Initialize average meters
-        epoch_loss = AverageMeter()
+        epoch_loss = AverageMeter(device=self.device)
         # loop images
-        for images, paths in tqdm_batch:
+        for input_images, target_images in tqdm_batch:
             # for images, paths in self.train_loader:
-            # images = images.to(self.device, dtype=torch.float32)
-            images.requires_grad = True
             self.optimizer.zero_grad()
             # fake data---
-            recon_images = self.model(images)
+            recon_images = self.model(input_images)
             # train the model now---
-            loss = self.loss(recon_images, images)
+            loss = self.loss(recon_images, target_images)
             loss.backward()
             # self.optimizer.step()
             xla_model.optimizer_step(self.optimizer)
-            epoch_loss.update(loss.item())
+            epoch_loss.update(loss)
             self.current_iteration += 1
             tracker.add(config.deepspace.train_batch)
         # close dataloader
-        # tqdm_batch.close()
+        tqdm_batch.close()
         # logging
         if self.master:
             self.summary_writer.add_scalar("epoch-training/loss", epoch_loss.val, self.current_epoch)
         xla_model.master_print("Training Results at epoch-" + str(self.current_epoch) + " | " + "loss: " + str(epoch_loss.val) + " | ")
         xla_model.add_step_closure(self.train_update, args=(self.device, self.current_iteration, epoch_loss, tracker, self.current_epoch, self.summary_writer))
-        # save images
-        # save the reconstructed image
         return epoch_loss.val
 
     def validate(self):
@@ -154,88 +191,88 @@ class WP8Agent(BasicAgent):
         tracker = xla_model.RateTracker()
         tqdm_batch = tqdm(
             self.valid_loader,
-            total=self.valid_iterations,
-            desc="validate at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal()))
+            total=self.valid_iterations // xla_model.xrt_world_size(),
+            desc="validate at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
+        )
         self.model.eval()
-        epoch_loss = AverageMeter()
-        recon_images_sample = []
-        input_images_sample = []
-        index = 0
+        epoch_loss = AverageMeter(device=self.device)
+        # recon_images_sample = []
+        # input_images_sample = []
         with torch.no_grad():
-            for images, paths in tqdm_batch:
-                images = images.to(self.device, dtype=torch.float32)
+            for input_images, target_images in tqdm_batch:
                 # fake data---
-                recon_images = self.model(images)
-                # train the model now---
-                loss = self.loss(recon_images, images)
-                epoch_loss.update(loss.item())
+                recon_images = self.model(input_images)
+                loss = self.loss(recon_images, target_images)
+                epoch_loss.update(loss)
 
                 # save the reconstructed image
-                if index >= config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
-                    recon_images = recon_images.view(recon_images.shape[0], recon_images.shape[1], int(recon_images.shape[2] * recon_images.shape[3] / 4), -1)
-                    images = images.view(images.shape[0], images.shape[1], int(images.shape[2] * images.shape[3] / 4), -1)
-                    recon_images = recon_images.squeeze().detach().cpu().numpy()
-                    recon_images_sample.append(np.expand_dims(recon_images, axis=1))
-                    images = images.squeeze().detach().cpu().numpy()
-                    input_images_sample.append(np.expand_dims(images, axis=1))
-                index = index + 1
+                # if index >= config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
+                #     recon_images = recon_images.view(recon_images.shape[0], recon_images.shape[1], int(recon_images.shape[2] * recon_images.shape[3] / 4), -1)
+                #     images = images.view(images.shape[0], images.shape[1], int(images.shape[2] * images.shape[3] / 4), -1)
+                #     recon_images = recon_images.squeeze().detach().cpu().numpy()
+                #     recon_images_sample.append(np.expand_dims(recon_images, axis=1))
+                #     images = images.squeeze().detach().cpu().numpy()
+                #     input_images_sample.append(np.expand_dims(images, axis=1))
                 tracker.add(config.deepspace.validate_batch)
 
-            recon_images_sample = np.concatenate(recon_images_sample)
-            input_images_sample = np.concatenate(input_images_sample)
-            recon_canvas = make_grid(recon_images_sample)
-            input_canvas = make_grid(input_images_sample)
+            tqdm_batch.close()
+            # recon_images_sample = np.concatenate(recon_images_sample)
+            # input_images_sample = np.concatenate(input_images_sample)
+            # recon_canvas = make_grid(recon_images_sample)
+            # input_canvas = make_grid(input_images_sample)
             if self.master:
                 self.summary_writer.add_scalar("epoch-validation/loss", epoch_loss.val, self.current_epoch)
-                self.summary_writer.add_image('Recon_images', recon_canvas, self.current_epoch)
-                self.summary_writer.add_image('Input_images', input_canvas, self.current_epoch)
+                # self.summary_writer.add_image('Recon_images', recon_canvas, self.current_epoch)
+                # self.summary_writer.add_image('Input_images', input_canvas, self.current_epoch)
             # logging
             xla_model.master_print("validate Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
             xla_model.add_step_closure(self.test_update, args=(self.device, self.current_iteration, epoch_loss, self.current_epoch))
-            tqdm_batch.close()
             return epoch_loss.val
 
     def test(self):
         test_root = Path(config.deepspace.test_output_dir)
-        tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        # tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        tqdm_batch = tqdm(
+            self.test_loader,
+            total=self.test_iterations,
+            # desc="test at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
+            desc="test at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
+        )
         self.model.eval()
-        epoch_loss = AverageMeter()
+        epoch_loss = AverageMeter(device=self.device)
         recon_images_sample = []
         input_images_sample = []
         image_paths = []
-        index = 0
         with torch.no_grad():
             for images, paths in tqdm_batch:
-                images = images.to(self.device, dtype=torch.float32)
                 # fake data---
                 recon_images = self.model(images)
                 # train the model now---
                 loss = self.loss(recon_images, images)
-                epoch_loss.update(loss.item())
+                epoch_loss.update(loss)
 
                 # save the reconstructed image
-                recon_images = recon_images.squeeze().detach().cpu().numpy()
                 recon_images_sample.append(recon_images)
-                images = images.squeeze().detach().cpu().numpy()
                 input_images_sample.append(images)
-                for each_path in paths:
-                    image_paths.append(Path(each_path).name)
-                index = index + 1
+                image_paths.append(paths)
 
-            recon_images_sample = np.concatenate(recon_images_sample)
-            input_images_sample = np.concatenate(input_images_sample)
+        tqdm_batch.close()
 
-            # recon_paths = [test_root / ('recon' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(recon_images_sample.shape[0])]
-            # input_paths = [test_root / ('input' + '_' + str(index) + '.' + config.deepspace.data_format) for index in range(input_images_sample.shape[0])]
-            recon_paths = [test_root / ('recon' + '_' + image_paths[index]) for index in range(recon_images_sample.shape[0])]
-            input_paths = [test_root / ('input' + '_' + image_paths[index]) for index in range(input_images_sample.shape[0])]
-            save_npy(recon_images_sample, paths=recon_paths)
-            save_npy(input_images_sample, paths=input_paths)
+        image_paths = np.concatenate(np.array(image_paths))
+        recon_images_sample = torch.cat(recon_images_sample).squeeze().detach().cpu().numpy()
+        input_images_sample = torch.cat(input_images_sample).squeeze().detach().cpu().numpy()
 
-            # logging
+        recon_paths = [test_root / ('recon' + '_' + Path(image_paths[index]).name) for index in range(recon_images_sample.shape[0])]
+        input_paths = [test_root / ('input' + '_' + Path(image_paths[index]).name) for index in range(input_images_sample.shape[0])]
+        save_npy(recon_images_sample, paths=recon_paths)
+        save_npy(input_images_sample, paths=input_paths)
+
+        # logging
+        if config.deepspace.device == 'tpu':
             xla_model.master_print("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
-            tqdm_batch.close()
-            return epoch_loss.val
+        else:
+            print(("test Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | "))
+        return epoch_loss.val
 
     def train_update(self, device, step, loss, tracker, epoch, writer):
         test_utils.print_training_update(

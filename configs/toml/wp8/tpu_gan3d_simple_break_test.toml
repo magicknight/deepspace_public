@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'gan3d_simple_tpu_break'
+    name = 'gan3d_simple_tpu_break_210_epoch_grad_disaapear'
     author = 'Zhihua Liang'
     discription = 'Train wp8 on TPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -11,7 +11,7 @@
     agent = 'deepspace.agents.wp8.gan3d_simple_tpu.Agent'
     # device config
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
-    device = 'tpu'    
+    device = 'cpu'    
     fp16 = false
     cpu = false    
     # distribute setting
@@ -20,26 +20,26 @@
     seed = 999
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     gen_lr = 1e-1
-    dis_lr = 1e-1
+    dis_lr = 2e-1
     # 每训练n（n>=1）次Discriminator，训练一次Generator；
-    gen_epoch = 1
+    gen_epoch = 3
     # scheduler
     scheduler = 'WarmupAndExponentialDecayScheduler'
     scheduler_divisor = 5
     scheduler_divide_every_n_epochs = 20        
     # image loss and dis loss weight
-    loss_weight = 0.99999   
+    loss_weight = 0.999   
     # max epoches to for training.
     max_epoch = 300
     # save ouput on first n images during validation
     save_images = [0, 1]
     # mode = 'train', 'test', 'validate'
-    mode = 'train'
-    # mode = 'test'
+    # mode = 'train'
+    mode = 'test'
 
     ######## dataset ############
     # root directory of the dataset
-    train_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_more'
+    train_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy'
     # data set length   
     split_rate = 0.99
     # batch
@@ -75,12 +75,15 @@
     bias = false
 
     ##### test ######
-    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
+    # test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
+    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_test'
     test_batch = 8
-    test_output_dir = '/home/zhihua/data/work_space/wp8/test'
+    # test_output_dir = '/home/zhihua/data/work_space/wp8/test_gan3d'
+    test_output_dir = '/home/zhihua/data/work_space/wp8/test_gan3d_cyl8'
+
 
 [common]
-    distribute = true
+    distribute = false
 
 
 

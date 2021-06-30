@@ -164,5 +164,5 @@ class BasicAgent(BaseAgent):
         if self.summary_writer:
             self.summary_writer.export_scalars_to_json(config.swap.summary_dir / "all_scalars.json")
             self.summary_writer.close()
-        if self.deepspace.mode == 'train':
+        if config.deepspace.mode == 'train':
             save_settings(config, config.swap.work_space / 'config.toml')

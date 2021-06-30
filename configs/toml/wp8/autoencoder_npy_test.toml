@@ -9,16 +9,16 @@
     # root directory of the dataset
     # dataset_root = '/home/zhihua/data/anomaly/wp8/cy19_aligned_781x781x793_uint16_png'
     # dataset_root = '/home/zhihua/data/anomaly/wp8/cyl8_760_810_815_npy_test'
-    dataset_root = '/home/zhihua/data/anomaly/wp8/cyl9_npy_test/'
+    train_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test_32_32_32/'
     # dataset_root = '/home/zhihua/data/anomaly/wp8/npy_test'
     # agent name
     agent = 'deepspace.agents.wp8.autoencoder_npy.WP8Agent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
-    device = 'gpu'
+    device = 'cpu'
     # which gpu device
     gpu_device = 0
     # batch
-    batch_size = 512
+    train_batch = 512
     validate_batch = 16
     # dataset split 
     split_rate = 0.99
@@ -57,10 +57,13 @@
     # ------------------------------------------
     # for test
     test_batch = 8
+    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test_32_32_32/'
     # test_output_dir = '/home/zhihua/data/work_space/wp8/test/cyl8'
-    test_output_dir = '/home/zhihua/data/work_space/wp8/test/cyl9'
+    # test_output_dir = '/home/zhihua/data/work_space/wp8/test/cyl9'
+    test_output_dir = '/home/zhihua/data/work_space/wp8/test_ae3d'
 
-
+[common]
+    distribute = false
 
 
 

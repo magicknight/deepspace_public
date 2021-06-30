@@ -8,10 +8,10 @@
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
     # root directory of the dataset
-    # dataset_root = '/home/zhihua/data/anomaly/wp8/cyl8_760_810_815_npy_test'
+    # dataset_root = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_test'
     dataset_root = '/home/zhihua/data/anomaly/wp8/cyl9_npy_test'
     # bin object path
-    # bin_file_path = '/mnt/data/anomaly/wp8/cyl8_760_810_815.bin'
+    # bin_file_path = '/home/zhihua/ssd/anomaly/wp8/cyl8_760_810_815.bin'
     bin_file_path = '/home/zhihua/ssd/anomaly/wp8/cyl9_aligned_781x781x793_uint16.bin'
     # bin file shape
     # bin_shape = [760,810,815]
@@ -31,4 +31,4 @@
     # npy size
     size = 64
     #  recon path
-    recon_file = '/mnt/data/anomaly/wp8/recon/cyl9_recon_ae3dn.npy'
+    # recon_file = '/mnt/data/anomaly/wp8/recon/cyl9_recon_ae3dn.npy'

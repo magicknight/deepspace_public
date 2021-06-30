@@ -30,7 +30,7 @@
     scheduler_divisor = 5
     scheduler_divide_every_n_epochs = 20        
     # image loss and dis loss weight
-    loss_weight = 0.9999   
+    loss_weight = 0.9999
     # max epoches to for training.
     max_epoch = 300
     # save ouput on first n images during validation
@@ -45,22 +45,22 @@
     # data set length   
     split_rate = 0.99
     # batch
-    train_batch = 64
-    validate_batch = 16
+    train_batch = 128
+    validate_batch = 128
     # channels
     image_channels = 1   
     # data resolution
     image_size = [64, 64, 64]
     # data argument, probability to break the sample
     break_range=[[0.1, 0.2], [0.1, 0.2], [0.1, 0.2]]
-    break_probability = 0.5
+    break_probability = 0.0
     # dataloader options
     drop_last = true
     shuffle = false
     # output format; png or tif
     data_format = 'npy'      
     # workers for dataloader
-    data_loader_workers = 16
+    data_loader_workers = 32
     
     ########## model ############
     # save model every x steps
@@ -78,7 +78,7 @@
 
     ##### test ######
     test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
-    test_batch = 8
+    test_batch = 16
     test_output_dir = '/home/zhihua/data/work_space/wp8/test'
 
 [common]

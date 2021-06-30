@@ -31,6 +31,10 @@ FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/transform/diff_augme
 import torch
 import torch.nn.functional as F
 
+from deepspace.augmentation.voxel import RandomBreak
+
+from commontools.setup import config
+
 
 def DiffAugment(x, policy=''):
     if policy:
@@ -97,8 +101,16 @@ def rand_cutout(x, ratio=0.5):
     return x
 
 
+def rand_break(x, size=64, break_size=8):
+    init_position = torch.randint(0, size - break_size, (3, ))
+    break_side = torch.randint(0, break_size, (3,))
+    x[:, :, init_position[0]:init_position[0]+break_side[0], init_position[1]:init_position[1]+break_side[1], init_position[2]:init_position[2]+break_side[2]] = 0
+    return x
+
+
 AUGMENT_FNS = {
     'color': [rand_brightness, rand_saturation, rand_contrast],
     'translation': [rand_translation],
     'cutout': [rand_cutout],
+    # 'cutout': [rand_break],
 }
