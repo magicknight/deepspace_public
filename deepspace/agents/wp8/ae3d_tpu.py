@@ -92,7 +92,7 @@ class Agent(BasicAgent):
 
             # Define Scheduler
             self.scheduler = wrap_optimizer_with_scheduler(
-                self.optimizer_gen,
+                self.optimizer,
                 scheduler_type=config.deepspace.scheduler,
                 scheduler_divisor=config.deepspace.scheduler_divisor,
                 scheduler_divide_every_n_epochs=config.deepspace.scheduler_divide_every_n_epochs,

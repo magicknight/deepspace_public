@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'tpu_npy_ae3dn_break'
+    name = 'tpu_npy_ae3dn_break_ring'
     author = 'Zhihua Liang'
     discription = 'Pore detection for wp8 flanders maker'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -11,6 +11,8 @@
     agent = 'deepspace.agents.wp8.ae3d_tpu.Agent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'tpu' 
+    # distribute setting
+    world_size = 8    
     # scheduler
     scheduler = 'WarmupAndExponentialDecayScheduler'
     scheduler_divisor = 5
@@ -20,7 +22,7 @@
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     learning_rate = 1e-1
     # max epoches to for training.
-    max_epoch = 300
+    max_epoch = 100
     # save ouput on first n images during validation
     save_images = [8, 9]
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
@@ -28,7 +30,7 @@
     mode = 'train'
 
     ######## dataset ############
-    dataset_root = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_64'
+    train_dataset = '/home/zhihua/ssd/anomaly/wp8/ring_npy_64'
     # batch
     train_batch = 128
     validate_batch = 128    
@@ -45,9 +47,9 @@
     drop_last = true
     shuffle = false
     # output format; png or tif
-    data_format = 'npy'      
+    data_format = 'npy'
     # workers for dataloader
-    data_loader_workers = 32    
+    data_loader_workers = 16    
 
     ########## model ############
     # validate every x epoches
@@ -61,10 +63,6 @@
     encoder_sizes = [4, 16, 64]
     fc_sizes = [64, 16, 4]
     temporal_strides = [2, 1, 1]
-    # output format; png or tif
-    data_format = 'npy'
-    # data mode, 'image', 'numpy', 'tfrecord'... or anything when there exist corresponding dataloader
-    data_mode = 'numpy'
 
     ##### test ######
     test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_test'

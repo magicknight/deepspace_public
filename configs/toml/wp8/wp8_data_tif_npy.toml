@@ -1,0 +1,28 @@
+[summary]
+    # name of this experiment
+    name = 'w8_dataset_npy'
+    author = 'Zhihua Liang'
+    discription = 'Defect detection for wp8 ai product flanders'
+    project_root = '/home/zhihua/data/work_space/wp8'
+[deepspace]
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space'
+    # root directory of the dataset
+    dataset_root = '/home/zhihua/ssd/anomaly/wp8/ring_npy_64'
+    # tif object path
+    file_path = '/home/zhihua/storage/anomaly/wp8/ring/tif'
+    # bin file shape
+    shape = [2718, 2673, 704]
+    # bin data type
+    data_type = 'float32'
+    # target datatype, target normalize...
+    target_data_type = 'float32'
+    normalization = true
+    # output format; png or tif or npy
+    data_format = 'npy'
+    # data transpose
+    transpose = false
+    # npy step
+    step = 16
+    # npy size
+    size = 64

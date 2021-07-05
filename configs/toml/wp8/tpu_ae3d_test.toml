@@ -1,0 +1,78 @@
+[summary]
+    # name of this experiment
+    # name = 'tpu_npy_ae3dn_break_cyl8'
+    name = 'tpu_npy_ae3dn_break_cyl9'
+    author = 'Zhihua Liang'
+    discription = 'Pore detection for wp8 flanders maker'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/wp8'    
+[deepspace]
+    ########### agent ###########
+    # agent name
+    agent = 'deepspace.agents.wp8.ae3d_tpu.Agent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'cpu' 
+    # distribute setting
+    world_size = 8    
+    # scheduler
+    scheduler = 'WarmupAndExponentialDecayScheduler'
+    scheduler_divisor = 5
+    scheduler_divide_every_n_epochs = 20   
+    # random seed
+    seed = 999
+    # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+    learning_rate = 1e-1
+    # max epoches to for training.
+    max_epoch = 300
+    # save ouput on first n images during validation
+    save_images = [8, 9]
+    # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
+    mode = 'test'
+
+    ######## dataset ############
+    train_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_64'
+    # batch
+    train_batch = 128
+    validate_batch = 128    
+    # dataset split 
+    split_rate = 0.99
+    # data resolution
+    image_size = [64, 64, 64]
+    # channels
+    image_channels = 1
+    # data argument, probability to break the sample
+    break_range=[[0.1, 0.2], [0.1, 0.2], [0.1, 0.2]]
+    break_probability = 0.5
+    # tpu dataloader options
+    drop_last = true
+    shuffle = false
+    # output format; png or tif
+    data_format = 'npy'      
+    # workers for dataloader
+    data_loader_workers = 16    
+
+    ########## model ############
+    # validate every x epoches
+    validate_step = 1
+    # save model every x steps
+    save_model_step = 3
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # model
+    leak_value = 0.1
+    encoder_sizes = [4, 16, 64]
+    fc_sizes = [64, 16, 4]
+    temporal_strides = [2, 1, 1]
+
+    ##### test ######
+    # test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_test'
+    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
+    test_batch = 16
+    # test_output_dir = '/home/zhihua/data/work_space/wp8/cyl8_ae3d_test'
+    test_output_dir = '/home/zhihua/data/work_space/wp8/cyl9_ae3d_test'
+
+[common]
+    distribute = false
+
+
+

@@ -5,6 +5,8 @@ from numpy.lib.function_base import diff
 from seaborn import heatmap
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+from pathlib import Path
+from imageio import imread
 
 
 class AddGaussianNoise(object):
@@ -125,6 +127,25 @@ def read_bin(path, shape, datatype=np.float32) -> np.array:
     return ct_data
 
 
+def read_tif(path, datatype=np.float32) -> np.array:
+    """read tif and return a numpy array
+
+    Args:
+        path (string or Path): path to the tif folder
+        datatype (datatype of numpy array, optional): data type. Defaults to np.float32.
+
+    Returns:
+        np.array: a numpy array
+    """
+    path = Path(path)
+    image_files = sorted(list(path.glob('**/*.tif')))
+    data = list(map(imread, tqdm(image_files, desc='read data')))
+    data = np.stack(data, axis=0)
+    data = normalization(data)
+    data = data.astype(datatype)
+    return data
+
+
 def normalization(image, transverse=False, epsilon=1e-9):
     """
     projection to logs
@@ -159,3 +180,7 @@ def to_uint8(images) -> np.array:
     images = normalization(images, transverse=True) * 255
     images = images.astype(np.uint8)
     return images
+
+
+if __name__ == '__main__':
+    read_tif(path='/home/zhihua/storage/anomaly/wp8/ring/tif')
