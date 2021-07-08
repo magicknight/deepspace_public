@@ -53,8 +53,8 @@ if config.deepspace.device == 'tpu':
 
 
 class Agent(BasicAgent):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         # distribute: is master process?
         if config.deepspace.device == 'tpu':
@@ -83,7 +83,7 @@ class Agent(BasicAgent):
 
         # define data_loader
         # load dataset with parallel data loader
-        self.data_loader = Loader()
+        self.data_loader = Loader(shared_array=self.shared_array)
         if config.deepspace.mode == 'train':
             self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
             self.train_iterations = self.data_loader.train_iterations
@@ -199,7 +199,7 @@ class Agent(BasicAgent):
         # recon_images_sample = []
         # input_images_sample = []
         with torch.no_grad():
-            for index, (input_images, target_images) in enumerate(tqdm_batch):
+            for input_images, target_images in tqdm_batch:
                 # fake data---
                 recon_images = self.model(input_images)
                 loss = self.loss(recon_images, target_images)
@@ -214,8 +214,8 @@ class Agent(BasicAgent):
                 #     images = images.squeeze().detach().cpu().numpy()
                 #     input_images_sample.append(np.expand_dims(images, axis=1))
                 tracker.add(config.deepspace.validate_batch)
-                if index == self.valid_iterations // xla_model.xrt_world_size():
-                    break
+                # if index == self.valid_iterations // xla_model.xrt_world_size():
+                #     break
 
             tqdm_batch.close()
             # recon_images_sample = np.concatenate(recon_images_sample)

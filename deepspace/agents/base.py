@@ -80,8 +80,9 @@ class BasicAgent(BaseAgent):
     This basic class will contain the basic functions to be overloaded by any agent you will implement.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
+        self.__dict__ = dict(kwargs)
         # set cuda flag
         self.device = get_device()
         self.summary_writer = None

@@ -5,6 +5,7 @@ from tokenize import generate_tokens
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from pathlib import Path
 import torchvision.transforms as standard_transforms
 
@@ -31,7 +32,8 @@ class NPYImages:
             Tensor: images
         """
         index = get_index(data_3d=self.train_data, size=config.deepspace.image_size)
-        train_data = self.patcher(index, self.train_data)
+        with torch.no_grad():
+            train_data = np.copy(self.patcher(index, self.train_data))
         # target data is non-break train data
         if self.target_transform is not None:
             target_data = self.target_transform(train_data)
@@ -82,9 +84,10 @@ class NPYTestImages:
 
 
 class Loader:
-    def __init__(self):
+    def __init__(self, shared_array=None):
         # process data first
-        self.data = np.load(config.deepspace.train_dataset, allow_pickle=True)
+        # self.data = np.load(config.deepspace.train_dataset, allow_pickle=True)
+        self.data = shared_array
         # transform
         self.train_trainsform = standard_transforms.Compose([
             ToTensor(),
@@ -96,14 +99,44 @@ class Loader:
         self.test_transform = standard_transforms.Compose([
             ToTensor(),
         ])
-        # split dataset
+        # dataset
         train_set = NPYImages(data=self.data, data_length=config.deepspace.train_data_length, train_transform=self.train_trainsform, target_transform=self.target_transform)
         valid_set = NPYImages(data=self.data, data_length=config.deepspace.validate_data_length, train_transform=self.train_trainsform, target_transform=self.target_transform)
+        # sampler
+        if config.common.distribute:
+            from torch_xla.core import xla_model
+            train_sampler = DistributedSampler(
+                train_set,
+                num_replicas=xla_model.xrt_world_size(),
+                rank=xla_model.get_ordinal(),
+                shuffle=False)
+            validate_sampler = DistributedSampler(
+                valid_set,
+                num_replicas=xla_model.xrt_world_size(),
+                rank=xla_model.get_ordinal(),
+                shuffle=False)
+        else:
+            train_sampler = None
+            validate_sampler = None
         if config.deepspace.mode == 'train':
             # training needs train dataset and validate dataset
-            self.train_loader = DataLoader(train_set, batch_size=config.deepspace.train_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
-            # self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.validate_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
-            self.valid_loader = self.train_loader
+            self.train_loader = DataLoader(
+                train_set,
+                batch_size=config.deepspace.train_batch,
+                sampler=train_sampler,
+                drop_last=config.deepspace.drop_last,
+                shuffle=config.deepspace.shuffle,
+                num_workers=config.deepspace.data_loader_workers
+            )
+            self.valid_loader = DataLoader(
+                valid_set,
+                batch_size=config.deepspace.validate_batch,
+                sampler=validate_sampler,
+                drop_last=config.deepspace.drop_last,
+                shuffle=config.deepspace.shuffle,
+                num_workers=config.deepspace.data_loader_workers
+            )
+            # self.valid_loader = self.train_loader
             self.train_iterations = (len(train_set) + config.deepspace.train_batch) // config.deepspace.train_batch
             self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
 
