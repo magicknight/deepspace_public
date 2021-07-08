@@ -8,7 +8,7 @@
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
     # root directory of the dataset
-    dataset_root = '/home/zhihua/ssd/anomaly/wp8/ring_npy_64'
+    dataset = '/home/zhihua/ssd/npy/ring.npy'
     # tif object path
     file_path = '/home/zhihua/storage/anomaly/wp8/ring/tif'
     # bin file shape

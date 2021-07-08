@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "deefct train",
             "args": [
@@ -53,6 +54,16 @@
             "args": [
                 "--config",
                 "configs/toml/tsinghua/train.toml"
+            ],
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+        },
+        {
+            "name": "wp8",
+            "args": [
+                "--config",
+                "configs/toml/wp8/tpu_ae3d_ring.toml"
             ],
             "type": "python",
             "request": "launch",

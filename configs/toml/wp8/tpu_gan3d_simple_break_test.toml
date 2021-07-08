@@ -75,8 +75,8 @@
     bias = false
 
     ##### test ######
-    # test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
-    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_test'
+    # test_dataset = '/home/zhihua/ssd/cyl9_npy_test'
+    test_dataset = '/home/zhihua/ssd/cyl8_npy_test'
     test_batch = 8
     # test_output_dir = '/home/zhihua/data/work_space/wp8/test_gan3d'
     test_output_dir = '/home/zhihua/data/work_space/wp8/test_gan3d_cyl8'

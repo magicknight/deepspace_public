@@ -81,7 +81,7 @@ class NPYTestImages:
         return len(self.coordinates)
 
 
-class NPYDataLoader:
+class Loader:
     def __init__(self):
         # process data first
         self.data = np.load(config.deepspace.train_dataset, allow_pickle=True)
@@ -102,7 +102,8 @@ class NPYDataLoader:
         if config.deepspace.mode == 'train':
             # training needs train dataset and validate dataset
             self.train_loader = DataLoader(train_set, batch_size=config.deepspace.train_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
-            self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.validate_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
+            # self.valid_loader = DataLoader(valid_set, batch_size=config.deepspace.validate_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
+            self.valid_loader = self.train_loader
             self.train_iterations = (len(train_set) + config.deepspace.train_batch) // config.deepspace.train_batch
             self.valid_iterations = (len(valid_set) + config.deepspace.validate_batch) // config.deepspace.validate_batch
 

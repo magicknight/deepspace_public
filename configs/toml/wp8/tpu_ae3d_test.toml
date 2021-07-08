@@ -23,14 +23,14 @@
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     learning_rate = 1e-1
     # max epoches to for training.
-    max_epoch = 300
+    max_epoch = 100
     # save ouput on first n images during validation
     save_images = [8, 9]
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
     mode = 'test'
 
     ######## dataset ############
-    train_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_64'
+    train_dataset = '/home/zhihua/ssd/cyl8_npy_64'
     # batch
     train_batch = 128
     validate_batch = 128    
@@ -66,7 +66,7 @@
 
     ##### test ######
     # test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_test'
-    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_test'
+    test_dataset = '/home/zhihua/ssd/cyl9_npy_test'
     test_batch = 16
     # test_output_dir = '/home/zhihua/data/work_space/wp8/cyl8_ae3d_test'
     test_output_dir = '/home/zhihua/data/work_space/wp8/cyl9_ae3d_test'

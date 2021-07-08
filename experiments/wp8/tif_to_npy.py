@@ -16,56 +16,31 @@
 Description: 
 Author: Zhihua Liang
 Github: https://github.com/magicknight
-Date: 2021-07-08 09:15:09
+Date: 2021-07-07 23:19:10
 LastEditors: Zhihua Liang
-LastEditTime: 2021-07-08 09:15:09
-FilePath: /home/zhihua/framework/deepspace/main.py
+LastEditTime: 2021-07-07 23:19:11
+FilePath: /home/zhihua/framework/deepspace/experiments/wp8/tif_to_npy.py
 '''
 
-"""
-__author__ = "Zhihua Liang"
 
-Main
--Capture the config file
--Process the json config passed
--Create an agent instance
--Run the agent
-"""
-# from deepspace.utils.distribute import suppress_output
+import numpy as np
+from pathlib import Path
+from tqdm import tqdm
+from deepspace.utils.data import read_tif, normalization
+from commontools.setup import config, logger
 
 
-
-
-import importlib
-import torch
-from commontools.setup import config
-def run():
-    # Create the Agent then run it..
-    mod_name, func_name = config.deepspace.agent.rsplit('.', 1)
-    mod = importlib.import_module(mod_name)
-    agent = getattr(mod, func_name)()
-    agent.run()
-    agent.finalize()
-
-
-def _mp_fn(index, args):
-    torch.set_default_tensor_type('torch.FloatTensor')
-    # suppress_output(xm.is_master_ordinal())
-    run()
-
-
-def main():
-    # if running on tpu
-    if config.deepspace.device == 'tpu':
-        # import the distributed tools from torch_xla.
-        import torch_xla.core.xla_model as xm
-        import torch_xla.distributed.xla_multiprocessing as xmp
-        # From here on out we are in TPU context
-        FLAGS = {}
-        xmp.spawn(_mp_fn, args=(FLAGS,), nprocs=config.deepspace.world_size, join=True, daemon=False, start_method='fork')
-    else:
-        run()
+def make_dataset():
+    # read data
+    data = read_tif(config.deepspace.file_path, datatype=getattr(np, config.deepspace.data_type))
+    if 'target_data_type' in config.deepspace:
+        data = data.astype(getattr(np, config.deepspace.target_data_type))
+    if config.deepspace.transpose:
+        data = data.transpose(config.deepspace.transpose_order)
+    if config.deepspace.normalization:
+        data = normalization(data)
+    np.save(config.deepspace.dataset, data)
 
 
 if __name__ == '__main__':
-    main()
+    make_dataset()
