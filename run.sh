@@ -73,13 +73,15 @@
 # python main.py --config configs/toml/wp8/tpu_ae3d_test.toml
 # python main.py --config configs/toml/wp8/tpu_ae3d.toml > /home/zhihua/temp/tpu.logs 2>&1 &
 # python main.py --config configs/toml/wp8/tpu_ae3d_cyl9.toml > /home/zhihua/temp/tpu.logs 2>&1 &
-python main.py --config configs/toml/wp8/tpu_ae3d_ring.toml
+# python main.py --config configs/toml/wp8/tpu_ae3d_ring.toml
+python main.py --config configs/toml/wp8/tpu_ae3d_cyl9.toml
 
 # wp8 data
 # wp8 data
 # python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy.toml
 # python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy_test.toml
 # python experiments/wp8/make_dataset_tif_parallel.py --config configs/toml/wp8/wp8_data_tif_npy.toml
+# python experiments/wp8/make_dataset_parallel_ring.py --config configs/toml/wp8/wp8_data_npy_test.toml 
 
 # dqn
 # python3 main.py --config configs/toml/poc2020/control/dqn.toml

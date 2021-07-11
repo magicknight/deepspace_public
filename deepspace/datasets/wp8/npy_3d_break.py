@@ -47,22 +47,24 @@ class NPYImages:
 
 
 class NPYTestImages:
-    def __init__(self, data, transform=None):
+    def __init__(self, transform=None):
         # get all the image paths
         self.size = config.deepspace.image_size
         if isinstance(self.size, (int)):
             self.size = [self.size] * 3
         self.transform = transform
-
-        data = np.pad(data, [(0, size - side % size) for size, side in zip(self.size, data.shape)])
-        self.data = self.transform(data)
+        self.data = np.load(config.deepspace.test_dataset, allow_pickle=True)
+        self.data = np.pad(self.data, [(0, size - side % size) for size, side in zip(self.size, self.data.shape)])
+        self.data_shape = self.data.shape
         coordinates = []
         for index in range(3):
-            coordinate = np.linspace(0, data.shape[index], int(data.shape[index]/config.deepspace.image_size[index]) + 1)
+            coordinate = np.linspace(0, self.data.shape[index], int(self.data.shape[index]/config.deepspace.image_size[index]) + 1)
             coordinates.append(coordinate[0:-1])
         coordinates = np.meshgrid(coordinates[0], coordinates[1], coordinates[2])
         self.coordinates = np.stack(map(np.ravel, coordinates), axis=1)
         self.coordinates = self.coordinates.astype(np.int)
+        self.data = self.transform(self.data)
+
         # self.data = self.data.unfold(0, *self.size).unfold(1, *self.size).unfold(2, *self.size).reshape(-1, *self.size)
 
     def __getitem__(self, index):
@@ -145,6 +147,7 @@ class Loader:
             self.test_loader = DataLoader(test_set, batch_size=config.deepspace.test_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
             self.test_iterations = (len(test_set) + config.deepspace.test_batch) // config.deepspace.test_batch
             self.test_data = test_set.data
+            self.data_shape = test_set.data_shape
 
         else:
             raise Exception('Please choose a proper mode for data loading')

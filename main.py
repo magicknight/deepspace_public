@@ -16,6 +16,30 @@
 Description: 
 Author: Zhihua Liang
 Github: https://github.com/magicknight
+Date: 2021-07-08 21:55:13
+LastEditors: Zhihua Liang
+LastEditTime: 2021-07-08 21:55:13
+FilePath: /home/zhihua/framework/deepspace/main.py
+'''
+
+'''
+ ┌─────────────────────────────────────────────────────────────┐
+ │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
+ ││Esc│!1 │@2 │#3 │$4 │%5 │^6 │&7 │*8 │(9 │)0 │_- │+= │|\ │`~ ││
+ │├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┤│
+ ││ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │{[ │}] │ BS  ││
+ │├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴─────┤│
+ ││ Ctrl │ A │ S │ D │ F │ G │ H │ J │ K │ L │: ;│" '│ Enter  ││
+ │├──────┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴────┬───┤│
+ ││ Shift  │ Z │ X │ C │ V │ B │ N │ M │< ,│> .│? /│Shift │Fn ││
+ │└─────┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴──┬┴───┴┬──┴┬─────┴───┘│
+ │      │Fn │ Alt │         Space         │ Alt │Win│   HHKB   │
+ │      └───┴─────┴───────────────────────┴─────┴───┘          │
+ └─────────────────────────────────────────────────────────────┘
+
+Description: 
+Author: Zhihua Liang
+Github: https://github.com/magicknight
 Date: 2021-07-08 14:50:44
 LastEditors: Zhihua Liang
 LastEditTime: 2021-07-08 14:50:45
@@ -65,10 +89,7 @@ def run():
     # Create the Agent then run it..
     mod_name, func_name = config.deepspace.agent.rsplit('.', 1)
     mod = importlib.import_module(mod_name)
-    if shared_array is not None:
-        agent = getattr(mod, func_name)(shared_array=shared_array)
-    else:
-        agent = getattr(mod, func_name)()
+    agent = getattr(mod, func_name)(shared_array=shared_array)
     agent.run()
     agent.finalize()
 

@@ -22,7 +22,7 @@
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     learning_rate = 1e-1
     # max epoches to for training.
-    max_epoch = 100
+    max_epoch = 200
     # save ouput on first n images during validation
     save_images = [8, 9]
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
@@ -40,8 +40,6 @@
     # batch
     train_batch = 128
     validate_batch = 128    
-    # dataset split 
-    split_rate = 0.99
     # data resolution
     image_size = [64, 64, 64]
     # channels

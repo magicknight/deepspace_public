@@ -232,7 +232,6 @@ class Agent(BasicAgent):
             return epoch_loss.val
 
     def test(self):
-        test_root = Path(config.deepspace.test_output_dir)
         # tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         tqdm_batch = tqdm(
             self.test_loader,
@@ -242,32 +241,21 @@ class Agent(BasicAgent):
         )
         self.model.eval()
         epoch_loss = AverageMeter(device=self.device)
-        recon_images_sample = []
-        input_images_sample = []
-        image_paths = []
+        recon_data = np.zeros(self.data_loader.data_shape, dtype=np.float32)
+        size = config.deepspace.image_size
         with torch.no_grad():
-            for images, paths in tqdm_batch:
+            for images, coors in tqdm_batch:
                 # fake data---
                 recon_images = self.model(images)
-                # train the model now---
                 loss = self.loss(recon_images, images)
                 epoch_loss.update(loss)
-
-                # save the reconstructed image
-                recon_images_sample.append(recon_images)
-                input_images_sample.append(images)
-                image_paths.append(paths)
-
+                for recon, coor in zip(recon_images, coors):
+                    recon_data[coor[0]:coor[0]+size[0], coor[1]:coor[1]+size[1], coor[2]:coor[2]+size[2]] = recon.squeeze().detach().cpu().numpy()
         tqdm_batch.close()
-
-        image_paths = np.concatenate(np.array(image_paths))
-        recon_images_sample = torch.cat(recon_images_sample).squeeze().detach().cpu().numpy()
-        input_images_sample = torch.cat(input_images_sample).squeeze().detach().cpu().numpy()
-
-        recon_paths = [test_root / ('recon' + '_' + Path(image_paths[index]).name) for index in range(recon_images_sample.shape[0])]
-        input_paths = [test_root / ('input' + '_' + Path(image_paths[index]).name) for index in range(input_images_sample.shape[0])]
-        save_npy(recon_images_sample, paths=recon_paths)
-        save_npy(input_images_sample, paths=input_paths)
+        # shape = config.deepspace.data_shape
+        # recon_data = recon_data[0:shape[0], 0:shape[1], 0:shape[2]]
+        # input_coors = [test_root / ('input' + '_' + Path(image_coors[index]).name) for index in range(input_images_sample.shape[0])]
+        save_npy([recon_data], [config.deepspace.test_output])
 
         # logging
         if config.deepspace.device == 'tpu':
