@@ -40,8 +40,6 @@
     # batch
     train_batch = 128
     validate_batch = 128    
-    # dataset split 
-    split_rate = 0.99
     # data resolution
     image_size = [64, 64, 64]
     # channels

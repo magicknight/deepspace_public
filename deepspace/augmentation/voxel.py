@@ -100,6 +100,45 @@ class ToTensor(object):
         return image
 
 
+class RandomRotate(object):
+    '''
+    Class that performs Random rotation
+    -------------------------------------------------------------------------------------
+
+    -------------------------------------------------------------------------------------
+    '''
+
+    def __init__(self):
+        pass
+
+    def __call__(self, x):
+        step = torch.randint(0, 4, (1, ), device=x.device)[0]
+        x = torch.rot90(x, step, [1, 2])
+        step = torch.randint(0, 4, (1, ), device=x.device)[0]
+        x = torch.rot90(x, step, [2, 3])
+        step = torch.randint(0, 4, (1, ), device=x.device)[0]
+        x = torch.rot90(x, step, [1, 3])
+        return x
+
+
+class Rotate(object):
+    '''
+    Class that performs rotation
+    -------------------------------------------------------------------------------------
+
+    -------------------------------------------------------------------------------------
+    '''
+
+    def __init__(self):
+        pass
+
+    def __call__(self, x, steps=[0, 0, 0]):
+        x = torch.rot90(x, steps[0], [1, 2])
+        x = torch.rot90(x, steps[1], [2, 3])
+        x = torch.rot90(x, steps[2], [1, 3])
+        return x
+
+
 def get_index(data_3d, size=64):
     """generate index for 3D array patching
 

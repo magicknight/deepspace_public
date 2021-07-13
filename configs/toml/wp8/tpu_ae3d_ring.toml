@@ -35,7 +35,6 @@
     shared_dataset = true
     # data set length
     train_data_length = 262144
-    # train_data_length = 512
     validate_data_length = 4096       
     # batch
     train_batch = 128

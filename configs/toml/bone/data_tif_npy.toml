@@ -1,0 +1,25 @@
+[summary]
+    # name of this experiment
+    name = 'bone_tif_to_npy'
+    author = 'Zhihua Liang'
+    discription = 'Turn raw tif data to npy data'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/bone'
+[deepspace]
+    # tif object path
+    # file_path = '/home/zhihua/storage/bone/aligned_bone/LQ'
+    file_path = '/home/zhihua/storage/bone/aligned_bone/HQ'
+    # target the dataset
+    # dataset = '/home/zhihua/storage/bone/npy/aligned_LQ.npy'
+    dataset = '/home/zhihua/storage/bone/npy/aligned_HQ.npy'
+    # target datatype, target normalize...
+    target_data_type = 'float32'
+    normalization = true
+    # output format; png or tif or npy
+    data_format = 'npy'
+    # data transpose
+    transpose = false
+    # npy step
+    step = 16
+    # npy size
+    size = 64

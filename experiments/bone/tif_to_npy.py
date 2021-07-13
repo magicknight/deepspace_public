@@ -16,18 +16,16 @@
 Description: 
 Author: Zhihua Liang
 Github: https://github.com/magicknight
-Date: 2021-07-12 08:53:32
+Date: 2021-07-12 08:47:17
 LastEditors: Zhihua Liang
-LastEditTime: 2021-07-12 08:53:33
-FilePath: /home/zhihua/framework/deepspace/experiments/wp8/tif_to_npy.py
+LastEditTime: 2021-07-12 08:47:18
+FilePath: /home/zhihua/framework/deepspace/experiments/bone/tif_to_npy.py
 '''
 
 
 import numpy as np
-from pathlib import Path
-from tqdm import tqdm
-from deepspace.utils.data import read_tif, normalization
-from commontools.setup import config, logger
+from deepspace.utils.data import read_tif
+from commontools.setup import config
 
 
 def make_dataset():

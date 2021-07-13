@@ -74,7 +74,8 @@
 # python main.py --config configs/toml/wp8/tpu_ae3d.toml > /home/zhihua/temp/tpu.logs 2>&1 &
 # python main.py --config configs/toml/wp8/tpu_ae3d_cyl9.toml > /home/zhihua/temp/tpu.logs 2>&1 &
 # python main.py --config configs/toml/wp8/tpu_ae3d_ring.toml
-python main.py --config configs/toml/wp8/tpu_ae3d_cyl9.toml
+# python main.py --config configs/toml/wp8/tpu_ae3d_cyl9.toml
+# python main.py --config configs/toml/wp8/tpu_ae3d_cyl9_test.toml
 
 # wp8 data
 # wp8 data
@@ -96,6 +97,11 @@ python main.py --config configs/toml/wp8/tpu_ae3d_cyl9.toml
 # 2d
 # python3 main.py --config configs/toml/bone/gan2d.toml
 # python3 main.py --config configs/toml/bone/gan2d_test.toml
+python main.py --config configs/toml/bone/tpu_gan3d_break_aug.toml
+# python main.py --config configs/toml/bone/tpu_gan3d_break_aug_test.toml
+# bone data
+# python experiments/bone/tif_to_npy.py --config configs/toml/bone/data_tif_npy.toml 
+
 
 # tsinghua
 # make data

@@ -1,50 +1,39 @@
+'''
+ ┌─────────────────────────────────────────────────────────────┐
+ │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
+ ││Esc│!1 │@2 │#3 │$4 │%5 │^6 │&7 │*8 │(9 │)0 │_- │+= │|\ │`~ ││
+ │├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┤│
+ ││ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │{[ │}] │ BS  ││
+ │├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴─────┤│
+ ││ Ctrl │ A │ S │ D │ F │ G │ H │ J │ K │ L │: ;│" '│ Enter  ││
+ │├──────┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴────┬───┤│
+ ││ Shift  │ Z │ X │ C │ V │ B │ N │ M │< ,│> .│? /│Shift │Fn ││
+ │└─────┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴──┬┴───┴┬──┴┬─────┴───┘│
+ │      │Fn │ Alt │         Space         │ Alt │Win│   HHKB   │
+ │      └───┴─────┴───────────────────────┴─────┴───┘          │
+ └─────────────────────────────────────────────────────────────┘
+
+Description: 
+Author: Zhihua Liang
+Github: https://github.com/magicknight
+Date: 2021-07-12 09:41:12
+LastEditors: Zhihua Liang
+LastEditTime: 2021-07-12 09:41:13
+FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/gan/dis3d.py
+'''
+
 import torch
 from torch import nn
-from deepspace.graphs.models.autoencoder.ae3d import EncoderBlock
-
-from torch.nn import Conv3d
-
-
-# class EncoderBlock(nn.Module):
-
-#     def __init__(self, in_channels, out_channels, leak=0.1, temporal_stride=2):
-#         super().__init__()
-
-#         self.residual_path = nn.Sequential(
-#             nn.Conv3d(in_channels, out_channels, kernel_size=1,
-#                       stride=(temporal_stride, 2, 2)),
-#             nn.BatchNorm3d(out_channels))
-
-#         self.conv_path = nn.Sequential(
-#             Conv3d(in_channels, out_channels, kernel_size=3,
-#                    stride=(temporal_stride, 2, 2), padding=1),
-#             nn.BatchNorm3d(out_channels),
-#             nn.LeakyReLU(leak),
-#             Conv3d(out_channels, out_channels, kernel_size=3, stride=1,
-#                    padding=1),
-#             nn.BatchNorm3d(out_channels),
-#             nn.LeakyReLU(leak),
-#             Conv3d(out_channels, out_channels, kernel_size=3, stride=1,
-#                    padding=1),
-#             nn.BatchNorm3d(out_channels))
-
-#     def forward(self, x):
-#         """
-#         >>> x = torch.randn(1, 3, 8, 32, 32)
-#         >>> block = EncoderBlock(3, 10)
-#         >>> tuple(block(x).shape)
-#         (1, 10, 4, 16, 16)
-#         """
-#         return self.residual_path(x) + self.conv_path(x)
+from deepspace.graphs.models.autoencoder.ae3d_ge import EncoderBlock
 
 
 def fc_layer(in_features, out_features, activation=None, batchnorm=True):
     layers = [nn.Linear(in_features, out_features)]
 
-    if activation is not None:
-        layers += [activation]
     if batchnorm:
         layers += [nn.BatchNorm1d(out_features)]
+    if activation is not None:
+        layers += [activation]
 
     return nn.Sequential(*layers)
 
@@ -65,15 +54,14 @@ class Discriminator3D(nn.Module):
         nn (nn): torch.nn
     """
 
-    def __init__(self, input_shape, encoder_sizes, fc_sizes, temporal_strides,
-                 leak_value=0.1, color_channels=1, latent_activation=None):
+    def __init__(self, input_shape, encoder_sizes, fc_sizes, temporal_strides, color_channels=1, latent_activation=None):
         super().__init__()
         # from color_channels to the last encoder_sizes
         conv_dims = list(zip([color_channels, *encoder_sizes], encoder_sizes))
         temporal_strides = list(temporal_strides)
         assert len(temporal_strides) == len(conv_dims)
 
-        self.conv_encoder = nn.Sequential(*[EncoderBlock(d_in, d_out, leak_value, temporal_stride=ts) for (d_in, d_out), ts in zip(conv_dims, temporal_strides)])
+        self.conv_encoder = nn.Sequential(*[EncoderBlock(d_in, d_out, temporal_stride=ts) for (d_in, d_out), ts in zip(conv_dims, temporal_strides)])
 
         # get the output shape, batch, channel, depth, height, width
         self.input_shape = (color_channels, *input_shape)
@@ -88,7 +76,7 @@ class Discriminator3D(nn.Module):
         fc_dims = list(zip([self.first_fc_size, *fc_sizes], fc_sizes))
         if fc_dims:
             self.fc_encoder = nn.Sequential(
-                *[fc_layer(d_in, d_out, activation=nn.LeakyReLU(leak_value)) for d_in, d_out in fc_dims[:-1]],
+                *[fc_layer(d_in, d_out, activation=nn.GELU()) for d_in, d_out in fc_dims[:-1]],
                 fc_layer(*fc_dims[-1], activation=latent_activation, batchnorm=False))
         else:
             self.fc_encoder = nn.Sequential()

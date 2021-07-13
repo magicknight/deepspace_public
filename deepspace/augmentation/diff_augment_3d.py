@@ -46,7 +46,7 @@ def DiffAugment(x, policy=''):
 
 
 def rand_brightness(x):
-    x = x + (torch.rand(x.size(0), 1, 1, 1, 1, dtype=x.dtype, device=x.device) - 0.5)
+    x = (x + (torch.rand(x.size(0), 1, 1, 1, 1, dtype=x.dtype, device=x.device)))/2.0
     return x
 
 
@@ -102,15 +102,26 @@ def rand_cutout(x, ratio=0.5):
 
 
 def rand_break(x, size=64, break_size=8):
-    init_position = torch.randint(0, size - break_size, (3, ))
-    break_side = torch.randint(0, break_size, (3,))
+    init_position = torch.randint(0, size - break_size, (3, ), device=x.device)
+    break_side = torch.randint(0, break_size, (3,), device=x.device)
     x[:, :, init_position[0]:init_position[0]+break_side[0], init_position[1]:init_position[1]+break_side[1], init_position[2]:init_position[2]+break_side[2]] = 0
+    return x
+
+
+def rand_rot(x):
+    step = torch.randint(0, 4, (1, ), device=x.device)[0]
+    x = torch.rot90(x, step, [2, 3])
+    step = torch.randint(0, 4, (1, ), device=x.device)[0]
+    x = torch.rot90(x, step, [3, 4])
+    step = torch.randint(0, 4, (1, ), device=x.device)[0]
+    x = torch.rot90(x, step, [2, 4])
     return x
 
 
 AUGMENT_FNS = {
     'color': [rand_brightness, rand_saturation, rand_contrast],
     'translation': [rand_translation],
-    'cutout': [rand_cutout],
-    # 'cutout': [rand_break],
+    # 'cutout': [rand_cutout],
+    'cutout': [rand_break],
+    'rotation': [rand_rot],
 }
