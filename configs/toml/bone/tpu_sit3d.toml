@@ -1,80 +1,90 @@
 [summary]
     # name of this experiment
-    name = 'tpu_npy_ae3dn_break_cyl8'
+    name = 'tpu_npy_sit3d_aligned'
     author = 'Zhihua Liang'
-    discription = 'Pore detection for wp8 flanders maker'
+    discription = 'Train bone on TPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
-    project_root = '/home/zhihua/data/work_space/wp8'    
+    project_root = '/home/zhihua/data/work_space/bone'    
 [deepspace]
     ########### agent ###########
     # agent name
-    agent = 'deepspace.agents.wp8.ae3d_tpu_random_data.Agent'
+    agent = 'deepspace.agents.bone.sit3d_tpu_random_data.Agent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'tpu' 
     # distribute setting
-    world_size = 8    
-    # scheduler
-    scheduler = 'WarmupAndExponentialDecayScheduler'
-    scheduler_divisor = 5
-    scheduler_divide_every_n_epochs = 20   
+    world_size = 8 
     # random seed
-    seed = 999
+    seed = 999     
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     learning_rate = 1e-1
+    # scheduler
+    T_0 = 10
+    T_mult = 3
     # max epoches to for training.
-    max_epoch = 100
+    max_epoch = 200
     # save ouput on first n images during validation
-    save_images = [8, 9]
+    save_images = [200, 300, 400, 500]
     # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
-    # mode = 'test'
     mode = 'train'
 
     ######## dataset ############
-    train_dataset = '/home/zhihua/ssd/npy/cyl8_760_810_815.npy'
+    # root directory of the dataset
+    train_dataset = ['/home/zhihua/ssd/npy/aligned_LQ.npy', '/home/zhihua/ssd/npy/aligned_HQ.npy']
     # load into memory before distributing
     shared_dataset = true
+    # loss function
+    ssim_win_size = 5
     # data set length
-    train_data_length = 262144
-    validate_data_length = 4096    
+    train_data_length = 8096
+    validate_data_length = 1024
     # batch
-    train_batch = 128
-    validate_batch = 128    
+    train_batch = 64
+    validate_batch = 64    
     # data resolution
     image_size = [64, 64, 64]
     # channels
     image_channels = 1
-    # data argument, probability to break the sample
-    break_range=[[0.1, 0.2], [0.1, 0.2], [0.1, 0.2]]
-    break_probability = 0.5
     # tpu dataloader options
     drop_last = true
     shuffle = false
     # output format; png or tif
-    data_format = 'npy'      
+    data_format = 'npy'
     # workers for dataloader
-    data_loader_workers = 16    
+    data_loader_workers = 16
 
     ########## model ############
+    # augmentation
+    policy = 'color'
     # validate every x epoches
     validate_step = 1
+    # save validate to a empty data
+    shared_recon_data_shape = [1600, 832, 832]
     # save model every x steps
-    save_model_step = 3
+    save_model_step = 5
     # checkpoint file name
     checkpoint_file = 'checkpoint.pth.tar'
-    # model
-    leak_value = 0.1
-    encoder_sizes = [4, 16, 64]
-    fc_sizes = [64, 16, 4]
-    temporal_strides = [2, 1, 1]
+    # super parameters
+    patch_size = 8
+    rotation_node = 4
+    contrastive_head = 512
+    dim = 768
+    depth = 4
+    heads = 16
+    in_channels = 1
+    dim_head = 16
+    dropout = 0.0
+    emb_dropout = 0.0
+    scale_dim = 2
 
     ##### test ######
-    test_dataset = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_test'
+    test_dataset = '/home/zhihua/ssd/npy/aligned_LQ.npy'
     test_batch = 16
-    test_output_dir = '/home/zhihua/data/work_space/wp8/cyl8_ae3d_test'
+    test_output_dir = '/home/zhihua/data/work_space/bone/aligned_ae3d_test'
 
 [common]
     distribute = true
     # log level, can be INFO, WARNING, ERROR..., see python logging
     log_level = 'WARNING'
+
 
 

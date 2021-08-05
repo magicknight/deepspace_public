@@ -8,10 +8,10 @@
 [deepspace]
     # data set 
     # root directory of the dataset
-    train_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_noisy.npy'
-    target_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_original.npy'
-    valid_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_noisy.npy'
-    valid_target_data = '/home/zhihua/data/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_origin.npy'    
+    train_data = '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_noisy.npy'
+    target_data = '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_original.npy'
+    valid_data = '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_noisy.npy'
+    valid_target_data = '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_origin.npy'    
     # channels
     image_channels = 1
     # image_size = [1120, 1120]
@@ -73,7 +73,7 @@
     # for test
     test_data_length = 512
     test_batch = 8
-    test_output_dir = '/home/zhihua/data/work_space/bone/test'
+    test_output_dir = '/home/zhihua/storage/work_space/bone/test'
 
 
 

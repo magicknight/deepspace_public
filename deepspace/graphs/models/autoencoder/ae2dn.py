@@ -1,27 +1,26 @@
-import numpy as np
 import torch
 from torch import nn
 
 
 class EncoderBlock(nn.Module):
-
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, temporal_stride=2):
         super().__init__()
 
         self.residual_path = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2),
-            nn.BatchNorm2d(out_channels))
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=(temporal_stride, temporal_stride)),
+            nn.BatchNorm2d(out_channels)
+        )
 
         self.conv_path = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=(temporal_stride, temporal_stride), padding=1),
             nn.LeakyReLU(),
             nn.BatchNorm2d(out_channels),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.LeakyReLU(),
             nn.BatchNorm2d(out_channels),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1,
-                      padding=1),
-            nn.BatchNorm2d(out_channels))
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channels)
+        )
 
     def forward(self, x):
         """
@@ -35,17 +34,18 @@ class EncoderBlock(nn.Module):
 
 class DecoderBlock(nn.Module):
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, temporal_stride=2):
         super().__init__()
 
         self.residual_path = nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1,
-                               stride=2, output_padding=1),
-            nn.BatchNorm2d(out_channels))
+                               stride=(temporal_stride, temporal_stride), output_padding=(temporal_stride - 1, temporal_stride - 1)),
+            nn.BatchNorm2d(out_channels)
+        )
 
         self.conv_path = nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3,
-                               stride=2, padding=1, output_padding=1),
+                               stride=(temporal_stride, temporal_stride), padding=1, output_padding=(temporal_stride - 1, temporal_stride - 1)),
             nn.LeakyReLU(),
             nn.BatchNorm2d(out_channels),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1,
@@ -54,7 +54,8 @@ class DecoderBlock(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1,
                       padding=1),
-            nn.BatchNorm2d(out_channels))
+            nn.BatchNorm2d(out_channels)
+        )
 
     def forward(self, x):
         """
@@ -68,7 +69,6 @@ class DecoderBlock(nn.Module):
 
 def fc_layer(in_features, out_features, activation=None, batchnorm=True):
     layers = [nn.Linear(in_features, out_features)]
-
     if activation is not None:
         layers += [activation]
     if batchnorm:
@@ -79,7 +79,7 @@ def fc_layer(in_features, out_features, activation=None, batchnorm=True):
 
 class ResidualAE(nn.Module):
 
-    def __init__(self, input_shape, encoder_sizes, fc_sizes, *, color_channels=3,
+    def __init__(self, input_shape, encoder_sizes, fc_sizes, *, temporal_strides, color_channels=1,
                  latent_activation=None, decoder_sizes=None):
         super().__init__()
 
@@ -87,15 +87,21 @@ class ResidualAE(nn.Module):
             else list(reversed(encoder_sizes))
 
         conv_dims = list(zip([color_channels, *encoder_sizes], encoder_sizes))
-        self.conv_encoder = nn.Sequential(*[EncoderBlock(*d) for d in conv_dims])
+        temporal_strides = list(temporal_strides)
+        assert len(temporal_strides) == len(conv_dims)
+        self.conv_encoder = nn.Sequential(
+            *[EncoderBlock(d_in, d_out, temporal_stride=ts)
+              for (d_in, d_out), ts in zip(conv_dims, temporal_strides)]
+        )
 
         self.input_shape = (color_channels, *input_shape)
         with torch.no_grad():
             self.conv_encoder.eval()
             dummy_input = torch.Tensor(1, *self.input_shape)
             dummy_output = self.conv_encoder(dummy_input)
-        self.intermediate_size = dummy_output.shape[1:]
-        self.first_fc_size = np.prod(self.intermediate_size)
+        _, c, w, h = dummy_output.shape
+        self.intermediate_size = (c, w, h)
+        self.first_fc_size = c * w * h
 
         fc_dims = list(zip([self.first_fc_size, *fc_sizes], fc_sizes))
         self.fc_encoder = nn.Sequential(
@@ -108,8 +114,8 @@ class ResidualAE(nn.Module):
               for d_in, d_out in reversed(fc_dims)])
         conv_dims = list(zip(decoder_sizes, [*(decoder_sizes[1:]), color_channels]))
         self.conv_decoder = nn.Sequential(
-            *[DecoderBlock(*d) for d in conv_dims],
-            nn.Sigmoid())
+            *[DecoderBlock(d_in, d_out, temporal_stride=ts) for (d_in, d_out), ts in zip(conv_dims, reversed(temporal_strides))], nn.Sigmoid()
+        )
 
     def encode(self, x):
         y = self.conv_encoder(x)
@@ -135,7 +141,15 @@ class ResidualAE(nn.Module):
 
 
 if __name__ == "__main__":
-    model = ResidualAE((64, 64), [4, 16, 64], [64, 16, 4], color_channels=1)
-    x = torch.randn(2, 1, 64, 64)
-    y = model(x)
-    print(y.shape)
+    from torchinfo import summary
+    model = ResidualAE(
+        input_shape=(768, 768),
+        encoder_sizes=[2, 4, 8, 16, 32, 64, 96, 128],
+        fc_sizes=[1024],
+        temporal_strides=[2, 2, 2, 2, 2, 2, 2, 2],
+        color_channels=1
+    )
+    summary(model, (2, 1, 768, 768),  depth=6)
+    # x = torch.randn(2, 1, 784, 784)
+    # y = model(x)
+    # print(y.shape)

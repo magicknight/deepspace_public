@@ -13,6 +13,10 @@ from commontools.setup import config, logger
 
 
 class NPYImages:
+    """
+    Load the defect images, and return the data loader
+    """
+
     def __init__(self, train_file=None, target_file=None, train_transform=None, target_transform=None):
         # get all the image paths
         self.train_data = np.load(train_file, allow_pickle=True)

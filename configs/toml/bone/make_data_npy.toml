@@ -23,4 +23,6 @@
     target_data_format = 'npy'
     # data transpose
     transpose = false
+    # cut
+    cut_size = [150, 950]
 

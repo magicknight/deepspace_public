@@ -23,7 +23,7 @@ class NPYImages:
         self.target_transform = target_transform
         # a tool to extract smaller 3D volumns from raw data
         self.patcher = IndexPatch(size=config.deepspace.image_size)
-        # self.rotate = Rotate()
+        self.rotate = Rotate()
 
     def __getitem__(self, index):
         """return png images
@@ -43,10 +43,10 @@ class NPYImages:
             target_data = self.target_transform(target_data)
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
-        # # perform rotation
-        # steps = torch.randint(0, 4, (3, ), device=train_data.device)
-        # train_data = self.rotate(train_data, steps=steps)
-        # target_data = self.rotate(target_data, steps=steps)
+        # perform rotation
+        steps = torch.randint(0, 4, (3, ), device=train_data.device)
+        train_data = self.rotate(train_data, steps=steps)
+        target_data = self.rotate(target_data, steps=steps)
 
         return train_data, target_data
 

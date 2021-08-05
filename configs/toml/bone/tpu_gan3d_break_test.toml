@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'gan3d_break_aug_aligned'
+    name = 'gan3d_break_aligned'
     author = 'Zhihua Liang'
     discription = 'Train bone on TPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -8,7 +8,7 @@
 [deepspace]
     ########### agent ###########
     # agent name
-    agent = 'deepspace.agents.bone.gan3d_break.Agent'
+    agent = 'deepspace.agents.bone.gan3d_break_aug.Agent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'cpu'     
     # distribute setting
@@ -18,6 +18,8 @@
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
     gen_lr = 1e-1
     dis_lr = 1e-1
+    # data augment
+    policy = 'color'
     # scheduler
     scheduler = 'WarmupAndExponentialDecayScheduler'
     scheduler_divisor = 5
@@ -73,7 +75,7 @@
 
     ##### test ######
     test_dataset = '/home/zhihua/ssd/npy/aligned_LQ.npy'
-    test_batch = 16
+    test_batch = 128
     test_output = '/home/zhihua/data/work_space/bone/aligned_gan3d_test/aligned.npy'
     data_shape = [2154, 1120, 1120]
 

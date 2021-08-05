@@ -1,3 +1,4 @@
+
 '''
  ┌─────────────────────────────────────────────────────────────┐
  │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
@@ -16,31 +17,30 @@
 Description: 
 Author: Zhihua Liang
 Github: https://github.com/magicknight
-Date: 2021-06-28 17:58:25
+Date: 2021-08-05 22:49:33
 LastEditors: Zhihua Liang
-LastEditTime: 2021-06-28 17:58:26
-FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/transform/diff_augment.py
+LastEditTime: 2021-08-05 22:49:33
+FilePath: /home/zhihua/framework/deepspace/deepspace/augmentation/diff_aug_more.py
 '''
-# Differentiable Augmentation for Data-Efficient GAN Training
-# Shengyu Zhao, Zhijian Liu, Ji Lin, Jun-Yan Zhu, and Song Han
-# https://arxiv.org/pdf/2006.10738
-# https: // github.com/mit-han-lab/data-efficient-gans/blob/master/DiffAugment_pytorch.py
-
+import random
 import torch
 import torch.nn.functional as F
 
 
-def DiffAugment(x, policy='', channels_first=True):
-    if policy:
-        if not channels_first:
-            x = x.permute(0, 3, 1, 2)
-        for p in policy.split(','):
-            for f in AUGMENT_FNS[p]:
-                x = f(x)
-        if not channels_first:
-            x = x.permute(0, 2, 3, 1)
-        x = x.contiguous()
-    return x
+def DiffAugment(x, policy=[]):
+    for p in policy:
+        for f in AUGMENT_FNS[p]:
+            x = f(x)
+    return x.contiguous()
+
+# """
+# Augmentation functions got images as `x`
+# where `x` is tensor with this dimensions:
+# 0 - count of images
+# 1 - channels
+# 2 - width
+# 3 - height of image
+# """
 
 
 def rand_brightness(x):
@@ -60,7 +60,7 @@ def rand_contrast(x):
     return x
 
 
-def rand_translation(x, ratio=0.025):
+def rand_translation(x, ratio=0.125):
     shift_x, shift_y = int(x.size(2) * ratio + 0.5), int(x.size(3) * ratio + 0.5)
     translation_x = torch.randint(-shift_x, shift_x + 1, size=[x.size(0), 1, 1], device=x.device)
     translation_y = torch.randint(-shift_y, shift_y + 1, size=[x.size(0), 1, 1], device=x.device)
@@ -72,8 +72,38 @@ def rand_translation(x, ratio=0.025):
     grid_x = torch.clamp(grid_x + translation_x + 1, 0, x.size(2) + 1)
     grid_y = torch.clamp(grid_y + translation_y + 1, 0, x.size(3) + 1)
     x_pad = F.pad(x, [1, 1, 1, 1, 0, 0, 0, 0])
-    x = x_pad.permute(0, 2, 3, 1).contiguous()[grid_batch, grid_x, grid_y].permute(0, 3, 1, 2).contiguous()
+    x = x_pad.permute(0, 2, 3, 1).contiguous()[grid_batch, grid_x, grid_y].permute(0, 3, 1, 2)
     return x
+
+
+def rand_offset(x, ratio=1, ratio_h=1, ratio_v=1):
+    w, h = x.size(2), x.size(3)
+
+    imgs = []
+    for img in x.unbind(dim=0):
+        max_h = int(w * ratio * ratio_h)
+        max_v = int(h * ratio * ratio_v)
+
+        value_h = random.randint(0, max_h) * 2 - max_h
+        value_v = random.randint(0, max_v) * 2 - max_v
+
+        if abs(value_h) > 0:
+            img = torch.roll(img, value_h, 2)
+
+        if abs(value_v) > 0:
+            img = torch.roll(img, value_v, 1)
+
+        imgs.append(img)
+
+    return torch.stack(imgs)
+
+
+def rand_offset_h(x, ratio=1):
+    return rand_offset(x, ratio=1, ratio_h=ratio, ratio_v=0)
+
+
+def rand_offset_v(x, ratio=1):
+    return rand_offset(x, ratio=1, ratio_h=0, ratio_v=ratio)
 
 
 def rand_cutout(x, ratio=0.2):
@@ -94,7 +124,10 @@ def rand_cutout(x, ratio=0.2):
 
 
 AUGMENT_FNS = {
-    'color': [rand_brightness, rand_saturation, rand_contrast],
-    'translation': [rand_translation],
-    'cutout': [rand_cutout],
+    'color':        [rand_brightness, rand_saturation, rand_contrast],
+    'offset':       [rand_offset],
+    'offset_h':     [rand_offset_h],
+    'offset_v':     [rand_offset_v],
+    'translation':  [rand_translation],
+    'cutout':       [rand_cutout],
 }

@@ -16,33 +16,9 @@
 Description: 
 Author: Zhihua Liang
 Github: https://github.com/magicknight
-Date: 2021-07-08 21:55:13
+Date: 2021-07-08 07:31:14
 LastEditors: Zhihua Liang
-LastEditTime: 2021-07-08 21:55:13
-FilePath: /home/zhihua/framework/deepspace/main.py
-'''
-
-'''
- ┌─────────────────────────────────────────────────────────────┐
- │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
- ││Esc│!1 │@2 │#3 │$4 │%5 │^6 │&7 │*8 │(9 │)0 │_- │+= │|\ │`~ ││
- │├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┤│
- ││ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │{[ │}] │ BS  ││
- │├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴─────┤│
- ││ Ctrl │ A │ S │ D │ F │ G │ H │ J │ K │ L │: ;│" '│ Enter  ││
- │├──────┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴────┬───┤│
- ││ Shift  │ Z │ X │ C │ V │ B │ N │ M │< ,│> .│? /│Shift │Fn ││
- │└─────┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴──┬┴───┴┬──┴┬─────┴───┘│
- │      │Fn │ Alt │         Space         │ Alt │Win│   HHKB   │
- │      └───┴─────┴───────────────────────┴─────┴───┘          │
- └─────────────────────────────────────────────────────────────┘
-
-Description: 
-Author: Zhihua Liang
-Github: https://github.com/magicknight
-Date: 2021-07-08 14:50:44
-LastEditors: Zhihua Liang
-LastEditTime: 2021-07-08 14:50:45
+LastEditTime: 2021-08-04 18:36:37
 FilePath: /home/zhihua/framework/deepspace/main.py
 '''
 
@@ -58,6 +34,10 @@ def load_npy(path):
     return np.load(path, allow_pickle=True)
 
 
+def padding(data):
+    return np.pad(data, [(0, 0), (0, config.deepspace.image_size[0] - data.shape[1]), (0, config.deepspace.image_size[1] - data.shape[2])])
+
+
 def shared_data():
     """load shared data into memory for dataset useage
     """
@@ -67,6 +47,11 @@ def shared_data():
             shared_array = list(map(load_npy, config.deepspace.train_dataset))
         else:
             shared_array = np.load(config.deepspace.train_dataset,  allow_pickle=True)
+        if config.deepspace.padding:
+            shared_array = list(map(padding, shared_array))
+        if 'shared_recon_data_shape' in config.deepspace:
+            recon_data = np.zeros(config.deepspace.shared_recon_data_shape, dtype=np.float32)
+            shared_array.append(recon_data)
 
 
 def run():

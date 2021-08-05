@@ -38,11 +38,11 @@ from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
 from deepspace.graphs.models.autoencoder.ae3d_ge import Residual3DAE
-from deepspace.datasets.wp8.npy_3d_break import Loader
+from deepspace.datasets.voxel.npy_two_3d_break import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
-from deepspace.graphs.scheduler.scheduler import wrap_optimizer_with_scheduler
+# from deepspace.graphs.scheduler.scheduler import wrap_optimizer_with_scheduler
 
 from commontools.setup import config
 

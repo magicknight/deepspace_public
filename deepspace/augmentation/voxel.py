@@ -112,13 +112,11 @@ class RandomRotate(object):
         pass
 
     def __call__(self, x):
-        step = torch.randint(0, 4, (1, ), device=x.device)[0]
-        x = torch.rot90(x, step, [1, 2])
-        step = torch.randint(0, 4, (1, ), device=x.device)[0]
-        x = torch.rot90(x, step, [2, 3])
-        step = torch.randint(0, 4, (1, ), device=x.device)[0]
-        x = torch.rot90(x, step, [1, 3])
-        return x
+        rot = torch.randint(0, 4, (3, ), device=x.device)
+        x = torch.rot90(x, rot[0], [1, 2])
+        x = torch.rot90(x, rot[1], [2, 3])
+        x = torch.rot90(x, rot[2], [1, 3])
+        return x, rot
 
 
 class Rotate(object):
@@ -132,7 +130,7 @@ class Rotate(object):
     def __init__(self):
         pass
 
-    def __call__(self, x, steps=[0, 0, 0]):
+    def __call__(self, x, steps=torch.tensor([0, 0, 0])):
         x = torch.rot90(x, steps[0], [1, 2])
         x = torch.rot90(x, steps[1], [2, 3])
         x = torch.rot90(x, steps[2], [1, 3])

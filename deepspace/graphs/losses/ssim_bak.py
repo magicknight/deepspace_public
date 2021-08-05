@@ -1,33 +1,9 @@
-'''
- ┌─────────────────────────────────────────────────────────────┐
- │┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐│
- ││Esc│!1 │@2 │#3 │$4 │%5 │^6 │&7 │*8 │(9 │)0 │_- │+= │|\ │`~ ││
- │├───┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴───┤│
- ││ Tab │ Q │ W │ E │ R │ T │ Y │ U │ I │ O │ P │{[ │}] │ BS  ││
- │├─────┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴┬──┴─────┤│
- ││ Ctrl │ A │ S │ D │ F │ G │ H │ J │ K │ L │: ;│" '│ Enter  ││
- │├──────┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴─┬─┴────┬───┤│
- ││ Shift  │ Z │ X │ C │ V │ B │ N │ M │< ,│> .│? /│Shift │Fn ││
- │└─────┬──┴┬──┴──┬┴───┴───┴───┴───┴───┴──┬┴───┴┬──┴┬─────┴───┘│
- │      │Fn │ Alt │         Space         │ Alt │Win│   HHKB   │
- │      └───┴─────┴───────────────────────┴─────┴───┘          │
- └─────────────────────────────────────────────────────────────┘
-
-Description: 
-Author: Zhihua Liang
-Github: https://github.com/magicknight
-Date: 2021-07-23 21:01:42
-LastEditors: Zhihua Liang
-LastEditTime: 2021-07-23 21:01:42
-FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/losses/ssim2.py
-'''
 # Copyright 2020 by Gongfan Fang, Zhejiang University.
 # All rights reserved.
 import warnings
 
 import torch
 import torch.nn.functional as F
-# from einops import rearrange, repeat, reduce
 
 
 def _fspecial_gauss_1d(size, sigma):
@@ -155,9 +131,8 @@ def ssim(
     if len(X.shape) not in (4, 5):
         raise ValueError(f"Input images should be 4-d or 5-d tensors, but got {X.shape}")
 
-    # comment for xla device. non implemented on xla device
-    # if not X.type() == Y.type():
-    #     raise ValueError("Input images should have the same dtype.")
+    if not X.type() == Y.type():
+        raise ValueError("Input images should have the same dtype.")
 
     if win is not None:  # set win_size
         win_size = win.shape[-1]
@@ -337,29 +312,3 @@ class MS_SSIM(torch.nn.Module):
             weights=self.weights,
             K=self.K,
         )
-
-
-class MS_SSIM_Loss(MS_SSIM):
-    """loss class for MS_SSIM
-
-    Args:
-        MS_SSIM (class): MS_SSIM class
-    """
-
-    def forward(self, img1, img2):
-        return 100*(1 - super(MS_SSIM_Loss, self).forward(img1, img2))
-
-
-class SSIM_Loss(SSIM):
-    """loss class for SSIM
-
-    Args:
-        SSIM (class): SSIM class
-    """
-
-    def __init__(self, data_range=1, size_average=True, win_size=11, win_sigma=1.5, channel=1, spatial_dims=2, K=(0.01, 0.03)):
-        super(SSIM_Loss, self).__init__(data_range=data_range, size_average=size_average, win_size=win_size, win_sigma=win_sigma, channel=channel, spatial_dims=spatial_dims, K=K, nonnegative_ssim=True)
-
-    def forward(self, img1, img2):
-        # return 100*(1 - super(SSIM_Loss, self).forward(img1, img2))
-        return 100.0 * (1 - ssim(img1, img2, data_range=self.data_range, size_average=self.size_average, win=self.win, K=self.K, nonnegative_ssim=self.nonnegative_ssim))

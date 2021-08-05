@@ -8,17 +8,17 @@
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space'
     # root directory of the dataset
-    dataset_root = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_64'
-    # dataset_root = '/home/zhihua/ssd/anomaly/wp8/cyl9_npy_more'
+    # dataset_root = '/home/zhihua/ssd/anomaly/wp8/cyl8_npy_64'
+    dataset_root = '/mnt/storage/anomaly/wp8/npy/'
     # bin object path
-    bin_file_path = '/home/zhihua/ssd/anomaly/wp8/cyl8_760_810_815.bin'
-    # bin_file_path = '/mnt/ssd/anomaly/wp8/cyl9_aligned_781x781x793_uint16.bin'
+    # bin_file_path = '/home/zhihua/ssd/anomaly/wp8/cyl8_760_810_815.bin'
+    bin_file_path = '/mnt/storage/anomaly/wp8/raw/cyl9_aligned_781x781x793_uint16.bin'
     # bin file shape
-    bin_shape = [760,810,815]
-    # bin_shape = [781,781,793]
+    # bin_shape = [760,810,815]
+    bin_shape = [793, 781,781]
     # bin data type
-    data_type = 'float32'
-    # data_type = 'uint16'
+    # data_type = 'float32'
+    data_type = 'uint16'
     # target datatype, target normalize...
     target_data_type = 'float32'
     normalization = true
@@ -26,7 +26,7 @@
     data_format = 'npy'
     # data transpose
     transpose = false
-    # npy step
-    step = 8
-    # npy size
-    size = 64
+    # # npy step
+    # step = 8
+    # # npy size
+    # size = 64

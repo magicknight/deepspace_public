@@ -127,7 +127,7 @@ def read_bin(path, shape, datatype=np.float32) -> np.array:
     return ct_data
 
 
-def read_tif(path, norm=True, datatype=None) -> np.array:
+def read_tif(path, norm=True, cut_area=None, datatype=None) -> np.array:
     """read tif and return a numpy array
 
     Args:
@@ -141,6 +141,8 @@ def read_tif(path, norm=True, datatype=None) -> np.array:
     image_files = sorted(list(path.glob('**/*.tif')))
     data = list(map(imread, tqdm(image_files, desc='read data')))
     data = np.stack(data, axis=0)
+    if cut_area is not None:
+        data = data[cut_area]
     if norm:
         data = normalization(data)
     if datatype is not None:

@@ -1,6 +1,6 @@
 [summary]
     # name of this experiment
-    name = 'tpu_npy_ae3dn_break_cyl9'
+    name = 'tpu_npy_ae3dn_break_cyl8'
     author = 'Zhihua Liang'
     discription = 'Pore detection for wp8 flanders maker'
     # root directory of the project (for saveing logs, models, temp files, etc...)
@@ -30,12 +30,11 @@
     # mode = 'train'
 
     ######## dataset ############
-    train_dataset = '/home/zhihua/ssd/npy/cyl9_aligned_781x781x793.npy'
+    train_dataset = '/home/zhihua/ssd/npy/cyl8_760_810_815.npy'
     # load into memory before distributing
     shared_dataset = true
     # data set length
     train_data_length = 262144
-    # train_data_length = 512
     validate_data_length = 4096       
     # batch
     train_batch = 128
@@ -69,10 +68,10 @@
     temporal_strides = [2, 1, 1]
 
     ##### test ######
-    test_dataset = '/mnt/storage/anomaly/wp8/npy/cyl9_aligned_781x781x793.npy'
-    test_batch = 16
-    test_output = '/home/zhihua/data/work_space/wp8/cyl9_ae3d_test/cyl9.npy'
-    data_shape = [793, 781, 781]
+    test_dataset = '/home/zhihua/ssd/npy/cyl8_760_810_815.npy'
+    test_batch = 128
+    test_output = '/home/zhihua/data/work_space/wp8/cyl8_ae3d_test/cyl8.npy'
+    data_shape = [760, 810, 815]
 
 [common]
     distribute = false

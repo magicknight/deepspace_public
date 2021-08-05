@@ -76,10 +76,13 @@
 # python main.py --config configs/toml/wp8/tpu_ae3d_ring.toml
 # python main.py --config configs/toml/wp8/tpu_ae3d_cyl9.toml
 # python main.py --config configs/toml/wp8/tpu_ae3d_cyl9_test.toml
+# python main.py --config configs/toml/wp8/tpu_ae3d_cyl8.toml
+# python main.py --config configs/toml/wp8/tpu_ae3d_cyl8_test.toml
 
 # wp8 data
 # wp8 data
 # python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy.toml
+# python experiments/wp8/make_dataset_to_npy.py --config configs/toml/wp8/wp8_data_npy.toml
 # python experiments/wp8/make_dataset_parallel.py --config configs/toml/wp8/wp8_data_npy_test.toml
 # python experiments/wp8/make_dataset_tif_parallel.py --config configs/toml/wp8/wp8_data_tif_npy.toml
 # python experiments/wp8/make_dataset_parallel_ring.py --config configs/toml/wp8/wp8_data_npy_test.toml 
@@ -94,11 +97,19 @@
 # 3d
 # python3 main.py --config configs/toml/bone/gan3d.toml
 # python3 main.py --config configs/toml/bone/gan3d_test.toml
+# python main.py --config configs/toml/bone/tpu_sit3d.toml
+# XLA_USE_F16=0 python main.py --config configs/toml/bone/tpu_sit3d_test.toml
+
 # 2d
-# python3 main.py --config configs/toml/bone/gan2d.toml
-# python3 main.py --config configs/toml/bone/gan2d_test.toml
-python main.py --config configs/toml/bone/tpu_gan3d_break_aug.toml
+python main.py --config configs/toml/bone/tpu_gan2d_aug.toml
+# python main.py --config configs/toml/bone/gan2d.toml
+# python main.py --config configs/toml/bone/gan2d_test.toml
+# python main.py --config configs/toml/bone/tpu_gan3d_break.toml
+# python main.py --config configs/toml/bone/tpu_gan3d_break_test.toml
+# python main.py --config configs/toml/bone/tpu_gan3d_break_aug.toml
 # python main.py --config configs/toml/bone/tpu_gan3d_break_aug_test.toml
+# python main.py --config configs/toml/bone/tpu_ae3d.toml
+# python main.py --config configs/toml/bone/tpu_ae3d_test.toml
 # bone data
 # python experiments/bone/tif_to_npy.py --config configs/toml/bone/data_tif_npy.toml 
 

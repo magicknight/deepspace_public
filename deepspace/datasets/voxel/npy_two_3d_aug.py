@@ -9,8 +9,9 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from pathlib import Path
 import torchvision.transforms as standard_transforms
+from einops import rearrange, reduce, repeat
 
-from deepspace.augmentation.voxel import ToTensor, RandomBreak, RandomPatch, get_index, IndexPatch, Rotate
+from deepspace.augmentation.voxel import Rotate, ToTensor, RandomBreak, RandomPatch, get_index, IndexPatch, RandomRotate
 from commontools.setup import config, logger
 
 
@@ -23,7 +24,7 @@ class NPYImages:
         self.target_transform = target_transform
         # a tool to extract smaller 3D volumns from raw data
         self.patcher = IndexPatch(size=config.deepspace.image_size)
-        # self.rotate = Rotate()
+        self.rotate = Rotate()
 
     def __getitem__(self, index):
         """return png images
@@ -39,16 +40,14 @@ class NPYImages:
             train_data = np.copy(self.patcher(index, self.train_data))
             target_data = np.copy(self.patcher(index, self.target_data))
         # target data is non-break train data
+        if self.train_transform is not None:
+            train_data = self.target_transform(train_data)
         if self.target_transform is not None:
             target_data = self.target_transform(target_data)
-        if self.train_transform is not None:
-            train_data = self.train_transform(train_data)
-        # # perform rotation
-        # steps = torch.randint(0, 4, (3, ), device=train_data.device)
-        # train_data = self.rotate(train_data, steps=steps)
-        # target_data = self.rotate(target_data, steps=steps)
-
-        return train_data, target_data
+        rot = torch.randint(0, 4, (3, ), device=train_data.device)
+        train_data = self.rotate(train_data, rot)
+        target_data = self.rotate(target_data, rot)
+        return train_data, target_data, rot
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
@@ -74,10 +73,6 @@ class NPYTestImages:
         self.coordinates = self.coordinates.astype(np.int)
         self.patcher = IndexPatch(size=config.deepspace.image_size)
 
-        # self.data = self.transform(self.data)
-
-        # self.data = self.data.unfold(0, *self.size).unfold(1, *self.size).unfold(2, *self.size).reshape(-1, *self.size)
-
     def __getitem__(self, index):
         """return png images
 
@@ -88,7 +83,6 @@ class NPYTestImages:
             Tensor: images
         """
         coordinate = self.coordinates[index]
-        # data = self.data[:, coordinate[0]:coordinate[0]+self.size[0], coordinate[1]:coordinate[1]+self.size[1], coordinate[2]:coordinate[2]+self.size[2]]
         with torch.no_grad():
             data = np.copy(self.patcher(coordinate, self.data))
         if self.transform is not None:
@@ -103,16 +97,13 @@ class NPYTestImages:
 class Loader:
     def __init__(self, shared_array=None):
         # process data first
-        # self.data = np.load(config.deepspace.train_dataset, allow_pickle=True)
         if isinstance(shared_array, list):
             self.train_data = shared_array[0]
             self.target_data = shared_array[1]
-        # print('train data', self.train_data.shape, self.train_data.min(), self.train_data.max(), self.train_data.mean())
-        # print('target data', self.target_data.shape, self.target_data.min(), self.target_data.max(), self.target_data.mean())
         # transform
         self.train_trainsform = standard_transforms.Compose([
-            ToTensor(),
-            RandomBreak(probability=config.deepspace.break_probability, sides_range=config.deepspace.break_range)
+            ToTensor(add_dim=False),
+            # RandomRotate(),
         ])
         self.target_transform = standard_transforms.Compose([
             ToTensor(),

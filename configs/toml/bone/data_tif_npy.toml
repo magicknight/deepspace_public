@@ -7,11 +7,11 @@
     project_root = '/home/zhihua/data/work_space/bone'
 [deepspace]
     # tif object path
-    # file_path = '/home/zhihua/storage/bone/aligned_bone/LQ'
-    file_path = '/home/zhihua/storage/bone/aligned_bone/HQ'
+    file_path = '/home/zhihua/storage/bone/aligned_bone/LQ_selected'
+    # file_path = '/home/zhihua/storage/bone/aligned_bone/HQ_selected'
     # target the dataset
-    # dataset = '/home/zhihua/storage/bone/npy/aligned_LQ.npy'
-    dataset = '/home/zhihua/storage/bone/npy/aligned_HQ.npy'
+    dataset = '/home/zhihua/storage/bone/npy/aligned_LQ.npy'
+    # dataset = '/home/zhihua/storage/bone/npy/aligned_HQ.npy'
     # target datatype, target normalize...
     target_data_type = 'float32'
     normalization = true
@@ -23,3 +23,4 @@
     step = 16
     # npy size
     size = 64
+    cut_size = [166, 934]
