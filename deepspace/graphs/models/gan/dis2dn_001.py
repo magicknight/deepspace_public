@@ -29,10 +29,11 @@ from deepspace.graphs.models.autoencoder.ae2dn import EncoderBlock
 
 def fc_layer(in_features, out_features, activation=None, batchnorm=True):
     layers = [nn.Linear(in_features, out_features)]
-    if batchnorm:
-        layers += [nn.BatchNorm1d(out_features)]
     if activation is not None:
         layers += [activation]
+    if batchnorm:
+        layers += [nn.BatchNorm1d(out_features)]
+
     return nn.Sequential(*layers)
 
 
@@ -74,7 +75,7 @@ class Discriminator(nn.Module):
 
         fc_dims = list(zip([self.first_fc_size, *fc_sizes], fc_sizes))
         self.fc_encoder = nn.Sequential(
-            *[fc_layer(*d, activation=nn.GELU()) for d in fc_dims[:-1]],
+            *[fc_layer(*d, activation=None) for d in fc_dims[:-1]],
             fc_layer(*fc_dims[-1], activation=latent_activation, batchnorm=False))
 
     def encode(self, x):

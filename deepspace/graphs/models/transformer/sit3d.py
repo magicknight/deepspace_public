@@ -21,7 +21,6 @@ LastEditors: Zhihua Liang
 LastEditTime: 2021-07-19 09:45:56
 FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/transformer/sit.py
 '''
-from os import wait
 from einops.einops import rearrange
 import torch
 from torch import nn

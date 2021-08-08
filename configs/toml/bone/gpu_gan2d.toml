@@ -1,18 +1,18 @@
 [summary]
     # name of this experiment
-    name = 'tpu_gan2d_aug_npy'
+    name = 'gpu_gan2dn'
     author = 'Zhihua Liang'
-    discription = 'Bone reconstruction on TPU'
+    discription = 'Bone reconstruction on GPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/data/work_space/bone'    
 [deepspace]
     ########### agent ###########
     # agent name
-    agent = 'deepspace.agents.bone.tpu_gan2d_aug.Agent'
+    agent = 'deepspace.agents.bone.gpu_gan2d.Agent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
-    device = 'tpu'
-    # distribute setting
-    world_size = 8
+    device = 'gpu'
+    # which gpu device
+    gpu_device = 0
     # random seed
     seed = 999
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
@@ -41,15 +41,11 @@
         '/home/zhihua/ssd/npy/aligned_HQ.npy',
     ]
     padding = false
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_noisy.npy', 
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_original.npy',
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_noisy.npy',
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_origin.npy'
     
     # load into memory before distributing
     shared_dataset = true    
     # batch
-    train_batch = 8
+    train_batch = 32
     validate_batch = 8
     # validate length
     validation_size = 256
@@ -100,9 +96,7 @@
     test_output_dir = '/home/zhihua/data/work_space/bone/aligned_gan3d_test'
 
 [common]
-    distribute = true
+    distribute = false
     # log level, can be INFO, WARNING, ERROR..., see python logging
-    log_level = 'WARNING'
-
-
+    log_level = 'INFO'
 

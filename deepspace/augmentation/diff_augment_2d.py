@@ -34,7 +34,7 @@ def DiffAugment(x, policy='', channels_first=True):
     if policy:
         if not channels_first:
             x = x.permute(0, 3, 1, 2)
-        for p in policy.split(','):
+        for p in policy:
             for f in AUGMENT_FNS[p]:
                 x = f(x)
         if not channels_first:
@@ -60,7 +60,7 @@ def rand_contrast(x):
     return x
 
 
-def rand_translation(x, ratio=0.025):
+def rand_translation(x, ratio=0.125):
     shift_x, shift_y = int(x.size(2) * ratio + 0.5), int(x.size(3) * ratio + 0.5)
     translation_x = torch.randint(-shift_x, shift_x + 1, size=[x.size(0), 1, 1], device=x.device)
     translation_y = torch.randint(-shift_y, shift_y + 1, size=[x.size(0), 1, 1], device=x.device)

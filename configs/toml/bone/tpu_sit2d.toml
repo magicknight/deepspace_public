@@ -1,0 +1,96 @@
+[summary]
+    # name of this experiment
+    name = 'tpu_sit2d'
+    author = 'Zhihua Liang'
+    description = 'Train bone on TPU with SiT 2D'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/data/work_space/bone'    
+[deepspace]
+    ########### agent ###########
+    # agent name
+    agent = 'deepspace.agents.bone.sit2d.Agent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'tpu' 
+    # distribute setting
+    world_size = 8 
+    # random seed
+    seed = 999     
+    # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+    learning_rate = 1e-1
+    # scheduler
+    T_0 = 10
+    T_mult = 3
+    # augmentation
+    policy = ['color']
+    # max epoches to for training.
+    max_epoch = 10000
+    # save ouput on first n images during validation
+    save_image_step = 100
+    save_images = [0, 2]
+    # mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
+    mode = 'train'
+
+    ######## dataset ############
+    # root directory of the dataset
+    train_dataset = ['/home/zhihua/ssd/npy/aligned_LQ.npy', '/home/zhihua/ssd/npy/aligned_HQ.npy']
+    # load into memory before distributing
+    shared_dataset = true
+    # loss function
+    ssim_win_size = 5
+    # data set length
+    validation_size = 128
+    # batch
+    train_batch = 8
+    validate_batch = 8    
+    # data resolution
+    image_size = [768, 768]
+    # channels
+    image_channels = 1
+    # tpu dataloader options
+    drop_last = true
+    shuffle = false
+    # output format; png or tif
+    data_format = 'npy'
+    # workers for dataloader
+    data_loader_workers = 16
+    # data argument
+    drop_probability = [0.05, 0.3]
+    break_probability = 0.5
+    min_erasing_area = 0.01
+    max_erasing_area = 0.1
+    min_aspect_ratio = 0.3
+    value = 0
+
+    ########## model ############
+    # validate every x epoches
+    validate_step = 10
+    # save model every x steps
+    save_model_step = 100
+    backup_model_step = 200
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+    # super parameters
+    patch_size = 64
+    rotation_node = 4
+    contrastive_head = 512
+    dim = 768
+    depth = 12
+    heads = 12
+    in_channels = 1
+    dim_head = 64
+    dropout = 0.0
+    emb_dropout = 0.0
+    scale_dim = 4
+
+    ##### test ######
+    test_dataset = '/home/zhihua/ssd/npy/aligned_LQ.npy'
+    test_batch = 16
+    test_output_dir = '/home/zhihua/data/work_space/bone/aligned_ae3d_test'
+
+[common]
+    distribute = true
+    # log level, can be INFO, WARNING, ERROR..., see python logging
+    log_level = 'WARNING'
+
+
+

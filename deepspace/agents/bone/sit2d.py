@@ -39,14 +39,14 @@ from tensorboardX import SummaryWriter
 from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
-from deepspace.graphs.models.transformer.sit3d import SiT3D
-from deepspace.datasets.voxel.npy_contrast_3d_aug import Loader
+from deepspace.graphs.models.transformer.sit import SiT
+from deepspace.datasets.voxel.npy_2d_tpu_sit import Loader
 from deepspace.graphs.weights_initializer import kaiming_weights_v2
-from deepspace.graphs.losses.mtl3d import MTL_loss
-from deepspace.graphs.losses.ssim import SSIM_Loss, SSIM
+from deepspace.graphs.losses.mtl import MTL_loss
+# from deepspace.graphs.losses.ssim import SSIM_Loss, SSIM
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
-from deepspace.augmentation.diff_augment_3d import DiffAugment
+from deepspace.augmentation.diff_augment_2d import DiffAugment
 
 from commontools.setup import config
 
@@ -67,7 +67,7 @@ class Agent(BasicAgent):
             self.master = None
 
         # define models
-        self.model = SiT3D(
+        self.model = SiT(
             image_size=config.deepspace.image_size[0],
             patch_size=config.deepspace.patch_size,
             rotation_node=config.deepspace.rotation_node,
@@ -115,14 +115,16 @@ class Agent(BasicAgent):
 
         # define loss
         self.loss = MTL_loss(self.device, config.deepspace.train_batch)
-        self.recon_loss = SSIM_Loss(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
-        self.criterion = SSIM(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
+        # self.recon_loss = SSIM_Loss(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
+        # self.criterion = SSIM(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
+        self.recon_loss = nn.L1Loss()
+        self.criterion = nn.L1Loss()
         # metric
         self.best_metric = 100
 
         if self.master:
             # Tensorboard Writer
-            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='wp8 gan3d npy on tpu')
+            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment=config.summary.description)
             # add model to tensorboard and print parameter to screen
             summary(self.model, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
             dummy_input = torch.randn(1, config.deepspace.image_channels, *config.deepspace.image_size).to(self.device)
@@ -143,15 +145,18 @@ class Agent(BasicAgent):
             self.current_epoch = epoch
             train_loss = self.train_one_epoch()
             xla_model.master_print('========= Epoch {} train end {} =========='.format(epoch, test_utils.now()))
+            if 'validate_step' in config.deepspace and self.current_epoch % config.deepspace.validate_step != 0:
+                continue
             valid_loss = self.validate()
             self.scheduler.step(self.current_epoch)
             is_best = valid_loss < self.best_metric
             if valid_loss < self.best_metric:
                 self.best_metric = valid_loss
             backup_checkpoint = False
-            if self.current_epoch % config.deepspace.save_model_step == 0:
+            if self.current_epoch % config.deepspace.backup_model_step == 0:
                 backup_checkpoint = True
-            self.save_checkpoint(config.deepspace.checkpoint_file,  is_best=is_best, backup_checkpoint=backup_checkpoint)
+            if self.current_epoch % config.deepspace.save_model_step == 0:
+                self.save_checkpoint(config.deepspace.checkpoint_file,  is_best=is_best, backup_checkpoint=backup_checkpoint)
 
     def train_one_epoch(self):
         """
@@ -242,7 +247,11 @@ class Agent(BasicAgent):
         )
         self.model.eval()
         epoch_loss = AverageMeter(device=self.device)
-        for input_images, target_images, coor in tqdm_batch:
+        recon_images_sample = []
+        target_images_sample = []
+        input_images_sample = []
+        index = 0
+        for input_images, target_images in tqdm_batch:
             # fake data---
             rot1_p, contrastive1_p, recon_images, r_w, cn_w, rec_w = self.model(input_images)
             loss = self.recon_loss(recon_images, target_images)
@@ -250,9 +259,28 @@ class Agent(BasicAgent):
             epoch_loss.update(loss)
             tracker.add(config.deepspace.validate_batch)
 
+            # save the reconstructed image
+            if self.master and self.current_epoch % config.deepspace.save_image_step == 0:
+                if index > config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
+                    recon_images_sample.append(recon_images)
+                    target_images_sample.append(target_images)
+                    input_images_sample.append(input_images)
+            index = index + 1
+
         tqdm_batch.close()
         if self.master:
             self.summary_writer.add_scalar("epoch-validation/loss", epoch_loss.val, self.current_epoch)
+            # save reconstruct image to tensorboard
+            if self.current_epoch % config.deepspace.save_image_step == 0:
+                recon_images_sample = torch.cat(recon_images_sample, dim=0).detach().cpu().numpy()
+                target_images_sample = torch.cat(target_images_sample).detach().cpu().numpy()
+                input_images_sample = torch.cat(input_images_sample).detach().cpu().numpy()
+                recon_canvas = make_grid(recon_images_sample)
+                self.summary_writer.add_image('recon_images', recon_canvas, self.current_epoch)
+                input_canvas = make_grid(target_images_sample)
+                self.summary_writer.add_image('target_images', input_canvas, self.current_epoch)
+                defect_canvas = make_grid(input_images_sample)
+                self.summary_writer.add_image('input_images', defect_canvas, self.current_epoch)
         # logging
         xla_model.master_print("validate Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")
         xla_model.add_step_closure(self.test_update, args=(self.device, self.current_iteration, epoch_loss, self.current_epoch))

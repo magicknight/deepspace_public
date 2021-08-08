@@ -2,11 +2,12 @@
 Defect images Data loader, for training on normal images
 """
 import numpy as np
+import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.transforms.transforms import ColorJitter, RandomAdjustSharpness, RandomAutocontrast
-from deepspace.augmentation.image import CornerErasing, RandomErasing, RandomBreak, AddGaussianNoise
+from deepspace.augmentation.image import CornerErasing, RandomErasing, RandomBreak, RandomRotation
 from commontools.setup import config
 
 
@@ -37,7 +38,15 @@ class TrainDataset(object):
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
             target_data = self.target_transform(target_data)
-        return train_data, target_data
+
+        orientation_1 = np.random.randint(0, config.deepspace.rotation_node)
+        orientation_2 = np.random.randint(0, config.deepspace.rotation_node)
+        train_data_1, _ = RandomRotation(train_data, orientation_1)
+        target_data_1, _ = RandomRotation(target_data, orientation_1)
+        train_data_2, _ = RandomRotation(train_data, orientation_2)
+        target_data_2, _ = RandomRotation(target_data, orientation_2)
+
+        return train_data_1, target_data_1, orientation_1, train_data_2, target_data_2, orientation_2
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
@@ -124,18 +133,17 @@ class Loader:
             # transforms.CenterCrop(config.deepspace.image_size),
             # transforms.Resize(config.deepspace.image_resolution),
             # CornerErasing(config.deepspace.image_resolution/2)
-            # transforms.RandomInvert(0.5),
-            # transforms.RandomAutocontrast(0.5),
-            # transforms.RandomAdjustSharpness(0.5),
-            # transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0)),
-            # RandomBreak(
-            #     probability=config.deepspace.break_probability,
-            #     sl=config.deepspace.min_erasing_area,
-            #     sh=config.deepspace.max_erasing_area,
-            #     value=config.deepspace.value,
-            #     return_normal=False,
-            # )
-            # AddGaussianNoise(),
+            transforms.RandomInvert(0.5),
+            transforms.RandomAutocontrast(0.5),
+            transforms.RandomAdjustSharpness(0.5),
+            transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0)),
+            RandomBreak(
+                probability=config.deepspace.break_probability,
+                sl=config.deepspace.min_erasing_area,
+                sh=config.deepspace.max_erasing_area,
+                value=config.deepspace.value,
+                return_normal=False,
+            )
         ])
         self.target_transform = transforms.Compose([
             transforms.ToTensor(),

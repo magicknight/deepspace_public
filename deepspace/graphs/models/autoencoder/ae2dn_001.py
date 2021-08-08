@@ -29,8 +29,7 @@ class EncoderBlock(nn.Module):
         >>> tuple(block(x).shape)
         (1, 10, 16, 16)
         """
-        # return self.residual_path(x) + self.conv_path(x)
-        return self.conv_path(x)
+        return self.residual_path(x) + self.conv_path(x)
 
 
 class DecoderBlock(nn.Module):
@@ -62,8 +61,7 @@ class DecoderBlock(nn.Module):
         >>> tuple(block(x).shape)
         (1, 10, 32, 32)
         """
-        # return self.residual_path(x) + self.conv_path(x)
-        return self.conv_path(x)
+        return self.residual_path(x) + self.conv_path(x)
 
 
 def fc_layer(in_features, out_features, activation=None, batchnorm=True):
@@ -72,6 +70,7 @@ def fc_layer(in_features, out_features, activation=None, batchnorm=True):
         layers += [nn.BatchNorm1d(out_features)]
     if activation is not None:
         layers += [activation]
+
     return nn.Sequential(*layers)
 
 
@@ -103,12 +102,12 @@ class ResidualAE(nn.Module):
 
         fc_dims = list(zip([self.first_fc_size, *fc_sizes], fc_sizes))
         self.fc_encoder = nn.Sequential(
-            *[fc_layer(*d, activation=nn.GELU()) for d in fc_dims[:-1]],
+            *[fc_layer(*d, activation=None()) for d in fc_dims[:-1]],
             fc_layer(*fc_dims[-1], activation=latent_activation, batchnorm=False))
         # self.embedding_dim = fc_sizes[-1]
 
         self.fc_decoder = nn.Sequential(
-            *[fc_layer(d_out, d_in, activation=nn.GELU())
+            *[fc_layer(d_out, d_in, activation=None)
               for d_in, d_out in reversed(fc_dims)])
         conv_dims = list(zip(decoder_sizes, [*(decoder_sizes[1:]), color_channels]))
         self.conv_decoder = nn.Sequential(

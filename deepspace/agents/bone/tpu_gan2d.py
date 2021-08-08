@@ -11,17 +11,12 @@ from tensorboardX import SummaryWriter
 from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
-from deepspace.graphs.models.autoencoder.ae2dn import ResidualAE
-from deepspace.graphs.models.gan.dis2dn import Discriminator
+from deepspace.graphs.models.autoencoder.ae2d import ResidualAE
+from deepspace.graphs.models.gan.dis2d import Discriminator
 from deepspace.graphs.layers.misc.wrapper import Wrapper
 from deepspace.datasets.voxel.npy_2d_tpu import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
-from deepspace.utils.data import save_npy
-# from deepspace.augmentation.diff_aug_simple import DiffAugment
-from deepspace.graphs.scheduler.scheduler import wrap_optimizer_with_scheduler
-from deepspace.graphs.losses.ssim import SSIM_Loss, SSIM
-
 
 from commontools.setup import config, logger
 if config.deepspace.device == 'tpu':
@@ -138,8 +133,15 @@ class Agent(BasicAgent):
             'optimizer_gen.state_dict', 'optimizer_dis.state_dict', 'scheduler_gen.state_dict', 'scheduler_dis.state_dict'
         ]
 
+        self.checkpoint = ['current_epoch', 'current_iteration', 'generator.state_dict',  'discriminator.state_dict', 'optimizer_gen.state_dict', 'optimizer_dis.state_dict']
+
         # Model Loading from the latest checkpoint if not found start from scratch.
         self.load_checkpoint(file_name=config.deepspace.checkpoint_file)
+
+        self.checkpoint = [
+            'current_epoch', 'current_iteration', 'generator.state_dict',  'discriminator.state_dict',
+            'optimizer_gen.state_dict', 'optimizer_dis.state_dict', 'scheduler_gen.state_dict', 'scheduler_dis.state_dict'
+        ]
 
     def train(self):
         """
@@ -192,6 +194,8 @@ class Agent(BasicAgent):
         gen_epoch_image_loss = AverageMeter(device=self.device)
         # loop images
         for input_images, target_images in tqdm_batch:
+            input_images.requires_grad = True
+            target_images.requires_grad = True
             # 1.1 start the discriminator by training with real data---
             # Reset gradients
             self.optimizer_dis.zero_grad()

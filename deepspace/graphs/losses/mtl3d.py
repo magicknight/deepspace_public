@@ -25,6 +25,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from einops import repeat
+from deepspace.graphs.losses.ssim import SSIM_Loss
+from commontools.setup import config
 
 
 class ContrastiveLoss(nn.Module):
@@ -40,7 +42,6 @@ class ContrastiveLoss(nn.Module):
         z_j = F.normalize(emb_j, dim=1)
 
         representations = torch.cat([z_i, z_j], dim=0)
-        # similarity_matrix = F.cosine_similarity(representations.unsqueeze(1), representations.unsqueeze(0), dim=2)
         similarity_matrix = F.cosine_similarity(repeat(representations, 'n d -> b n d', b=representations.shape[0]), repeat(representations, 'b d -> b n d', n=representations.shape[0]), dim=2)
 
         sim_ij = torch.diag(similarity_matrix, self.batch_size)
@@ -59,13 +60,15 @@ class LearnedLoss():
     def __init__(self, losstype, device, batch_size=None):
 
         if losstype == 'CrossEntropy':
-            self.lossF = torch.nn.CrossEntropyLoss()
+            self.lossF = torch.nn.CrossEntropyLoss().to(device)
             self.adj = 1
         elif losstype == 'L1':
-            self.lossF = torch.nn.L1Loss()
+            # self.lossF = torch.nn.L1Loss().to(device)
+            # self.adj = 0.5
+            self.lossF = SSIM_Loss(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
             self.adj = 0.5
         elif losstype == 'Contrastive':
-            self.lossF = ContrastiveLoss(batch_size, device=device)
+            self.lossF = ContrastiveLoss(batch_size, device=device).to(device)
             self.adj = 1
 
     def calculate_loss(self, output, label):
@@ -95,7 +98,9 @@ class MTLLOSS():
         reconstruction_loss = self._loss_funcs[2].calculate_weighted_loss(rec_loss, reconstruction_w)
 
         total_loss = rotation_loss + contrastive_loss + reconstruction_loss
-        return total_loss.squeeze(), (r_loss, cn_loss, rec_loss)
+        total_loss = total_loss.squeeze()
+
+        return total_loss, (r_loss, cn_loss, rec_loss)
 
 
 def MTL_loss(device, batch_size):
