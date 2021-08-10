@@ -31,8 +31,8 @@ class TrainDataset(object):
         Returns:
             Tensor: images
         """
-        train_data = np.copy(self.train_data[index, :, :])
-        target_data = np.copy(self.target_data[index, :, :])
+        train_data = np.copy(self.train_data[index, :, :], order='C')
+        target_data = np.copy(self.target_data[index, :, :], order='C')
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
@@ -67,8 +67,8 @@ class ValiDataset(object):
             Tensor: images
         """
         real_index = np.random.randint(0, self.train_data.shape[0])
-        train_data = np.copy(self.train_data[real_index, :, :])
-        target_data = np.copy(self.target_data[real_index, :, :])
+        train_data = np.copy(self.train_data[real_index, :, :], order='C')
+        target_data = np.copy(self.target_data[real_index, :, :], order='C')
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
@@ -153,12 +153,14 @@ class Loader:
                     train_set,
                     num_replicas=xla_model.xrt_world_size(),
                     rank=xla_model.get_ordinal(),
-                    shuffle=False)
+                    shuffle=config.deepspace.shuffle,
+                )
                 validate_sampler = DistributedSampler(
                     valid_set,
                     num_replicas=xla_model.xrt_world_size(),
                     rank=xla_model.get_ordinal(),
-                    shuffle=False)
+                    shuffle=config.deepspace.shuffle,
+                )
             else:
                 train_sampler = None
                 validate_sampler = None
@@ -168,7 +170,6 @@ class Loader:
                 batch_size=config.deepspace.train_batch,
                 sampler=train_sampler,
                 drop_last=config.deepspace.drop_last,
-                shuffle=config.deepspace.shuffle,
                 num_workers=config.deepspace.data_loader_workers
             )
             self.valid_loader = DataLoader(
@@ -176,7 +177,6 @@ class Loader:
                 batch_size=config.deepspace.validate_batch,
                 sampler=validate_sampler,
                 drop_last=config.deepspace.drop_last,
-                shuffle=config.deepspace.shuffle,
                 num_workers=config.deepspace.data_loader_workers
             )
             self.train_iterations = len(train_set) // config.deepspace.train_batch

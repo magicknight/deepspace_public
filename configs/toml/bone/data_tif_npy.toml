@@ -7,11 +7,15 @@
     project_root = '/home/zhihua/data/work_space/bone'
 [deepspace]
     # tif object path
-    file_path = '/home/zhihua/storage/bone/aligned_bone/LQ_selected'
+    # file_path = '/home/zhihua/storage/bone/aligned_bone/LQ_selected'
     # file_path = '/home/zhihua/storage/bone/aligned_bone/HQ_selected'
+    # file_path = '/home/zhihua/storage/bone/aligned_bone/valid_LQ'
+    file_path = '/home/zhihua/storage/bone/aligned_bone/valid_HQ'
     # target the dataset
-    dataset = '/home/zhihua/storage/bone/npy/aligned_LQ.npy'
+    # dataset = '/home/zhihua/storage/bone/npy/aligned_LQ.npy'
     # dataset = '/home/zhihua/storage/bone/npy/aligned_HQ.npy'
+    # dataset = '/home/zhihua/storage/bone/npy/valid_LQ.npy'
+    dataset = '/home/zhihua/storage/bone/npy/valid_HQ.npy'
     # target datatype, target normalize...
     target_data_type = 'float32'
     normalization = true

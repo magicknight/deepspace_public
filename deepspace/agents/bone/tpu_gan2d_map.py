@@ -70,31 +70,13 @@ class Agent(BasicAgent):
         # load dataset with parallel data loader
         self.data_loader = Loader(shared_array=self.shared_array)
         if config.deepspace.mode == 'train':
-            self.train_loader = parallel_loader.MpDeviceLoader(
-                loader=self.data_loader.train_loader,
-                device=self.device,
-                batchdim=config.deepspace.batchdim,
-                loader_prefetch_size=config.deepspace.loader_prefetch_size,
-                device_prefetch_size=config.deepspace.device_prefetch_size,
-            )
+            self.train_loader = parallel_loader.MpDeviceLoader(self.data_loader.train_loader, self.device)
             self.train_iterations = self.data_loader.train_iterations
-            self.valid_loader = parallel_loader.MpDeviceLoader(
-                loader=self.data_loader.valid_loader,
-                device=self.device,
-                batchdim=config.deepspace.batchdim,
-                loader_prefetch_size=config.deepspace.loader_prefetch_size,
-                device_prefetch_size=config.deepspace.device_prefetch_size,
-            )
+            self.valid_loader = parallel_loader.MpDeviceLoader(self.data_loader.valid_loader, self.device)
             self.valid_iterations = self.data_loader.valid_iterations
         elif config.deepspace.mode == 'test':
             if config.common.distribute:
-                self.test_loader = parallel_loader.MpDeviceLoader(
-                    loader=self.data_loader.test_loader,
-                    device=self.device,
-                    batchdim=config.deepspace.batchdim,
-                    loader_prefetch_size=config.deepspace.loader_prefetch_size,
-                    device_prefetch_size=config.deepspace.device_prefetch_size,
-                )
+                self.test_loader = parallel_loader.MpDeviceLoader(self.data_loader.test_loader, self.device)
                 self.test_iterations = self.data_loader.test_iterations // xla_model.xrt_world_size()
             else:
                 # if not on distribution.

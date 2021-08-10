@@ -28,20 +28,19 @@
     scheduler_divisor = 5
     scheduler_divide_every_n_epochs = 20  
     # image loss and dis loss weight
-    loss_weight = 0.999
+    loss_weight = 0.99999
     # max epoches to for training.
-    max_epoch = 1000
+    max_epoch = 6000
     # mode = 'train', 'test', 'validate'
     mode = 'train'
 
     ########### dataset ###########
     # dataset name
-    train_dataset = [
-        '/home/zhihua/ssd/npy/aligned_LQ.npy',
-        '/home/zhihua/ssd/npy/aligned_HQ.npy',
-    ]
+    train_data = '/home/zhihua/ssd/aligned_LQ.npy'
+    target_data = '/home/zhihua/ssd/aligned_HQ.npy'
+    valid_data = '/home/zhihua/ssd/valid_LQ.npy'
+    valid_target_data = '/home/zhihua/ssd/valid_HQ.npy'
     padding = false
-    
     # load into memory before distributing
     shared_dataset = true    
     # batch

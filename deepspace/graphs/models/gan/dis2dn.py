@@ -24,6 +24,8 @@ FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/gan/dis2dn.py
 
 import torch
 from torch import nn
+from einops import rearrange
+
 from deepspace.graphs.models.autoencoder.ae2dn import EncoderBlock
 
 
@@ -86,7 +88,8 @@ class Discriminator(nn.Module):
         (2, 8, 4096)
         """
         y = self.conv_encoder(x)
-        y = y.view(-1, self.first_fc_size)
+        y = rearrange(y, 'b c w h -> b (c w h)')
+        # y = y.view(-1, self.first_fc_size)
         y = self.fc_encoder(y)
         return y
 

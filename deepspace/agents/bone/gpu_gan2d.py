@@ -1,4 +1,5 @@
 
+from threading import current_thread
 import numpy as np
 from tqdm import tqdm
 from pathlib import Path
@@ -23,14 +24,15 @@ from commontools.setup import config, logger
 
 
 class Agent(BasicAgent):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         # define models
         self.generator = ResidualAE(
             input_shape=config.deepspace.image_size,
             encoder_sizes=config.deepspace.gen_encoder_sizes,
             fc_sizes=config.deepspace.gen_fc_sizes,
+            temporal_strides=config.deepspace.gen_temporal_strides,
             color_channels=config.deepspace.image_channels,
         )
         self.discriminator = Discriminator(
@@ -38,14 +40,15 @@ class Agent(BasicAgent):
             encoder_sizes=config.deepspace.dis_encoder_sizes,
             fc_sizes=config.deepspace.dis_fc_sizes,
             color_channels=config.deepspace.image_channels,
+            temporal_strides=config.deepspace.dis_temporal_strides,
             latent_activation=nn.Sigmoid()
         )
         self.generator = self.generator.to(self.device)
         self.discriminator = self.discriminator.to(self.device)
 
         # Create instance from the optimizer
-        self.optimizer_gen = torch.optim.Adam(self.generator.parameters(), lr=config.deepspace.learning_rate, )
-        self.optimizer_dis = torch.optim.Adam(self.discriminator.parameters(), lr=config.deepspace.learning_rate, )
+        self.optimizer_gen = torch.optim.Adam(self.generator.parameters(), lr=config.deepspace.gen_lr, )
+        self.optimizer_dis = torch.optim.Adam(self.discriminator.parameters(), lr=config.deepspace.dis_lr, )
 
         # Define Scheduler
         self.scheduler_gen = lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer_gen, T_0=config.deepspace.T_0, T_mult=config.deepspace.T_mult, )
@@ -109,9 +112,9 @@ class Agent(BasicAgent):
             if dis_loss < self.dis_best_metric:
                 self.dis_best_metric = dis_loss
             backup_checkpoint = False
-            if self.current_epoch % config.deepspace.save_model_step == 0:
+            if self.current_epoch % config.deepspace.backup_model_step == 0:
                 backup_checkpoint = True
-            if self.current_epoch % config.deepspace.save_checkpoint_step == 0:
+            if self.current_epoch % config.deepspace.save_model_step == 0:
                 self.save_checkpoint(config.deepspace.checkpoint_file,  is_best=is_best, backup_checkpoint=backup_checkpoint)
 
     def train_one_epoch(self):
@@ -128,12 +131,12 @@ class Agent(BasicAgent):
         self.generator.train()
         self.discriminator.train()
         # Initialize average meters
-        dis_epoch_loss = AverageMeter()
-        dis_epoch_fake_loss = AverageMeter()
-        dis_epoch_normal_loss = AverageMeter()
-        gen_epoch_loss = AverageMeter()
-        gen_epoch_dis_loss = AverageMeter()
-        gen_epoch_image_loss = AverageMeter()
+        dis_epoch_loss = AverageMeter(device=self.device)
+        dis_epoch_fake_loss = AverageMeter(device=self.device)
+        dis_epoch_normal_loss = AverageMeter(device=self.device)
+        gen_epoch_loss = AverageMeter(device=self.device)
+        gen_epoch_dis_loss = AverageMeter(device=self.device)
+        gen_epoch_image_loss = AverageMeter(device=self.device)
         # loop images
         for defect_images, normal_images in tqdm_batch:
             defect_images = defect_images.to(self.device, dtype=torch.float32)
@@ -182,12 +185,12 @@ class Agent(BasicAgent):
         # close dataloader
         tqdm_batch.close()
         # logging
-        self.summary_writer.add_scalar("epoch_training/gen_loss", gen_epoch_loss.val, self.current_iteration)
-        self.summary_writer.add_scalar("epoch_training/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
-        self.summary_writer.add_scalar("epoch_training/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
-        self.summary_writer.add_scalar("epoch_training/dis_loss", dis_epoch_loss.val, self.current_iteration)
-        self.summary_writer.add_scalar("epoch_training/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)
-        self.summary_writer.add_scalar("epoch_training/dis_fake_loss", dis_epoch_fake_loss.val, self.current_iteration)
+        self.summary_writer.add_scalar("epoch_training/gen_loss", gen_epoch_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_training/gen_dis_loss", gen_epoch_dis_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_training/gen_image_loss", gen_epoch_image_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_training/dis_loss", dis_epoch_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_training/dis_normal_loss", dis_epoch_normal_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_training/dis_fake_loss", dis_epoch_fake_loss.val, self.current_epoch)
         # print info
         logger.info("Training Results at epoch-" + str(self.current_epoch)
                     + "\n" + "gen_loss: " + str(gen_epoch_loss.val)
@@ -205,12 +208,12 @@ class Agent(BasicAgent):
                           desc="validate at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch))
         self.generator.eval()
         self.discriminator.eval()
-        dis_epoch_loss = AverageMeter()
-        dis_epoch_fake_loss = AverageMeter()
-        dis_epoch_normal_loss = AverageMeter()
-        gen_epoch_loss = AverageMeter()
-        gen_epoch_dis_loss = AverageMeter()
-        gen_epoch_image_loss = AverageMeter()
+        dis_epoch_loss = AverageMeter(device=self.device)
+        dis_epoch_fake_loss = AverageMeter(device=self.device)
+        dis_epoch_normal_loss = AverageMeter(device=self.device)
+        gen_epoch_loss = AverageMeter(device=self.device)
+        gen_epoch_dis_loss = AverageMeter(device=self.device)
+        gen_epoch_image_loss = AverageMeter(device=self.device)
         fake_images_sample = []
         normal_images_sample = []
         defect_images_sample = []
@@ -237,8 +240,11 @@ class Agent(BasicAgent):
             gen_epoch_loss.update(gen_loss.item())
 
             # save the reconstructed image
+            # print('============')
+            # print(self.current_epoch, self.current_epoch % config.deepspace.save_image_step)
+            # print(index, index >= config.deepspace.save_images[0] and index < config.deepspace.save_images[1])
             if self.current_epoch % config.deepspace.save_image_step == 0:
-                if index > config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
+                if index >= config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
                     fake_images = fake_images.squeeze().detach().cpu().numpy()
                     fake_images_sample.append(np.expand_dims(fake_images, axis=1))
                     normal_images = normal_images.squeeze().detach().cpu().numpy()
@@ -247,36 +253,36 @@ class Agent(BasicAgent):
                     defect_images_sample.append(np.expand_dims(defect_images, axis=1))
             index = index + 1
 
-            tqdm_batch.close()
+        tqdm_batch.close()
 
-            # logging
-            self.summary_writer.add_scalar("epoch_validate/gen_loss", gen_epoch_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_validate/gen_dis_loss", gen_epoch_dis_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_validate/gen_image_loss", gen_epoch_image_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_validate/dis_loss", dis_epoch_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_validate/dis_normal_loss", dis_epoch_normal_loss.val, self.current_iteration)
-            self.summary_writer.add_scalar("epoch_validate/dis_fake_loss", dis_epoch_fake_loss.val, self.current_iteration)
-            # save reconstruct image to tensorboard
-            if self.current_epoch % config.deepspace.save_image_step == 0:
-                fake_images_sample = np.concatenate(fake_images_sample)
-                normal_images_sample = np.concatenate(normal_images_sample)
-                defect_images_sample = np.concatenate(defect_images_sample)
-                recon_canvas = make_grid(fake_images_sample)
-                self.summary_writer.add_image('fake_images', recon_canvas, self.current_epoch)
-                input_canvas = make_grid(normal_images_sample)
-                self.summary_writer.add_image('normal_images', input_canvas, self.current_epoch)
-                defect_canvas = make_grid(defect_images_sample)
-                self.summary_writer.add_image('defect_images', defect_canvas, self.current_epoch)
-            # print info
-            logger.info("validate Results at epoch-" + str(self.current_epoch)
-                        + "\n" + ' gen_loss: ' + str(gen_epoch_loss.val)
-                        + "\n" + ' dis_loss: ' + str(dis_epoch_loss.val)
-                        + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val)
-                        + "\n" + '- gen_dis_loss: ' + str(gen_epoch_dis_loss.val)
-                        + "\n" + '- dis_normal_loss: ' + str(dis_epoch_normal_loss.val)
-                        + "\n" + '- dis_fake_loss: ' + str(dis_epoch_fake_loss.val))
+        # logging
+        self.summary_writer.add_scalar("epoch_validate/gen_loss", gen_epoch_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_validate/gen_dis_loss", gen_epoch_dis_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_validate/gen_image_loss", gen_epoch_image_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_validate/dis_loss", dis_epoch_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_validate/dis_normal_loss", dis_epoch_normal_loss.val, self.current_epoch)
+        self.summary_writer.add_scalar("epoch_validate/dis_fake_loss", dis_epoch_fake_loss.val, self.current_epoch)
+        # save reconstruct image to tensorboard
+        if self.current_epoch % config.deepspace.save_image_step == 0:
+            fake_images_sample = np.concatenate(fake_images_sample)
+            normal_images_sample = np.concatenate(normal_images_sample)
+            defect_images_sample = np.concatenate(defect_images_sample)
+            recon_canvas = make_grid(fake_images_sample)
+            self.summary_writer.add_image('fake_images', recon_canvas, self.current_epoch)
+            input_canvas = make_grid(normal_images_sample)
+            self.summary_writer.add_image('normal_images', input_canvas, self.current_epoch)
+            defect_canvas = make_grid(defect_images_sample)
+            self.summary_writer.add_image('defect_images', defect_canvas, self.current_epoch)
+        # print info
+        logger.info("validate Results at epoch-" + str(self.current_epoch)
+                    + "\n" + ' gen_loss: ' + str(gen_epoch_loss.val)
+                    + "\n" + ' dis_loss: ' + str(dis_epoch_loss.val)
+                    + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val)
+                    + "\n" + '- gen_dis_loss: ' + str(gen_epoch_dis_loss.val)
+                    + "\n" + '- dis_normal_loss: ' + str(dis_epoch_normal_loss.val)
+                    + "\n" + '- dis_fake_loss: ' + str(dis_epoch_fake_loss.val))
 
-            return gen_epoch_loss.val, dis_epoch_loss.val
+        return gen_epoch_loss.val, dis_epoch_loss.val
 
     def test(self):
         input_data = []
@@ -285,7 +291,7 @@ class Agent(BasicAgent):
         tqdm_batch = tqdm(self.data_loader.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.generator.eval()
         self.discriminator.eval()
-        gen_epoch_image_loss = AverageMeter()
+        gen_epoch_image_loss = AverageMeter(device=self.device)
 
         with torch.no_grad():
             for input_images, normal_images in tqdm_batch:

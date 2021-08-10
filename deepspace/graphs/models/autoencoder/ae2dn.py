@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from einops import rearrange
 
 
 class EncoderBlock(nn.Module):
@@ -117,13 +118,15 @@ class ResidualAE(nn.Module):
 
     def encode(self, x):
         y = self.conv_encoder(x)
-        y = y.view(-1, self.first_fc_size)
+        y = rearrange(y, 'b c w h -> b (c w h)')
+        # y = y.view(-1, self.first_fc_size)
         y = self.fc_encoder(y)
         return y
 
     def decode(self, x):
         y = self.fc_decoder(x)
-        y = y.view(-1, *self.intermediate_size)
+        y = rearrange(y, 'b (c w h) -> b c w h', c=self.intermediate_size[0], w=self.intermediate_size[1], h=self.intermediate_size[2])
+        # y = y.view(-1, *self.intermediate_size)
         y = self.conv_decoder(y)
         return y
 

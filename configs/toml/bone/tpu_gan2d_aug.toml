@@ -16,21 +16,21 @@
     # random seed
     seed = 999
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
-    gen_lr = 1e-1
-    dis_lr = 1e-1
+    gen_lr = 1e-2
+    dis_lr = 1e-2
     # data augment
     policy = ['color', 'translation', 'cutout']
     # scheduler
-    T_0 = 10
-    T_mult = 3
+    T_0 = 8
+    T_mult = 2
     lr_decay = 0.999
     scheduler = 'WarmupAndExponentialDecayScheduler'
     scheduler_divisor = 5
     scheduler_divide_every_n_epochs = 20  
     # image loss and dis loss weight
-    loss_weight = 0.999
+    loss_weight = 0.99999
     # max epoches to for training.
-    max_epoch = 1000
+    max_epoch = 3000
     # mode = 'train', 'test', 'validate'
     mode = 'train'
 
@@ -41,20 +41,16 @@
         '/home/zhihua/ssd/npy/aligned_HQ.npy',
     ]
     padding = false
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_noisy.npy', 
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/recon_original.npy',
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_noisy.npy',
-        # '/home/zhihua/storage/impainting/bone_reconstruction/yves_2020_10_21/npy/validate_origin.npy'
     
     # load into memory before distributing
     shared_dataset = true    
     # batch
-    train_batch = 8
-    validate_batch = 8
+    train_batch = 4
+    validate_batch = 4
     # validate length
     validation_size = 256
     # workers for dataloader
-    data_loader_workers = 16
+    data_loader_workers = 8
     # image size and channel
     image_channels = 1
     image_size = [768, 768]
@@ -67,8 +63,11 @@
     value = 0
     # dataloader options
     drop_last = true
-    shuffle = false
-
+    shuffle = true
+    # parallal loader options
+    batchdim = 0
+    loader_prefetch_size = 16
+    device_prefetch_size = 8
 
     ########## model ############
     # validate every x epoches
@@ -102,7 +101,7 @@
 [common]
     distribute = true
     # log level, can be INFO, WARNING, ERROR..., see python logging
-    log_level = 'WARNING'
+    log_level = 'INFO'
 
 
 
