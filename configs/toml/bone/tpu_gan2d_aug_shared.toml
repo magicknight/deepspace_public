@@ -4,7 +4,7 @@
     author = 'Zhihua Liang'
     discription = 'Bone reconstruction on TPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
-    project_root = '/home/zhihua/gcs/deepmod/bone'    
+    project_root = '/home/zhihua/data/work_space/bone'    
 [deepspace]
     ########### agent ###########
     # agent name
@@ -36,11 +36,14 @@
 
     ########### dataset ###########
     # dataset name
-    train_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
-    target_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_HQ.npy'
+    train_dataset = [
+        '/home/zhihua/ssd/npy/aligned_LQ.npy',
+        '/home/zhihua/ssd/npy/aligned_HQ.npy',
+    ]
     padding = false
+    
     # load into memory before distributing
-    shared_dataset = false    
+    shared_dataset = true    
     # batch
     train_batch = 4
     validate_batch = 4
@@ -91,9 +94,9 @@
     
 
     ##### test ######
-    test_dataset = '/home/zhihua/local/data/aligned_LQ.npy'
+    test_dataset = '/home/zhihua/ssd/npy/aligned_LQ.npy'
     test_batch = 16
-    test_output_dir = '/home/zhihua/gcs/deepmod/bone/tpu_gan2d_aug_npy/test_output'
+    test_output_dir = '/home/zhihua/data/work_space/bone/aligned_gan3d_test'
 
 [common]
     distribute = true

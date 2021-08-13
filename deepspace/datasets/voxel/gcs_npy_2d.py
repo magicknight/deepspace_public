@@ -118,9 +118,6 @@ class Loader:
         if isinstance(shared_array, list):
             self.train_data = shared_array[0]
             self.target_data = shared_array[1]
-        if shared_array is None:
-            self.train_data = np.load(config.deepspace.train_dataset, allow_pickle=True)
-            self.target_data = np.load(config.deepspace.target_dataset, allow_pickle=True)
         # transform
         self.train_trainsform = transforms.Compose([
             transforms.ToTensor(),

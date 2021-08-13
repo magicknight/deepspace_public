@@ -102,8 +102,8 @@
 
 # 2d
 # python3 main.py --config configs/toml/bone/gpu_gan2d.toml
-# python main.py --config configs/toml/bone/tpu_gan2d_aug.toml
-python main.py --config configs/toml/bone/tpu_gan2d_aug.toml > /home/zhihua/temp/bone.log 2>&1 &
+# python3 main.py --config configs/toml/bone/tpu_gan2d_aug.toml
+python3 main.py --config configs/toml/bone/tpu_gan2d_aug.toml > /home/zhihua/temp/bone.log 2>&1 &
 # python main.py --config configs/toml/bone/tpu_sit2d.toml
 # python main.py --config configs/toml/bone/tpu_sit2d.toml > /home/zhihua/temp/train_sit2d.logs 2>&1 &
 # python main.py --config configs/toml/bone/gan2d.toml

@@ -135,9 +135,9 @@ class Agent(BasicAgent):
         self.dis_best_metric = 100.0
 
         # positive and negative labels
-        with torch.no_grad():
-            self.real_labels = torch.FloatTensor(config.deepspace.train_batch, 1).fill_(1.0).to(self.device).requires_grad_(True)
-            self.fake_labels = torch.FloatTensor(config.deepspace.train_batch, 1).fill_(0.0).to(self.device).requires_grad_(True)
+        # with torch.no_grad():
+        self.real_labels = torch.FloatTensor(config.deepspace.train_batch, 1).fill_(1.0).to(self.device)
+        self.fake_labels = torch.FloatTensor(config.deepspace.train_batch, 1).fill_(0.0).to(self.device)
 
         if self.master:
             # Tensorboard Writer
@@ -254,12 +254,12 @@ class Agent(BasicAgent):
             # # clip(optimizer)
             # self.optimizer_gen.step()
 
-            dis_epoch_normal_loss.update(dis_loss_normal)
-            dis_epoch_fake_loss.update(dis_loss_fake)
-            dis_epoch_loss.update(dis_loss)
-            gen_epoch_dis_loss.update(gen_dis_loss)
-            gen_epoch_image_loss.update(gen_image_loss)
-            gen_epoch_loss.update(gen_loss)
+            dis_epoch_normal_loss.update(dis_loss_normal.detach())
+            dis_epoch_fake_loss.update(dis_loss_fake.detach())
+            dis_epoch_loss.update(dis_loss.detach())
+            gen_epoch_dis_loss.update(gen_dis_loss.detach())
+            gen_epoch_image_loss.update(gen_image_loss.detach())
+            gen_epoch_loss.update(gen_loss.detach())
 
             # update iteration counter
             self.current_iteration += 1

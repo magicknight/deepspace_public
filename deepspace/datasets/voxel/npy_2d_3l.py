@@ -31,8 +31,8 @@ class TrainDataset(object):
         Returns:
             Tensor: images
         """
-        train_data = np.copy(self.train_data[index, :, :], order='C')
-        target_data = np.copy(self.target_data[index, :, :], order='C')
+        train_data = np.copy(self.train_data[index:index+3, :, :], order='C')
+        target_data = np.copy(self.target_data[index+1, :, :], order='C')
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
@@ -41,7 +41,7 @@ class TrainDataset(object):
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
-        return self.train_data.shape[0]
+        return self.train_data.shape[0] - 2
 
 
 class ValiDataset(object):
@@ -66,9 +66,9 @@ class ValiDataset(object):
         Returns:
             Tensor: images
         """
-        real_index = np.random.randint(0, self.train_data.shape[0])
-        train_data = np.copy(self.train_data[real_index, :, :], order='C')
-        target_data = np.copy(self.target_data[real_index, :, :], order='C')
+        real_index = np.random.randint(0, self.train_data.shape[0]-2)
+        train_data = np.copy(self.train_data[real_index:real_index+3, :, :], order='C')
+        target_data = np.copy(self.target_data[real_index+1, :, :], order='C')
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
