@@ -98,7 +98,8 @@ class Agent(BasicAgent):
         self.scheduler = lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0=config.deepspace.T_0, T_mult=config.deepspace.T_mult, )
 
         # define loss
-        self.loss = nn.L1Loss()
+        # self.loss = nn.L1Loss()
+        self.loss = nn.MSELoss()
         # self.recon_loss = SSIM_Loss(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
         # self.criterion = SSIM(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
         # self.recon_loss = nn.L1Loss()
@@ -110,12 +111,12 @@ class Agent(BasicAgent):
             # Tensorboard Writer
             self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment=config.summary.description)
             # add model to tensorboard and print parameter to screen
-            summary(self.model, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
-            dummy_input = torch.randn(1, config.deepspace.image_channels, *config.deepspace.image_size).to(self.device)
-            self.summary_writer.add_graph(self.model, (dummy_input), verbose=False)
+            summary(self.model, (1, config.deepspace.image_channels, config.deepspace.image_size, config.deepspace.image_size), device=self.device, depth=6)
+            # dummy_input = torch.randn(1, config.deepspace.image_channels, config.deepspace.image_size, config.deepspace.image_size,).to(self.device)
+            # self.summary_writer.add_graph(self.model, (dummy_input), verbose=False)
 
         self.checkpoint = ['current_epoch', 'current_iteration', 'model.state_dict', 'optimizer.state_dict', 'scheduler.state_dict']
-
+        # self.checkpoint = ['model.state_dict'] # only for transition from pre-trained model to fine-tuned model
         # Model Loading from the latest checkpoint if not found start from scratch.
         self.load_checkpoint(file_name=config.deepspace.checkpoint_file)
 

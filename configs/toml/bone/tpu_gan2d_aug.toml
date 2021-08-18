@@ -4,7 +4,7 @@
     author = 'Zhihua Liang'
     discription = 'Bone reconstruction on TPU'
     # root directory of the project (for saveing logs, models, temp files, etc...)
-    project_root = '/home/zhihua/gcs/deepmod/bone'    
+    project_root = '/home/zhihua/work'    
 [deepspace]
     ########### agent ###########
     # agent name
@@ -28,9 +28,9 @@
     scheduler_divisor = 5
     scheduler_divide_every_n_epochs = 20  
     # image loss and dis loss weight
-    loss_weight = 0.99999
+    loss_weight = 0.999999
     # max epoches to for training.
-    max_epoch = 6000
+    max_epoch = 10001
     # mode = 'train', 'test', 'validate'
     mode = 'train'
 
@@ -58,6 +58,9 @@
     max_erasing_area = 0.1
     min_aspect_ratio = 0.3
     value = 0
+    rotation_node = 4
+    gaussian_mean = 0
+    gaussian_std = 0.01
     # dataloader options
     drop_last = true
     shuffle = true
@@ -93,7 +96,7 @@
     ##### test ######
     test_dataset = '/home/zhihua/local/data/aligned_LQ.npy'
     test_batch = 16
-    test_output_dir = '/home/zhihua/gcs/deepmod/bone/tpu_gan2d_aug_npy/test_output'
+    test_output_dir = '/home/zhihua/work/tpu_gan2d_aug_npy/test_output'
 
 [common]
     distribute = true

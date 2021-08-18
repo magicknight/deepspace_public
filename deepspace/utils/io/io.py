@@ -114,12 +114,18 @@ def load_checkpoint(agent, filename) -> None:
         filename (pathlib Path): a path to the checkpoint file
     """
     checkpoint = torch.load(filename)
-    for key, value in checkpoint.items():
+    for key in agent.checkpoint:
         if '.' in key:
             name, attr = key.split('.')
-            getattr(agent, name).load_state_dict(value)
+            getattr(agent, name).load_state_dict(checkpoint[key])
         else:
-            setattr(agent, key, value)
+            setattr(agent, key, checkpoint[key])
+    # for key, value in checkpoint.items():
+    #     if '.' in key:
+    #         name, attr = key.split('.')
+    #         getattr(agent, name).load_state_dict(value)
+    #     else:
+    #         setattr(agent, key, value)
     # for k, v in checkpoint['number'].items():
     #     agent[k] = v
     #     # property = getattr(agent, k)

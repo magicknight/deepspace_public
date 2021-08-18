@@ -16,7 +16,7 @@
     # random seed
     seed = 999     
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
-    learning_rate = 1e-6
+    learning_rate = 1e-1
     # scheduler
     T_0 = 8
     T_mult = 2
@@ -73,7 +73,7 @@
     # checkpoint file name
     checkpoint_file = 'checkpoint.pth.tar'
     # model need pre-trained?
-    pretrained = false
+    pretrained = true
     # super parameters
     patch_size = 32
     rotation_node = 4

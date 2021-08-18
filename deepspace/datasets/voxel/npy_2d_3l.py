@@ -2,12 +2,23 @@
 Defect images Data loader, for training on normal images
 """
 import numpy as np
+import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.transforms.transforms import ColorJitter, RandomAdjustSharpness, RandomAutocontrast
 from deepspace.augmentation.image import CornerErasing, RandomErasing, RandomBreak, AddGaussianNoise
 from commontools.setup import config
+
+
+class ToTensor(object):
+    """Convert ndarrays in sample to Tensors."""
+
+    def __call__(self, data):
+        data = torch.from_numpy(data)
+        if data.dim() == 2:
+            data = data.unsqueeze(0)
+        return data
 
 
 class TrainDataset(object):
@@ -31,8 +42,8 @@ class TrainDataset(object):
         Returns:
             Tensor: images
         """
-        train_data = np.copy(self.train_data[index:index+3, :, :], order='C')
-        target_data = np.copy(self.target_data[index+1, :, :], order='C')
+        train_data = np.copy(self.train_data[index:index+3, :, :])
+        target_data = np.copy(self.target_data[index+1, :, :])
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
@@ -67,8 +78,8 @@ class ValiDataset(object):
             Tensor: images
         """
         real_index = np.random.randint(0, self.train_data.shape[0]-2)
-        train_data = np.copy(self.train_data[real_index:real_index+3, :, :], order='C')
-        target_data = np.copy(self.target_data[real_index+1, :, :], order='C')
+        train_data = np.copy(self.train_data[real_index:real_index+3, :, :])
+        target_data = np.copy(self.target_data[real_index+1, :, :])
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
@@ -119,11 +130,16 @@ class Loader:
             self.train_data = shared_array[0]
             self.target_data = shared_array[1]
         if shared_array is None:
-            self.train_data = np.load(config.deepspace.train_dataset, allow_pickle=True)
-            self.target_data = np.load(config.deepspace.target_dataset, allow_pickle=True)
+            if config.deepspace.train_dataset.startswith('gs://'):
+                from torch_xla.utils.gcsfs import read
+                self.train_data = np.frombuffer(read(config.deepspace.train_dataset), dtype=config.deepspace.dataset_type)[32:].reshape(config.deepspace.dataset_shape)
+                self.target_data = np.frombuffer(read(config.deepspace.target_dataset), dtype=config.deepspace.dataset_type)[32:].reshape(config.deepspace.dataset_shape)
+            else:
+                self.train_data = np.load(config.deepspace.train_dataset, allow_pickle=True)
+                self.target_data = np.load(config.deepspace.target_dataset, allow_pickle=True)
         # transform
         self.train_trainsform = transforms.Compose([
-            transforms.ToTensor(),
+            ToTensor(),
             # transforms.CenterCrop(config.deepspace.image_size),
             # transforms.Resize(config.deepspace.image_resolution),
             # CornerErasing(config.deepspace.image_resolution/2)
@@ -141,10 +157,10 @@ class Loader:
             # AddGaussianNoise(),
         ])
         self.target_transform = transforms.Compose([
-            transforms.ToTensor(),
+            ToTensor(),
         ])
         self.test_transform = transforms.Compose([
-            transforms.ToTensor(),
+            ToTensor(),
         ])
         if config.deepspace.mode == 'train':
             train_set = TrainDataset(train_data=self.train_data, target_data=self.target_data, train_transform=self.train_trainsform, target_transform=self.target_transform)
