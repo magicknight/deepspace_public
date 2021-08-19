@@ -21,13 +21,30 @@ FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/transformer/v
 
 import torch
 from torch import nn
-from encoder import Encoder
+from einops.layers.torch import Rearrange
+import timm
+from timm.models.layers import PatchEmbed, Mlp
+from torch.nn.modules.activation import Sigmoid
 
 
 class VITAE(nn.Module):
     def __init__(self, image_size, patch_size, encoder_name='vit_base_patch16_384', in_channels=3, out_channel=1, pretrained=False, embed_dim=768, drop_rate=0.0,):
         super().__init__()
-        self.encoder = Encoder(image_size, patch_size, encoder_name, in_channels, pretrained, embed_dim, drop_rate)
+
+        assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
+        n_patches = image_size // patch_size
+        self.num_tokens = 1
+        self.patch_embed = PatchEmbed(img_size=image_size, patch_size=patch_size, in_chans=in_channels, embed_dim=embed_dim)
+        num_patches = self.patch_embed.num_patches
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + self.num_tokens, embed_dim))
+        self.pos_drop = nn.Dropout(p=drop_rate)
+        self.encoder = timm.create_model(encoder_name, pretrained=pretrained, in_chans=in_channels)
+        if pretrained:
+            for p in self.encoder.parameters():
+                p.requires_grad = False
+        self.norm = nn.LayerNorm(embed_dim)
+        self.rearrange = Rearrange('b (h w) c -> b c h w', h=n_patches)
         self.to_img = nn.Sequential(
             nn.ConvTranspose2d(embed_dim, out_channel, kernel_size=patch_size, stride=patch_size),
             nn.BatchNorm2d(out_channel),
@@ -38,8 +55,16 @@ class VITAE(nn.Module):
         )
 
     def forward(self, x):
-        x = self.encoder(x)
+        x = self.patch_embed(x)
+        cls_token = self.cls_token.expand(x.shape[0], -1, -1)
+        x = torch.cat((cls_token, x), dim=1)
+        x = self.pos_drop(x + self.pos_embed)
+        x = self.encoder.blocks(x)
+        x = self.norm(x)
+        x = x[:, 1:]
+        x = self.rearrange(x)
         x = self.to_img(x)
+        # x = x.unsqueeze(dim=1)
         return x
 
 
