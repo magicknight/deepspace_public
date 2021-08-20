@@ -24,8 +24,8 @@ from einops.layers.torch import Rearrange
 from deepspace.graphs.models.transformer.vitae import Transformer
 
 
-class VitAE(nn.Module):
-    def __init__(self, image_size, patch_size, dim=768, depth=12, heads=12, in_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4):
+class VITAE(nn.Module):
+    def __init__(self, image_size, patch_size, dim=768, depth=12, heads=12, in_channels=3, out_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4):
         super().__init__()
 
         assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
@@ -44,13 +44,12 @@ class VitAE(nn.Module):
         self.transformer = Transformer(dim, depth, heads, dim_head, dim*scale_dim, dropout)
 
         self.to_img = nn.Sequential(
-            nn.Linear(dim, patch_dim),
-            Rearrange('b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, w=h, p1=patch_size, p2=patch_size, c=in_channels)
+            nn.Linear(dim, patch_dim * out_channels // in_channels),
+            Rearrange('b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, w=h, p1=patch_size, p2=patch_size, c=out_channels)
         )
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
-        b, n, _ = x.shape
 
         x += self.pos_embedding
         x = self.dropout(x)
@@ -64,5 +63,7 @@ if __name__ == "__main__":
     from torchinfo import summary
     # model = Transformer(dim=768, depth=12, heads=12, dim_head=64, mlp_dim=3072, dropout=0.1)
     # summary(model, input_size=[(6, 577, 768), (6, 577, 768)])
-    model = VitAE(image_size=768, patch_size=32, dim=768, depth=12, heads=12, in_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4)
-    summary(model, input_size=[(3, 1, 768, 768)])
+
+    # model = VITAE(image_size=768, patch_size=32, dim=768, depth=12, heads=12, in_channels=3, out_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4)
+    model = VITAE(image_size=768, patch_size=32, dim=768, depth=6, heads=18, in_channels=3, out_channels=1, dim_head=32, dropout=0., emb_dropout=0., scale_dim=2)
+    summary(model, input_size=[(4, 3, 768, 768)])

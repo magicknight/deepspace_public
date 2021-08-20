@@ -95,6 +95,21 @@ class Attention(nn.Module):
         return out
 
 
+class MPreNorm(nn.Module):
+    """
+    PreNorm(dim, fn)
+    """
+
+    def __init__(self, dim, fn):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.fn = fn
+
+    def forward(self, q, k, v, **kwargs):
+        q, k, v = map(self.norm, (q, k, v))
+        return self.fn(q, k, v, **kwargs)
+
+
 class MAttention(nn.Module):
     """
     Multi-head attention
@@ -108,14 +123,17 @@ class MAttention(nn.Module):
         self.heads = heads
         self.scale = dim_head ** -0.5
 
+        self.to_qkv = nn.Linear(dim * 3, inner_dim * 3, bias=False)
+
         self.to_out = nn.Sequential(
             nn.Linear(inner_dim, dim),
             nn.Dropout(dropout)
         ) if project_out else nn.Identity()
 
-    def forward(self, q, k, v):
-        b, n, _, h = *v.shape, self.heads
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), [q, k, v])
+    def forward(self, x):
+        b, n, _, h = *x.shape, self.heads
+        qkv = self.to_qkv(x).chunk(3, dim=-1)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), qkv)
 
         dots = einsum('b h i d, b h j d -> b h i j', q, k) * self.scale
 
