@@ -95,6 +95,15 @@ class Attention(nn.Module):
         return out
 
 
+class MResidual(nn.Module):
+    def __init__(self, fn):
+        super().__init__()
+        self.fn = fn
+
+    def forward(self, x, **kwargs):
+        return self.fn(x, **kwargs) + x.chunk(3, dim=-1)[0]
+
+
 class MPreNorm(nn.Module):
     """
     PreNorm(dim, fn)

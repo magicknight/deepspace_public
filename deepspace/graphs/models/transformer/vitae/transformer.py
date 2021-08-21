@@ -48,3 +48,9 @@ class Transformer(nn.Module):
         x = self.encoder(x)
         y = self.decoder(y, x)
         return y
+
+
+if __name__ == "__main__":
+    from torchinfo import summary
+    model = Transformer(dim=768, depth=12, heads=12, dim_head=64, mlp_dim=3072, dropout=0.1)
+    summary(model, input_size=[(6, 577, 768), (6, 577, 768)])

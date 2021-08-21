@@ -45,7 +45,8 @@ class VITAE(nn.Module):
 
         self.to_img = nn.Sequential(
             nn.Linear(dim, patch_dim * out_channels // in_channels),
-            Rearrange('b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, w=h, p1=patch_size, p2=patch_size, c=out_channels)
+            Rearrange('b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, w=h, p1=patch_size, p2=patch_size, c=out_channels),
+            nn.Sigmoid()
         )
 
     def forward(self, img):
@@ -53,7 +54,7 @@ class VITAE(nn.Module):
 
         x += self.pos_embedding
         x = self.dropout(x)
-        y = torch.zeros_like(x)
+        y = torch.zeros_like(x, requires_grad=True)
         x = self.transformer(x, y)
 
         return self.to_img(x)
@@ -65,5 +66,8 @@ if __name__ == "__main__":
     # summary(model, input_size=[(6, 577, 768), (6, 577, 768)])
 
     # model = VITAE(image_size=768, patch_size=32, dim=768, depth=12, heads=12, in_channels=3, out_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4)
-    model = VITAE(image_size=768, patch_size=32, dim=768, depth=6, heads=18, in_channels=3, out_channels=1, dim_head=32, dropout=0., emb_dropout=0., scale_dim=2)
+    model = VITAE(image_size=768, patch_size=32, dim=768, depth=1, heads=18, in_channels=3, out_channels=1, dim_head=32, dropout=0., emb_dropout=0., scale_dim=2)
     summary(model, input_size=[(4, 3, 768, 768)])
+    test_data = torch.randn(1, 3, 768, 768)
+    out = model(test_data)
+    print(out.shape, out.min(), out.max(), out.mean())

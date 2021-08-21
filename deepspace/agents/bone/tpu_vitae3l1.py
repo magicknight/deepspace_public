@@ -42,6 +42,7 @@ from deepspace.graphs.models.transformer.vitae.vitae3l1 import VITAE
 from deepspace.datasets.voxel.npy_2d_3l import Loader
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
+from deepspace.graphs.weights_initializer import xavier_weights
 
 from commontools.setup import config
 
@@ -77,12 +78,16 @@ class Agent(BasicAgent):
         )
         # model go to tpu
         self.model = self.model.to(self.device)
+        # initialize weights
+        self.model.apply(xavier_weights)
 
         # Create instance from the optimizer
         self.optimizer = Adam(
             self.model.parameters(),
             lr=config.deepspace.learning_rate,
+            weight_decay=config.deepspace.weight_decay
         )
+
         # define data_loader
         # load dataset with parallel data loader
         self.data_loader = Loader(shared_array=self.shared_array)
@@ -170,13 +175,12 @@ class Agent(BasicAgent):
         epoch_loss = AverageMeter(device=self.device)
         # loop images
         for input_images, target_images in tqdm_batch:
-            input_images.requires_grad = True
-            target_images.requires_grad = True
+            # input_images.requires_grad = True
+            # target_images.requires_grad = True
             # for images, paths in self.train_loader:
             self.optimizer.zero_grad()
             recon_images = self.model(input_images)
             # loss
-            # train the model now---
             loss = self.loss(recon_images, target_images)
             loss.backward()
             # self.optimizer.step()

@@ -16,14 +16,15 @@ world_size = 8
 # random seed
 seed = 999
 # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
-learning_rate = 1e-1
+learning_rate = 1e-2
+weight_decay = 1e-1
 # scheduler
-T_0 = 8
-T_mult = 2
+T_0 = 9
+T_mult = 3
 # augmentation
 policy = []
 # max epoches to for training.
-max_epoch = 2000
+max_epoch = 20000
 # save ouput on first n images during validation
 save_image_step = 20
 save_images = [0, 2]
@@ -63,28 +64,33 @@ min_erasing_area = 0.01
 max_erasing_area = 0.1
 min_aspect_ratio = 0.3
 value = 0
+# gaussian noise
+noise_mean = 0.0
+noise_std = 0.01
+# rotation
+rotation_node=4
 
 ########## model ############
 # validate every x epoches
-validate_step = 10
+validate_step = 100
 # save model every x steps
-save_model_step = 10
-backup_model_step = 30
+save_model_step = 100
+backup_model_step = 200
 # checkpoint file name
 checkpoint_file = 'checkpoint.pth.tar'
 # model need pre-trained?
 pretrained = false
 # super parameters
-patch_size = 32
+patch_size = 64
 dim = 768
-depth = 6
-heads = 18
+depth = 1
+heads = 64
 in_channels = 3
 out_channels = 1
-dim_head = 32
+dim_head = 64
 dropout = 0.1
 emb_dropout = 0.1
-scale_dim = 2
+scale_dim = 8
 
 ##### test ######
 test_dataset = 'gs://deepspace/bone/npy/aligned_LQ.npy'

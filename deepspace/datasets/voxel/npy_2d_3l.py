@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from torchvision.transforms.transforms import ColorJitter, RandomAdjustSharpness, RandomAutocontrast
-from deepspace.augmentation.image import CornerErasing, RandomErasing, RandomBreak, AddGaussianNoise
+from deepspace.augmentation.image import CornerErasing, RandomErasing, RandomBreak, AddGaussianNoise, RandomRotation
 from commontools.setup import config
 
 
@@ -48,6 +48,10 @@ class TrainDataset(object):
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
             target_data = self.target_transform(target_data)
+        orientation = np.random.randint(0, config.deepspace.rotation_node)
+        train_data, _ = RandomRotation(train_data, orientation)
+        target_data, _ = RandomRotation(target_data, orientation)
+
         return train_data, target_data
 
     def __len__(self):
@@ -154,7 +158,7 @@ class Loader:
             #     value=config.deepspace.value,
             #     return_normal=False,
             # )
-            # AddGaussianNoise(),
+            AddGaussianNoise(mean=config.deepspace.noise_mean, std=config.deepspace.noise_std),
         ])
         self.target_transform = transforms.Compose([
             ToTensor(),
