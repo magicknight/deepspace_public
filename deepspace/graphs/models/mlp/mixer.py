@@ -1,3 +1,37 @@
+'''
+                       _oo0oo_
+                      o8888888o
+                      88" . "88
+                      (| -_- |)
+                      0\  =  /0
+                    ___/`---'\___
+                  .' \\|     |// '.
+                 / \\|||  :  |||// \
+                / _||||| -:- |||||- \
+               |   | \\\  - /// |   |
+               | \_|  ''\---/''  |_/ |
+               \  .-\__  '-'  ___/-. /
+             ___'. .'  /--.--\  `. .'___
+          ."" '<  `.___\_<|>_/___.' >' "".
+         | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+         \  \ `_.   \_ __\ /__ _/   .-` /  /
+     =====`-.____`.___ \_____/___.-`___.-'=====
+                       `=---='
+
+
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+           佛祖保佑       永不宕机     永无BUG
+
+Description: https://github.com/rishikksh20/MLP-Mixer-pytorch/blob/master/mlp-mixer.py
+Author: Zhihua Liang
+Github: https://github.com/magicknight
+Date: 2021-08-10 16:14:37
+LastEditors: Zhihua Liang
+LastEditTime: 2021-08-21 22:50:26
+FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/mlp/mixer.py
+'''
+
 import torch
 import numpy as np
 from torch import nn

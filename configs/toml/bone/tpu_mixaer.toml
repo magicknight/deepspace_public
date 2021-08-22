@@ -1,0 +1,102 @@
+[summary]
+# name of this experiment
+name = 'tpu_mixaer'
+author = 'Zhihua Liang'
+description = 'Train bone on TPU with MLP Mixaer 2D, input 3 layers, output1 layer'
+# root directory of the project (for saveing logs, models, temp files, etc...)
+project_root = '/home/zhihua/work'
+[deepspace]
+########### agent ###########
+# agent name
+agent = 'deepspace.agents.bone.tpu_mixaer.Agent'
+# which device to use, can be 'gpu', 'tpu', or 'cpu'
+device = 'tpu'
+# distribute setting
+world_size = 8
+# random seed
+seed = 999
+# Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+learning_rate = 1e-2
+weight_decay = 1e-1
+# scheduler
+T_0 = 9
+T_mult = 3
+# augmentation
+policy = []
+# max epoches to for training.
+max_epoch = 20000
+# save ouput on first n images during validation
+save_image_step = 20
+save_images = [0, 2]
+# mode = 'train', 'test', 'validate', 'real'. With 'real', no ground_truth iamges are presented
+mode = 'train'
+
+######## dataset ############
+# root directory of the dataset
+# train_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
+# target_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_HQ.npy'
+train_dataset = 'gs://deepspace/bone/npy/aligned_LQ.npy'
+target_dataset = 'gs://deepspace/bone/npy/aligned_HQ.npy'
+dataset_type = 'float32'
+dataset_shape = [1591, 768, 768]
+# load into memory before distributing
+shared_dataset = false
+# data set length
+validation_size = 128
+# batch
+train_batch = 16
+validate_batch = 8
+# data resolution
+image_size = 768
+# channels
+image_channels = 3
+# tpu dataloader options
+drop_last = true
+shuffle = false
+# output format; png or tif
+data_format = 'npy'
+# workers for dataloader
+data_loader_workers = 16
+# data argument
+drop_probability = [0.05, 0.3]
+break_probability = 0.5
+min_erasing_area = 0.01
+max_erasing_area = 0.1
+min_aspect_ratio = 0.3
+value = 0
+# gaussian noise
+noise_mean = 0.0
+noise_std = 0.01
+# rotation
+rotation_node=4
+
+########## model ############
+# validate every x epoches
+validate_step = 100
+# save model every x steps
+save_model_step = 100
+backup_model_step = 200
+# checkpoint file name
+checkpoint_file = 'checkpoint.pth.tar'
+# model need pre-trained?
+pretrained = false
+# super parameters
+patch_size = 32
+dim = 256
+depth = 8
+in_channels = 3
+out_channels = 1
+token_dim = 256
+channel_dim = 512
+bottleneck_dim = 512
+dropout = 0.1
+
+##### test ######
+test_dataset = 'gs://deepspace/bone/npy/aligned_LQ.npy'
+test_batch = 16
+test_output_dir = '/home/zhihua/work/tpu_mixaer'
+
+[common]
+distribute = true
+# log level, can be INFO, WARNING, ERROR..., see python logging
+log_level = 'WARNING'
