@@ -39,7 +39,7 @@ from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
 from deepspace.graphs.models.mlp.mixaer import MLPMixaer
-from deepspace.datasets.voxel.npy_2d_3l import Loader
+from deepspace.datasets.voxel.npy_2d_ml21 import Loader
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
 from deepspace.graphs.weights_initializer import xavier_weights
@@ -64,7 +64,7 @@ class Agent(BasicAgent):
 
         # define models
         self.model = MLPMixaer(
-            in_channels=config.deepspace.in_channels,
+            in_channels=config.deepspace.image_channels,
             out_channels=config.deepspace.out_channels,
             dim=config.deepspace.dim,
             patch_size=config.deepspace.patch_size,
@@ -110,8 +110,8 @@ class Agent(BasicAgent):
         self.scheduler = lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0=config.deepspace.T_0, T_mult=config.deepspace.T_mult, )
 
         # define loss
-        # self.loss = nn.L1Loss()
-        self.loss = nn.MSELoss()
+        self.loss = nn.L1Loss()
+        # self.loss = nn.MSELoss()
         # self.recon_loss = SSIM_Loss(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
         # self.criterion = SSIM(data_range=1, channel=config.deepspace.image_channels, win_size=config.deepspace.ssim_win_size)
         # self.recon_loss = nn.L1Loss()
@@ -240,7 +240,7 @@ class Agent(BasicAgent):
                 self.summary_writer.add_image('recon_images', recon_canvas, self.current_epoch)
                 input_canvas = make_grid(target_images_sample)
                 self.summary_writer.add_image('target_images', input_canvas, self.current_epoch)
-                defect_canvas = make_grid(input_images_sample)
+                defect_canvas = make_grid(input_images_sample[:, config.deepspace.image_channels//2 - 1:config.deepspace.image_channels//2 + 2, :, :])
                 self.summary_writer.add_image('input_images', defect_canvas, self.current_epoch)
         # logging
         xla_model.master_print("validate Results at epoch-" + str(self.current_epoch) + " | " + ' epoch_loss: ' + str(epoch_loss.val) + " | ")

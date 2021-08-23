@@ -55,13 +55,13 @@ class BottleNeck(nn.Module):
     def __init__(self, dim, hidden_dim, n, dropout=0.):
         super().__init__()
         self.net = nn.Sequential(
-            Rearrange('b n c -> b (n c)'),
+            # Rearrange('b n c -> b (n c)'),
             nn.Linear(dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, dim),
             nn.Dropout(dropout),
-            Rearrange('b (n c) -> b n c', n=n),
+            # Rearrange('b (n c) -> b n c', n=n),
         )
 
     def forward(self, x):
@@ -120,9 +120,16 @@ class MLPMixaer(nn.Module):
         assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
         h = image_size // patch_size
         self.num_patch = (image_size // patch_size) ** 2
+        # self.to_patch_embedding = nn.Sequential(
+        #     nn.Conv2d(in_channels, dim, patch_size, patch_size),
+        #     Rearrange('b c h w -> b (h w) c'),
+        # )
+        in_patch_dim = in_channels * patch_size ** 2
+        out_path_dim = out_channels * patch_size ** 2
+
         self.to_patch_embedding = nn.Sequential(
-            nn.Conv2d(in_channels, dim, patch_size, patch_size),
-            Rearrange('b c h w -> b (h w) c'),
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_size, p2=patch_size),
+            nn.Linear(in_patch_dim, dim),
         )
 
         self.encoder_blocks = nn.ModuleList([])
@@ -133,15 +140,21 @@ class MLPMixaer(nn.Module):
 
         self.layer_norms = nn.ModuleList([nn.LayerNorm(dim), nn.LayerNorm(dim)])
 
-        self.bottleneck = BottleNeck(dim * self.num_patch, bottleneck_dim, self.num_patch, dropout)
+        self.bottleneck = BottleNeck(dim, bottleneck_dim, self.num_patch, dropout)
 
         for _ in range(depth):
             self.decoder_blocks.append(DecoderBlock(dim, self.num_patch, token_dim, channel_dim, dropout))
 
+        # self.to_image_embedding = nn.Sequential(
+        #     Rearrange('b (h w) c -> b c h w', h=h),
+        #     nn.ConvTranspose2d(dim, out_channels, patch_size, patch_size),
+        #     # nn.Sigmoid()
+        # )
+
         self.to_image_embedding = nn.Sequential(
-            Rearrange('b (h w) c -> b c h w', h=h),
-            nn.ConvTranspose2d(dim, out_channels, patch_size, patch_size),
-            nn.Sigmoid()
+            nn.Linear(dim, out_path_dim),
+            Rearrange('b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, p1=patch_size, p2=patch_size),
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
@@ -167,10 +180,10 @@ class MLPMixaer(nn.Module):
 if __name__ == "__main__":
     from torchinfo import summary
 
-    img = torch.ones([1, 3, 768, 768])
+    img = torch.ones([1, 5, 768, 768])
 
-    model = MLPMixaer(in_channels=3, out_channels=1, image_size=768, patch_size=32, dim=256, depth=8, token_dim=256, channel_dim=512, bottleneck_dim=512, dropout=0.1)
-    summary(model, input_size=[img.shape])
+    model = MLPMixaer(in_channels=5, out_channels=1, image_size=768, patch_size=32, dim=1024, depth=4, token_dim=256, channel_dim=512, bottleneck_dim=256, dropout=0.1)
+    summary(model, input_size=[img.shape], depth=6)
 
     # parameters = filter(lambda p: p.requires_grad, model.parameters())
     # parameters = sum([np.prod(p.size()) for p in parameters]) / 1_000_000

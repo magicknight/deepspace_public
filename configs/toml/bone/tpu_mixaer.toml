@@ -16,8 +16,8 @@ world_size = 8
 # random seed
 seed = 999
 # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
-learning_rate = 1e-2
-weight_decay = 1e-1
+learning_rate = 1
+weight_decay = 1e-5
 # scheduler
 T_0 = 9
 T_mult = 3
@@ -49,7 +49,7 @@ validate_batch = 8
 # data resolution
 image_size = 768
 # channels
-image_channels = 3
+image_channels = 5
 # tpu dataloader options
 drop_last = true
 shuffle = false
@@ -72,23 +72,22 @@ rotation_node=4
 
 ########## model ############
 # validate every x epoches
-validate_step = 100
+validate_step = 30
 # save model every x steps
-save_model_step = 100
-backup_model_step = 200
+save_model_step = 30
+backup_model_step = 100
 # checkpoint file name
 checkpoint_file = 'checkpoint.pth.tar'
 # model need pre-trained?
 pretrained = false
 # super parameters
-patch_size = 32
-dim = 256
-depth = 8
-in_channels = 3
 out_channels = 1
+patch_size = 32
+dim = 1024
+depth = 4
 token_dim = 256
 channel_dim = 512
-bottleneck_dim = 512
+bottleneck_dim = 256
 dropout = 0.1
 
 ##### test ######
