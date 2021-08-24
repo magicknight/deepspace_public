@@ -38,7 +38,7 @@ from tensorboardX import SummaryWriter
 from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
-from deepspace.graphs.models.transformer.vitae.vitae3l1 import VITAE
+from deepspace.graphs.models.transformer.hybrid import Hybrid
 from deepspace.datasets.voxel.npy_2d_ml21 import Loader
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
@@ -63,7 +63,7 @@ class Agent(BasicAgent):
             self.master = None
 
         # define models
-        self.model = VITAE(
+        self.model = Hybrid(
             image_size=config.deepspace.image_size,
             patch_size=config.deepspace.patch_size,
             dim=config.deepspace.dim,

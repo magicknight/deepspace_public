@@ -15,16 +15,16 @@ Github: https://github.com/magicknight
 Date: 2021-08-12 20:01:59
 LastEditors: Zhihua Liang
 LastEditTime: 2021-08-14 21:38:05
-FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/transformer/vitae/vitae.py
+FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/transformer/Hybrid/Hybrid.py
 '''
 
 import torch
 from torch import nn
 from einops.layers.torch import Rearrange
-from deepspace.graphs.models.transformer.vitae.transformer import Transformer
+from deepspace.graphs.models.transformer.hybrid.transformer import Transformer
 
 
-class VITAE(nn.Module):
+class Hybrid(nn.Module):
     def __init__(self, image_size, patch_size, dim=768, depth=12, heads=12, in_channels=3, out_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4):
         super().__init__()
 
@@ -42,7 +42,7 @@ class VITAE(nn.Module):
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, dim))
         self.dropout = nn.Dropout(emb_dropout)
 
-        self.transformer = Transformer(dim, depth, heads, dim_head, dim*scale_dim, dropout)
+        self.transformer = Transformer(num_patches, out_channels, patch_size, depth, heads, dim_head, dim*scale_dim, dropout)
 
         self.to_img = nn.Sequential(
             nn.Linear(dim, patch_dim * out_channels // in_channels),
@@ -55,9 +55,7 @@ class VITAE(nn.Module):
 
         x += self.pos_embedding
         x = self.dropout(x)
-        # y = torch.zeros_like(x, requires_grad=True)
-        y = x
-        x = self.transformer(x, y)
+        x = self.transformer(x)
         x = self.to_img(x)
         # inspired from https://github.com/wdayang/TED-net
         # x = img[:, self.mid_n:self.mid_n+1, :, :] - x
@@ -69,9 +67,9 @@ if __name__ == "__main__":
     # model = Transformer(dim=768, depth=12, heads=12, dim_head=64, mlp_dim=3072, dropout=0.1)
     # summary(model, input_size=[(6, 577, 768), (6, 577, 768)])
 
-    # model = VITAE(image_size=768, patch_size=32, dim=768, depth=12, heads=12, in_channels=3, out_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4)
-    model = VITAE(image_size=768, patch_size=32, dim=512, depth=4, heads=16, in_channels=5, out_channels=1, dim_head=64, dropout=0.1, emb_dropout=0.1, scale_dim=8)
-    summary(model, input_size=[(4, 5, 768, 768)], depth=6)
-    test_data = torch.randn(16, 5, 768, 768)
+    # model = Hybrid(image_size=768, patch_size=32, dim=768, depth=12, heads=12, in_channels=3, out_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4)
+    model = Hybrid(image_size=768, patch_size=32, dim=1024, depth=3, heads=32, in_channels=5, out_channels=1, dim_head=64, dropout=0.1, emb_dropout=0.1, scale_dim=8)
+    summary(model, input_size=[(6, 5, 768, 768)])
+    test_data = torch.randn(6, 5, 768, 768)
     out = model(test_data)
     print(out.shape, out.min(), out.max(), out.mean())

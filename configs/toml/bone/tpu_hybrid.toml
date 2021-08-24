@@ -1,14 +1,14 @@
 [summary]
 # name of this experiment
-name = 'tpu_vitae_2d3l1'
+name = 'tpu_hybrid'
 author = 'Zhihua Liang'
-description = 'Train bone on TPU with VITAE 2D, input 3 layers, output1 layer'
+description = 'Train bone on TPU with Hybrid 2D, input 3 layers, output1 layer'
 # root directory of the project (for saveing logs, models, temp files, etc...)
 project_root = '/home/zhihua/work'
 [deepspace]
 ########### agent ###########
 # agent name
-agent = 'deepspace.agents.bone.tpu_vitae3l1.Agent'
+agent = 'deepspace.agents.bone.tpu_hybrid.Agent'
 # which device to use, can be 'gpu', 'tpu', or 'cpu'
 device = 'tpu'
 # distribute setting
@@ -16,8 +16,8 @@ world_size = 8
 # random seed
 seed = 999
 # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
-learning_rate = 1e-2
-weight_decay = 1e-6
+learning_rate = 1e-1
+weight_decay = 0
 # scheduler
 T_0 = 9
 T_mult = 3
@@ -72,19 +72,19 @@ rotation_node=4
 
 ########## model ############
 # validate every x epoches
-validate_step = 100
+validate_step = 50
 # save model every x steps
-save_model_step = 100
-backup_model_step = 200
+save_model_step = 50
+backup_model_step = 100
 # checkpoint file name
 checkpoint_file = 'checkpoint.pth.tar'
 # model need pre-trained?
 pretrained = false
 # super parameters
 patch_size = 32
-dim = 512
-depth = 4
-heads = 16
+dim = 1024
+depth = 3
+heads = 32
 out_channels = 1
 dim_head = 64
 dropout = 0.1
@@ -94,7 +94,7 @@ scale_dim = 8
 ##### test ######
 test_dataset = 'gs://deepspace/bone/npy/aligned_LQ.npy'
 test_batch = 16
-test_output_dir = '/home/zhihua/work/tpu_vitae_2d3l1'
+test_output_dir = '/home/zhihua/work/tpu_hybrid'
 
 [common]
 distribute = true
