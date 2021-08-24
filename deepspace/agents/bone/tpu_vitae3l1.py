@@ -29,7 +29,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 import torch
-from torch.optim import Adam, lr_scheduler
+from torch.optim import Adam, SGD, lr_scheduler
 from torch import nn
 
 
@@ -82,10 +82,16 @@ class Agent(BasicAgent):
         self.model.apply(xavier_weights)
 
         # Create instance from the optimizer
-        self.optimizer = Adam(
+        # self.optimizer = Adam(
+        #     self.model.parameters(),
+        #     lr=config.deepspace.learning_rate,
+        #     weight_decay=config.deepspace.weight_decay
+        # )
+        self.optimizer = SGD(
             self.model.parameters(),
             lr=config.deepspace.learning_rate,
-            weight_decay=config.deepspace.weight_decay
+            momentum=config.deepspace.momentum,
+            weight_decay=config.deepspace.weight_decay,
         )
 
         # define data_loader
@@ -125,8 +131,8 @@ class Agent(BasicAgent):
             self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment=config.summary.description)
             # add model to tensorboard and print parameter to screen
             summary(self.model, (1, config.deepspace.image_channels, config.deepspace.image_size, config.deepspace.image_size), device=self.device, depth=6)
-            # dummy_input = torch.randn(1, config.deepspace.image_channels, config.deepspace.image_size, config.deepspace.image_size,).to(self.device)
-            # self.summary_writer.add_graph(self.model, (dummy_input), verbose=False)
+            dummy_input = torch.randn(1, config.deepspace.image_channels, config.deepspace.image_size, config.deepspace.image_size,).to(self.device)
+            self.summary_writer.add_graph(self.model, (dummy_input), verbose=False)
 
         self.checkpoint = ['current_epoch', 'current_iteration', 'model.state_dict', 'optimizer.state_dict', 'scheduler.state_dict']
         # self.checkpoint = ['model.state_dict'] # only for transition from pre-trained model to fine-tuned model

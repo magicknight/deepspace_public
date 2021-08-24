@@ -18,6 +18,7 @@ seed = 999
 # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
 learning_rate = 1e-2
 weight_decay = 1e-6
+momentum = 0.9
 # scheduler
 T_0 = 9
 T_mult = 3
@@ -84,7 +85,7 @@ pretrained = false
 patch_size = 32
 dim = 512
 depth = 4
-heads = 16
+heads = 32
 out_channels = 1
 dim_head = 64
 dropout = 0.1

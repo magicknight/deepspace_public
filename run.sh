@@ -101,9 +101,9 @@
 # XLA_USE_F16=0 python main.py --config configs/toml/bone/tpu_sit3d_test.toml
 
 # 2d
-# python3 main.py --config configs/toml/bone/tpu_vitae_2d3l1.toml
+python3 main.py --config configs/toml/bone/tpu_vitae_2d3l1.toml
 # python3 main.py --config configs/toml/bone/tpu_vitae_2d3l1.toml > /home/zhihua/temp/bone.log 2>&1 &
-python3 main.py --config configs/toml/bone/tpu_hybrid.toml
+# python3 main.py --config configs/toml/bone/tpu_hybrid.toml
 # python3 main.py --config configs/toml/bone/tpu_hybrid.toml > /home/zhihua/temp/bone.log 2>&1 &
 # python3 main.py --config configs/toml/bone/tpu_mixaer.toml
 # python3 main.py --config configs/toml/bone/tpu_mixaer.toml  > /home/zhihua/temp/bone.log 2>&1 &
