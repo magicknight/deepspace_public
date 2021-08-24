@@ -85,9 +85,9 @@ pretrained = false
 patch_size = 32
 dim = 512
 depth = 4
-heads = 32
+heads = 16
 out_channels = 1
-dim_head = 64
+dim_head = 32
 dropout = 0.1
 emb_dropout = 0.1
 scale_dim = 8
@@ -100,4 +100,4 @@ test_output_dir = '/home/zhihua/work/tpu_vitae_2d3l1'
 [common]
 distribute = true
 # log level, can be INFO, WARNING, ERROR..., see python logging
-log_level = 'INFO'
+log_level = 'WARNING'

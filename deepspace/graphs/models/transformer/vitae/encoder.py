@@ -22,7 +22,7 @@ from torch import nn
 from einops import repeat
 from einops.layers.torch import Rearrange
 from torch.nn.modules.container import Sequential
-from deepspace.graphs.layers.transformer.layers import Attention, FeedForward, Residual
+from deepspace.graphs.layers.transformer.layers import Attention, FeedForward, Residual, nnResidual
 
 
 class Encoder(nn.Module):
@@ -31,10 +31,11 @@ class Encoder(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                nn.Sequential(
-                    Residual(Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                nn.ModuleList([
+                    # Residual(Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                    nnResidual(nn.MultiheadAttention(embed_dim=dim_head*heads, num_heads=heads, dropout=dropout)),
                     nn.LayerNorm(dim),
-                ),
+                ]),
                 nn.Sequential(
                     Residual(FeedForward(dim, mlp_dim, dropout=dropout)),
                     nn.LayerNorm(dim),
@@ -43,7 +44,10 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         for attn, ff in self.layers:
-            x = attn(x)
+            mattn, ln = attn
+            x = mattn(x, x, x,  need_weights=False)
+            # x = mattn(x)
+            x = ln(x)
             x = ff(x)
         return x
 

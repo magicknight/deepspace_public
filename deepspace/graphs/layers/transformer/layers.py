@@ -104,6 +104,16 @@ class MResidual(nn.Module):
         return self.fn(x, **kwargs) + x.chunk(3, dim=-1)[0]
 
 
+class nnResidual(nn.Module):
+    def __init__(self, fn):
+        super().__init__()
+        self.fn = fn
+
+    def forward(self, q, k, v, **kwargs):
+        x, _ = self.fn(q, k, v, **kwargs)
+        return x + q
+
+
 class MPreNorm(nn.Module):
     """
     PreNorm(dim, fn)

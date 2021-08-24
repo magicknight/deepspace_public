@@ -1,33 +1,34 @@
 '''
+                       _oo0oo_
+                      o8888888o
+                      88" . "88
+                      (| -_- |)
+                      0\  =  /0
+                    ___/`---'\___
+                  .' \\|     |// '.
+                 / \\|||  :  |||// \
+                / _||||| -:- |||||- \
+               |   | \\\  - /// |   |
+               | \_|  ''\---/''  |_/ |
+               \  .-\__  '-'  ___/-. /
+             ___'. .'  /--.--\  `. .'___
+          ."" '<  `.___\_<|>_/___.' >' "".
+         | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+         \  \ `_.   \_ __\ /__ _/   .-` /  /
+     =====`-.____`.___ \_____/___.-`___.-'=====
+                       `=---='
 
-   ┏┓　　　┏┓
- ┏┛┻━━━┛┻┓
- ┃　　　　　　　┃
- ┃　　　━　　　┃
- ┃　＞　　　＜　┃
- ┃　　　　　　　┃
- ┃...　⌒　...　┃
- ┃　　　　　　　┃
- ┗━┓　　　┏━┛
-     ┃　　　┃　
-     ┃　　　┃
-     ┃　　　┃
-     ┃　　　┃  神兽保佑
-     ┃　　　┃  代码无bug　　
-     ┃　　　┃
-     ┃　　　┗━━━┓
-     ┃　　　　　　　┣┓
-     ┃　　　　　　　┏┛
-     ┗┓┓┏━┳┓┏┛
-       ┃┫┫　┃┫┫
-       ┗┻┛　┗┻┛
+
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+           佛祖保佑       永不宕机     永无BUG
 
 Description: 
 Author: Zhihua Liang
 Github: https://github.com/magicknight
 Date: 2021-08-18 14:25:58
 LastEditors: Zhihua Liang
-LastEditTime: 2021-08-21 07:57:32
+LastEditTime: 2021-08-24 23:37:02
 FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/transformer/vitae/decoder.py
 '''
 
@@ -35,7 +36,7 @@ FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/transformer/v
 import torch
 from torch import nn
 from torch.nn.modules.normalization import LayerNorm
-from deepspace.graphs.layers.transformer.layers import Attention, MAttention, FeedForward, Residual, MResidual
+from deepspace.graphs.layers.transformer.layers import Attention, MAttention, FeedForward, Residual, MResidual, nnResidual
 
 
 class Decoder(nn.Module):
@@ -44,14 +45,16 @@ class Decoder(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                nn.Sequential(
-                    Residual(Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                nn.ModuleList([
+                    # Residual(Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                    nnResidual(nn.MultiheadAttention(embed_dim=dim_head*heads, num_heads=heads, dropout=dropout)),
                     nn.LayerNorm(dim),
-                ),
-                nn.Sequential(
-                    MResidual(MAttention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                ]),
+                nn.ModuleList([
+                    # MResidual(MAttention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                    nnResidual(nn.MultiheadAttention(embed_dim=dim_head*heads, num_heads=heads, dropout=dropout)),
                     nn.LayerNorm(dim),
-                ),
+                ]),
                 nn.Sequential(
                     Residual(FeedForward(dim, mlp_dim, dropout=dropout)),
                     nn.LayerNorm(dim),
@@ -60,8 +63,14 @@ class Decoder(nn.Module):
 
     def forward(self, y, m):
         for attn, mattn, ff in self.layers:
-            y = attn(y)
-            y = mattn(torch.cat([y, m, m], dim=-1))
+            at, ln = attn
+            y = at(y, y, y, need_weights=False)
+            # y = at(y)
+            y = ln(y)
+            att, lyn = mattn
+            y = att(y, m, m, need_weights=False)
+            # y = att(torch.cat([y, m, m], dim=-1))
+            y = lyn(y)
             y = ff(y)
         return y
 
