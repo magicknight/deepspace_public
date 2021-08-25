@@ -68,8 +68,8 @@ if __name__ == "__main__":
     # summary(model, input_size=[(6, 577, 768), (6, 577, 768)])
 
     # model = Hybrid(image_size=768, patch_size=32, dim=768, depth=12, heads=12, in_channels=3, out_channels=1, dim_head=64, dropout=0., emb_dropout=0., scale_dim=4)
-    model = Hybrid(image_size=768, patch_size=32, dim=1024, depth=3, heads=32, in_channels=5, out_channels=1, dim_head=64, dropout=0.1, emb_dropout=0.1, scale_dim=8)
-    summary(model, input_size=[(6, 5, 768, 768)])
-    test_data = torch.randn(6, 5, 768, 768)
+    model = Hybrid(image_size=768, patch_size=32, dim=1024, depth=3, heads=16, in_channels=5, out_channels=1, dim_head=64, dropout=0.1, emb_dropout=0.1, scale_dim=8)
+    summary(model, input_size=[(16, 5, 768, 768)])
+    test_data = torch.randn(16, 5, 768, 768)
     out = model(test_data)
     print(out.shape, out.min(), out.max(), out.mean())

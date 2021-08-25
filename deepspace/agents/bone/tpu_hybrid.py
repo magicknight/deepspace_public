@@ -80,17 +80,17 @@ class Agent(BasicAgent):
         self.model.apply(xavier_weights)
 
         # Create instance from the optimizer
-        # self.optimizer = Adam(
-        #     self.model.parameters(),
-        #     lr=config.deepspace.learning_rate,
-        #     weight_decay=config.deepspace.weight_decay
-        # )
-        self.optimizer = SGD(
+        self.optimizer = Adam(
             self.model.parameters(),
             lr=config.deepspace.learning_rate,
-            momentum=config.deepspace.momentum,
-            weight_decay=config.deepspace.weight_decay,
+            weight_decay=config.deepspace.weight_decay
         )
+        # self.optimizer = SGD(
+        #     self.model.parameters(),
+        #     lr=config.deepspace.learning_rate,
+        #     momentum=config.deepspace.momentum,
+        #     weight_decay=config.deepspace.weight_decay,
+        # )
         # define data_loader
         # load dataset with parallel data loader
         self.data_loader = Loader(shared_array=self.shared_array)

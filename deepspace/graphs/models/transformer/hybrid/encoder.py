@@ -20,7 +20,7 @@ FilePath: /home/zhihua/framework/deepspace/deepspace/graphs/models/transformer/v
 import torch
 from torch import nn
 from einops.layers.torch import Rearrange
-from deepspace.graphs.layers.transformer.layers import Attention, FeedForward, Residual
+from deepspace.graphs.layers.transformer.layers import Attention, FeedForward, Residual, nnResidual
 
 
 class Encoder(nn.Module):
@@ -31,14 +31,16 @@ class Encoder(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             dim = dim // 4
+            dim_head = dim_head // 4
             self.layers.append(nn.ModuleList([
                 Rearrange('b n (c h w) -> b (n c) h w', c=channels, h=patch_size),
                 nn.Conv2d(n_fts, n_fts, 4, stride=2, padding=1),
                 Rearrange('b (n c) h w -> b n (c h w)', n=num_patches),
-                nn.Sequential(
-                    Residual(Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                nn.ModuleList([
+                    # Residual(Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
+                    nnResidual(nn.MultiheadAttention(embed_dim=dim_head*heads, num_heads=heads, dropout=dropout)),
                     nn.LayerNorm(dim),
-                ),
+                ]),
                 nn.Sequential(
                     Residual(FeedForward(dim, mlp_dim, dropout=dropout)),
                     nn.LayerNorm(dim),
@@ -54,15 +56,17 @@ class Encoder(nn.Module):
             data = conv(data)
             data = r2(data)
             x, m = data.chunk(2, dim=0)
-            x = attn(x)
+            at, ln = attn
+            x = at(x, x, x,  need_weights=False)
+            x = ln(x)
             x = ff(x)
         return x, m
 
 
 if __name__ == "__main__":
     from torchinfo import summary
-    model = Encoder(num_patches=576, channels=1, patch_size=32, depth=3, heads=32, dim_head=64, mlp_dim=3072, dropout=0.1)
+    model = Encoder(num_patches=576, channels=1, patch_size=32, depth=3, heads=16, dim_head=64, mlp_dim=3072, dropout=0.1)
     summary(model, input_size=(6, 576, 1024))
     test_data = torch.randn(6, 576, 1024)
-    out = model(test_data)
+    out, m = model(test_data)
     print(out.shape, out.min(), out.max(), out.mean())

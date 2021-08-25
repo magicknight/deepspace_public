@@ -68,7 +68,7 @@ class Decoder(nn.Module):
             # y = at(y)
             y = ln(y)
             att, lyn = mattn
-            y = att(y, m, m, need_weights=False)
+            y = att(y, m, y, need_weights=False)
             # y = att(torch.cat([y, m, m], dim=-1))
             y = lyn(y)
             y = ff(y)
