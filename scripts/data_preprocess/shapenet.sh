@@ -15,7 +15,7 @@
  # @Github: https://github.com/magicknight
  # @Date: 2021-08-25 13:40:19
  # @LastEditors: Zhihua Liang
- # @LastEditTime: 2021-08-25 13:40:31
+ # @LastEditTime: 2021-08-27 17:28:32
  # @FilePath: /home/zhihua/framework/deepspace/scripts/data_preprocess/shapenet.sh
 ###
 
@@ -47,7 +47,7 @@ mkdir $dataset_dir
 unzip ShapeNetCore.v1.zip && rm -f ShapeNetCore.v1.zip
 mv ShapeNetCore.v1/* $dataset_dir && rm -rf ShapeNetCore.v1
 cd $dataset_dir
-for zipfile in `ls *.zip`; do unzip $zipfile; done
+for zipfile in `ls *.zip`; do unzip $zipfile; rm $zipfile; done
 cd ..
 
 echo "Done."
