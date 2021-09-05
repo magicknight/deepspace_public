@@ -25,7 +25,7 @@ T_mult = 3
 # augmentation
 policy = []
 # max epoches to for training.
-max_epoch = 20000
+max_epoch = 10000
 # save ouput on first n images during validation
 save_image_step = 20
 save_images = [0, 2]
