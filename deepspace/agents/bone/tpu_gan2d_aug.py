@@ -378,45 +378,23 @@ class Agent(BasicAgent):
 
     @torch.no_grad()
     def test(self):
-        input_data = []
         recon_data = []
-        normal_data = []
         tqdm_batch = tqdm(self.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.generator.eval()
         self.discriminator.eval()
-        gen_epoch_image_loss = AverageMeter(device=self.device)
 
-        with torch.no_grad():
-            for input_images, normal_images in tqdm_batch:
-                input_images = input_images.to(self.device, dtype=torch.float32)
-                # fake data---
-                normal_images = normal_images.to(self.device, dtype=torch.float32)
-                # test discriminator
-                recon_images = self.generator(input_images)
+        for input_images, index in tqdm_batch:
+            recon_images = self.generator(input_images)
 
-                # test generator
-                gen_image_loss = self.image_loss(recon_images, normal_images)
-                gen_epoch_image_loss.update(gen_image_loss)
+            # save the  images
+            recon_images = recon_images.squeeze().detach().cpu().numpy()
+            recon_data += [*recon_images]
 
-                # save the  images
-                input_images = input_images.squeeze().detach().cpu().numpy()
-                recon_images = recon_images.squeeze().detach().cpu().numpy()
-                normal_images = normal_images.squeeze().detach().cpu().numpy()
-                input_data += [*input_images]
-                recon_data += [*recon_images]
-                normal_data += [*normal_images]
-
-            # data.shape should be (N, w, d)
-            input_data = np.stack(input_data)
-            recon_data = np.stack(recon_data)
-            normal_data = np.stack(normal_data)
-            np.save(Path(config.deepspace.test_output_dir) / 'input.npy', input_data)
-            np.save(Path(config.deepspace.test_output_dir) / 'recon.npy', recon_data)
-            np.save(Path(config.deepspace.test_output_dir) / 'normal.npy', normal_data)
-            # logging
-            logger.info("test Results at epoch-" + str(self.current_epoch) + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val))
-            tqdm_batch.close()
-            return gen_epoch_image_loss.val
+        # data.shape should be (N, w, d)
+        recon_data = np.stack(recon_data)
+        np.save(Path(config.deepspace.test_output_dir) / 'recon.npy', recon_data)
+        # logging
+        tqdm_batch.close()
 
     def train_update(self, device, step, loss, tracker, epoch, writer):
         test_utils.print_training_update(
