@@ -32,7 +32,7 @@
     # max epoches to for training.
     max_epoch = 10001
     # mode = 'train', 'test', 'validate'
-    mode = 'train'
+    mode = 'test'
 
     ########### dataset ###########
     # dataset name
@@ -99,7 +99,7 @@
     test_output_dir = '/home/zhihua/gcs/deepmod/bone/tpu_gan2d_aug_npy/out'
 
 [common]
-    distribute = true
+    distribute = false
     # log level, can be INFO, WARNING, ERROR..., see python logging
     log_level = 'INFO'
 

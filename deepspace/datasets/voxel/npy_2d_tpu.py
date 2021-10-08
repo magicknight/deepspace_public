@@ -94,8 +94,8 @@ class TestDataset(object):
         # get all the image paths
         self.size = config.deepspace.image_size
         if shared_array is None:
-            self.input_data = np.load(config.deepspace.test_train_dataset, allow_pickle=True)
-            self.input_data = np.pad(self.input_data, [(0, 0), (0, config.deepspace.image_size[0] - self.input_data[1]), (0, config.deepspace.image_size[1] - self.input_data[2])])
+            self.input_data = np.load(config.deepspace.test_dataset, allow_pickle=True)
+            # self.input_data = np.pad(self.input_data, [(0, 0), (0, config.deepspace.image_size[0] - self.input_data[1]), (0, config.deepspace.image_size[1] - self.input_data[2])])
         self.input_transform = transform
 
     def __getitem__(self, index):
