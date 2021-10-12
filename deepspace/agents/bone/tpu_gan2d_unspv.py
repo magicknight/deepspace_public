@@ -12,10 +12,10 @@ from tensorboardX import SummaryWriter
 from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
-from deepspace.graphs.models.autoencoder.ae2dn import ResidualAE
-from deepspace.graphs.models.gan.dis2dn import Discriminator
+from deepspace.graphs.models.autoencoder.ae2dn3l import ResidualAE
+from deepspace.graphs.models.gan.dis2d3l import Discriminator
 from deepspace.graphs.layers.misc.wrapper import Wrapper
-from deepspace.datasets.voxel.npy_2d_tpu import Loader
+from deepspace.datasets.voxel.npy_2d_3l import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
@@ -47,16 +47,32 @@ class Agent(BasicAgent):
             encoder_sizes=config.deepspace.gen_encoder_sizes,
             fc_sizes=config.deepspace.gen_fc_sizes,
             temporal_strides=config.deepspace.gen_temporal_strides,
-            color_channels=config.deepspace.image_channels,
+            in_channels=config.deepspace.in_channels,
+            out_channels=config.deepspace.out_channels,
         )
         self.discriminator = Discriminator(
             input_shape=config.deepspace.image_size,
             encoder_sizes=config.deepspace.dis_encoder_sizes,
             fc_sizes=config.deepspace.dis_fc_sizes,
             temporal_strides=config.deepspace.dis_temporal_strides,
-            color_channels=config.deepspace.image_channels,
+            in_channels=config.deepspace.out_channels,
             latent_activation=nn.Sigmoid()
         )
+
+        # print model summary and save to tensorboard
+        if self.master:
+            # Tensorboard Writer
+            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='bone gan2d npy on tpu')
+            # add model to tensorboard and print parameter to screen
+            summary(self.generator, (1, config.deepspace.in_channels, *config.deepspace.image_size), depth=6)
+            summary(self.discriminator, (1, config.deepspace.out_channels, *config.deepspace.image_size), depth=6)
+            # add graph to tensorboard only if at epoch 0
+            if self.current_epoch == 0:
+                dummy_input = torch.randn(1, config.deepspace.in_channels, *config.deepspace.image_size)
+                dummy_output = torch.randn(1, config.deepspace.out_channels, *config.deepspace.image_size)
+                wrapper = Wrapper(self.generator, self.discriminator)
+                self.summary_writer.add_graph(wrapper, (dummy_input, dummy_output), verbose=False)
+
         self.generator = self.generator.to(self.device)
         self.discriminator = self.discriminator.to(self.device)
 
@@ -139,18 +155,6 @@ class Agent(BasicAgent):
         # with torch.no_grad():
         self.real_labels = torch.FloatTensor(config.deepspace.train_batch, 1).fill_(1.0).to(self.device)
         self.fake_labels = torch.FloatTensor(config.deepspace.train_batch, 1).fill_(0.0).to(self.device)
-
-        if self.master:
-            # Tensorboard Writer
-            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='bone gan2d npy on tpu')
-            # add model to tensorboard and print parameter to screen
-            summary(self.generator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
-            summary(self.discriminator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
-            # add graph to tensorboard only if at epoch 0
-            if self.current_epoch == 0:
-                dummy_input = torch.randn(1, config.deepspace.image_channels, *config.deepspace.image_size).to(self.device)
-                wrapper = Wrapper(self.generator, self.discriminator)
-                self.summary_writer.add_graph(wrapper, (dummy_input), verbose=False)
 
         self.checkpoint = [
             'current_epoch', 'current_iteration', 'generator.state_dict',  'discriminator.state_dict',

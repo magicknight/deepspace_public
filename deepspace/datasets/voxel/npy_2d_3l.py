@@ -71,9 +71,9 @@ class TrainDataset(object):
             train_data = self.train_transform(train_data)
         if self.target_transform is not None:
             target_data = self.target_transform(target_data)
-        orientation = np.random.randint(0, config.deepspace.rotation_node)
-        train_data, _ = RandomRotation(train_data, orientation)
-        target_data, _ = RandomRotation(target_data, orientation)
+        # orientation = np.random.randint(0, config.deepspace.rotation_node)
+        # train_data, _ = RandomRotation(train_data, orientation)
+        # target_data, _ = RandomRotation(target_data, orientation)
 
         return train_data, target_data
 
@@ -128,7 +128,7 @@ class TestDataset(object):
         self.size = config.deepspace.image_size
         if shared_array is None:
             self.input_data = np.load(config.deepspace.test_train_dataset, allow_pickle=True)
-            self.input_data = np.pad(self.input_data, [(0, 0), (0, config.deepspace.image_size[0] - self.input_data[1]), (0, config.deepspace.image_size[1] - self.input_data[2])])
+            # self.input_data = np.pad(self.input_data, [(0, 0), (0, config.deepspace.image_size[0] - self.input_data[1]), (0, config.deepspace.image_size[1] - self.input_data[2])])
         self.input_transform = transform
 
     def __getitem__(self, index):
@@ -181,7 +181,7 @@ class Loader:
             #     value=config.deepspace.value,
             #     return_normal=False,
             # )
-            AddGaussianNoise(mean=config.deepspace.noise_mean, std=config.deepspace.noise_std),
+            # AddGaussianNoise(mean=config.deepspace.noise_mean, std=config.deepspace.noise_std),
         ])
         self.target_transform = transforms.Compose([
             ToTensor(),

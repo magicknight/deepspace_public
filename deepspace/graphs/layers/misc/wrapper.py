@@ -15,6 +15,7 @@ class Wrapper(nn.Module):
 
     def forward(self, data):
         # Perform a forward pass through all the networks and return the result
-        q1 = self.network_1(data)
-        q2 = self.network_2(data)
-        return q1, q2
+        if isinstance(data, tuple):
+            return self.network_1(data[0]), self.network_2(data[1])
+        else:
+            return self.network_1(data), self.network_2(data)

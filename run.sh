@@ -109,7 +109,8 @@
 # python3 main.py --config configs/toml/bone/tpu_mixaer.toml  > /home/zhihua/temp/mixaer.log 2>&1 &
 # python3 main.py --config configs/toml/bone/gpu_gan2d.toml
 # python3 main.py --config configs/toml/bone/tpu_gan2d_aug.toml
-python3 main.py --config configs/toml/bone/tpu_gan2d_aug_test.toml
+# python3 main.py --config configs/toml/bone/tpu_gan2d_aug_test.toml
+python3 main.py --config configs/toml/bone/tpu_gan2d_unspv.toml
 # python3 main.py --config configs/toml/bone/tpu_gan2d_aug.toml > /home/zhihua/temp/bone.log 2>&1 &
 # python3 main.py --config configs/toml/bone/tpu_vitae_2d.toml
 # python3 main.py --config configs/toml/bone/tpu_vitae_2d.toml > /home/zhihua/temp/bone.log 2>&1 &

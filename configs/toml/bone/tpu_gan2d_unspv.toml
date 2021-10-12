@@ -1,18 +1,18 @@
 [summary]
     # name of this experiment
-    name = 'tpu_gan2d_aug_npy'
+    name = 'gan2d3l_unspv_tpu'
     author = 'Zhihua Liang'
-    discription = 'Bone reconstruction on TPU'
+    discription = 'Bone reconstruction on TPU unsupervised'
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/work'    
 [deepspace]
     ########### agent ###########
     # agent name
-    agent = 'deepspace.agents.bone.tpu_gan2d_aug.Agent'
+    agent = 'deepspace.agents.bone.tpu_gan2d_unspv.Agent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
-    device = 'cpu'
+    device = 'tpu'
     # distribute setting
-    world_size = 1
+    world_size = 8
     # random seed
     seed = 999
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
@@ -32,24 +32,25 @@
     # max epoches to for training.
     max_epoch = 10001
     # mode = 'train', 'test', 'validate'
-    mode = 'test'
+    mode = 'train'
 
     ########### dataset ###########
     # dataset name
     train_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
-    target_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_HQ.npy'
+    target_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
     padding = false
     # load into memory before distributing
-    shared_dataset = false    
+    shared_dataset = false
     # batch
     train_batch = 4
     validate_batch = 4
     # validate length
     validation_size = 256
     # workers for dataloader
-    data_loader_workers = 8
+    data_loader_workers = 1
     # image size and channel
-    image_channels = 1
+    in_channels = 3
+    out_channels = 1
     image_size = [768, 768]
     # data argument
     drop_probability = [0.05, 0.3]
@@ -71,7 +72,7 @@
 
     ########## model ############
     # validate every x epoches
-    validate_step = 10    
+    validate_step = 10
     # save model every x steps
     save_model_step = 10
     backup_model_step = 30    
@@ -94,12 +95,12 @@
     
 
     ##### test ######
-    test_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
-    test_batch = 128
-    test_output_dir = '/home/zhihua/gcs/deepmod/bone/tpu_gan2d_aug_npy/out'
+    test_dataset = '/home/zhihua/local/data/aligned_LQ.npy'
+    test_batch = 16
+    test_output_dir = '/home/zhihua/work/tpu_gan2d_aug_npy/test_output'
 
 [common]
-    distribute = false
+    distribute = true
     # log level, can be INFO, WARNING, ERROR..., see python logging
     log_level = 'INFO'
 
