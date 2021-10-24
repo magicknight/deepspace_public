@@ -127,7 +127,7 @@ class TestDataset(object):
         # get all the image paths
         self.size = config.deepspace.image_size
         if shared_array is None:
-            self.input_data = np.load(config.deepspace.test_train_dataset, allow_pickle=True)
+            self.input_data = np.load(config.deepspace.test_dataset, allow_pickle=True)
             # self.input_data = np.pad(self.input_data, [(0, 0), (0, config.deepspace.image_size[0] - self.input_data[1]), (0, config.deepspace.image_size[1] - self.input_data[2])])
         self.input_transform = transform
 
@@ -140,7 +140,7 @@ class TestDataset(object):
         Returns:
             Tensor: images
         """
-        input_data = self.input_data[index, :, :]
+        input_data = self.input_data[index:index+3, :, :]
         if self.input_transform is not None:
             input_data = self.input_transform(input_data)
 
@@ -148,7 +148,7 @@ class TestDataset(object):
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
-        return self.input_data.shape[0]
+        return self.input_data.shape[0] - 2
 
 
 class Loader:

@@ -10,7 +10,7 @@
     # agent name
     agent = 'deepspace.agents.bone.tpu_gan2d_unspv.Agent'
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
-    device = 'tpu'
+    device = 'cpu'
     # distribute setting
     world_size = 8
     # random seed
@@ -32,7 +32,7 @@
     # max epoches to for training.
     max_epoch = 10001
     # mode = 'train', 'test', 'validate'
-    mode = 'train'
+    mode = 'test'
 
     ########### dataset ###########
     # dataset name
@@ -95,14 +95,14 @@
     
 
     ##### test ######
-    test_dataset = '/home/zhihua/local/data/aligned_LQ.npy'
-    test_batch = 16
-    test_output_dir = '/home/zhihua/work/tpu_gan2d_aug_npy/test_output'
+    test_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
+    test_batch = 96
+    test_output_dir = '/home/zhihua/work/gan2d3l_unspv_tpu/out'
 
 [common]
-    distribute = true
+    distribute = false
     # log level, can be INFO, WARNING, ERROR..., see python logging
-    log_level = 'WARNING'
+    log_level = 'INFO'
 
 
 

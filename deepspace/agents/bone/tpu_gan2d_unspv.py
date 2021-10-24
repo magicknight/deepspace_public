@@ -67,11 +67,11 @@ class Agent(BasicAgent):
             summary(self.generator, (1, config.deepspace.in_channels, *config.deepspace.image_size), depth=6)
             summary(self.discriminator, (1, config.deepspace.out_channels, *config.deepspace.image_size), depth=6)
             # add graph to tensorboard only if at epoch 0
-            if self.current_epoch == 0:
-                dummy_input = torch.randn(1, config.deepspace.in_channels, *config.deepspace.image_size)
-                dummy_output = torch.randn(1, config.deepspace.out_channels, *config.deepspace.image_size)
-                wrapper = Wrapper(self.generator, self.discriminator)
-                self.summary_writer.add_graph(wrapper, (dummy_input, dummy_output), verbose=False)
+            # if self.current_epoch == 0:
+            #     dummy_input = torch.randn(1, config.deepspace.in_channels, *config.deepspace.image_size)
+            #     dummy_output = torch.randn(1, config.deepspace.out_channels, *config.deepspace.image_size)
+            #     wrapper = Wrapper(self.generator, self.discriminator)
+            #     self.summary_writer.add_graph(wrapper, (dummy_input, dummy_output), verbose=False)
 
         self.generator = self.generator.to(self.device)
         self.discriminator = self.discriminator.to(self.device)
