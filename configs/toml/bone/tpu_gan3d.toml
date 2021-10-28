@@ -1,0 +1,95 @@
+[summary]
+    # name of this experiment
+    name = 'gan3d_tpu'
+    author = 'Zhihua Liang'
+    discription = 'Bone reconstruction on TPU'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/work'    
+[deepspace]
+    ########### agent ###########
+    # agent name
+    agent = 'deepspace.agents.bone.tpu_gan3d.Agent'
+    # which device to use, can be 'gpu', 'tpu', or 'cpu'
+    device = 'tpu'     
+    # distribute setting
+    world_size = 8
+    # random seed
+    seed = 999
+    # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
+    gen_lr = 1e-2
+    dis_lr = 1e-2
+    # data augment
+    # scheduler
+    T_0 = 8
+    T_mult = 2
+    lr_decay = 0.999
+  
+    # image loss and dis loss weight
+    loss_weight = 0.9999
+    # max epoches to for training.
+    max_epoch = 10001
+    # mode = 'train', 'test', 'validate'
+    mode = 'train'
+    # mode = 'test'
+
+    ########### dataset ###########
+    # dataset name
+    train_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
+    target_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_HQ.npy'
+    padding = false
+    # load into memory before distributing
+    shared_dataset = false    
+    # data set length
+    train_data_length = 4096
+    # validate_data_length = 4096  
+    # batch
+    train_batch = 128
+    validate_batch = 128
+    # workers for dataloader
+    data_loader_workers = 8
+    # image size and channel
+    image_channels = 1   
+    image_size = [64, 64, 64]
+    # dataloader options
+    drop_last = true
+    shuffle = false  
+    # parallal loader options
+    batchdim = 0
+    loader_prefetch_size = 16
+    device_prefetch_size = 8
+    
+    ########## model ############
+    # validate every x epoches
+    validate_step = 10    
+    # save model every x steps
+    save_model_step = 10
+    backup_model_step = 30    
+    # save ouput on first n images during validation
+    save_images = [0, 3]
+    # checkpoint file name
+    checkpoint_file = 'checkpoint.pth.tar'
+
+    # generator model
+    gen_encoder_sizes = [8, 12, 32, 48, 64, 96, 128, 192]
+    gen_temporal_strides = [2, 2, 2, 2, 2, 2, 2, 2]
+    gen_fc_sizes = [1536]
+    # discriminator model
+    dis_encoder_sizes = [8, 12, 32, 48, 64, 96, 128, 192]
+    dis_temporal_strides = [2, 2, 2, 2, 2, 2, 2, 2]
+    dis_fc_sizes = [16, 1]
+    # output format; png or tif
+    data_format = 'npy'
+
+
+
+    ##### test ######
+    test_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
+    test_batch = 16
+    test_output_dir = '/home/zhihua/work/gan3d_tpu/test_output'
+
+[common]
+    distribute = true
+    # log level, can be INFO, WARNING, ERROR..., see python logging
+    log_level = 'WARNING'
+
+

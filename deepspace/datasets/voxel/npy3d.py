@@ -10,11 +10,11 @@ from torch.utils.data.distributed import DistributedSampler
 from pathlib import Path
 import torchvision.transforms as standard_transforms
 
-from deepspace.augmentation.voxel import ToTensor, RandomBreak, RandomPatch, get_index, IndexPatch, Rotate
+from deepspace.augmentation.voxel import ToTensor, get_index, IndexPatch, Rotate
 from commontools.setup import config, logger
 
 
-class NPYImages:
+class TrainDataset(object):
     def __init__(self, train_data, target_data, data_length=0, train_transform=None, target_transform=None):
         self.train_data = train_data
         self.target_data = target_data
@@ -23,7 +23,7 @@ class NPYImages:
         self.target_transform = target_transform
         # a tool to extract smaller 3D volumns from raw data
         self.patcher = IndexPatch(size=config.deepspace.image_size)
-        # self.rotate = Rotate()
+        self.rotate = Rotate()
 
     def __getitem__(self, index):
         """return png images
@@ -44,15 +44,51 @@ class NPYImages:
         if self.train_transform is not None:
             train_data = self.train_transform(train_data)
         # # perform rotation
-        # steps = torch.randint(0, 4, (3, ), device=train_data.device)
-        # train_data = self.rotate(train_data, steps=steps)
-        # target_data = self.rotate(target_data, steps=steps)
+        steps = torch.randint(0, 4, (3, ), device=train_data.device)
+        train_data = self.rotate(train_data, steps=steps)
+        target_data = self.rotate(target_data, steps=steps)
 
         return train_data, target_data
 
     def __len__(self):
         # the size defect images is the size of this dataset, not the size of normal images
         return self.data_length
+
+
+class ValiDataset(object):
+    """
+    Load the defect images, and return the data loader
+    """
+
+    def __init__(self, train_data, target_data, train_transform=None, target_transform=None):
+        # get all the image paths
+        self.train_data = train_data
+        self.target_data = target_data
+        self.train_transform = train_transform
+        self.target_transform = target_transform
+        self.data_len = config.deepspace.validation_size
+
+    def __getitem__(self, index):
+        """return png images
+
+        Args:
+            index (int): data index
+
+        Returns:
+            Tensor: images
+        """
+        real_index = np.random.randint(0, self.train_data.shape[0])
+        train_data = np.copy(self.train_data[real_index, :, :], order='C')
+        target_data = np.copy(self.target_data[real_index, :, :], order='C')
+        if self.train_transform is not None:
+            train_data = self.train_transform(train_data)
+        if self.target_transform is not None:
+            target_data = self.target_transform(target_data)
+        return train_data, target_data
+
+    def __len__(self):
+        # the size defect images is the size of this dataset, not the size of normal images
+        return self.data_len
 
 
 class NPYTestImages:
@@ -111,7 +147,6 @@ class Loader:
         # transform
         self.train_trainsform = standard_transforms.Compose([
             ToTensor(),
-            RandomBreak(probability=config.deepspace.break_probability, sides_range=config.deepspace.break_range)
         ])
         self.target_transform = standard_transforms.Compose([
             ToTensor(),
