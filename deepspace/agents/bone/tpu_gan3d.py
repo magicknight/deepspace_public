@@ -4,6 +4,8 @@ from tqdm import tqdm
 from pathlib import Path
 import timeit
 
+from einops import rearrange
+
 import torch
 from torch.optim import lr_scheduler
 from torch import nn
@@ -147,10 +149,10 @@ class Agent(BasicAgent):
             summary(self.generator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
             summary(self.discriminator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
             # add graph to tensorboard only if at epoch 0
-            if self.current_epoch == 0:
-                dummy_input = torch.randn(1, config.deepspace.image_channels, *config.deepspace.image_size).to(self.device)
-                wrapper = Wrapper(self.generator, self.discriminator)
-                self.summary_writer.add_graph(wrapper, (dummy_input), verbose=False)
+            # if self.current_epoch == 0:
+            #     dummy_input = torch.randn(1, config.deepspace.image_channels, *config.deepspace.image_size).to(self.device)
+            #     wrapper = Wrapper(self.generator, self.discriminator)
+            #     self.summary_writer.add_graph(wrapper, (dummy_input), verbose=False)
 
         self.checkpoint = [
             'current_epoch', 'current_iteration', 'generator.state_dict',  'discriminator.state_dict',
@@ -336,12 +338,12 @@ class Agent(BasicAgent):
 
             tracker.add(config.deepspace.validate_batch)
 
-            # save the reconstructed image
-            if self.master and self.current_epoch % config.deepspace.save_image_step == 0:
-                if index > config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
-                    recon_images_sample.append(recon_images)
-                    target_images_sample.append(target_images)
-                    input_images_sample.append(input_images)
+            # # save the reconstructed image
+            # if self.master and self.current_epoch % config.deepspace.save_image_step == 0:
+            #     if index > config.deepspace.save_images[0] and index < config.deepspace.save_images[1]:
+            #         recon_images_sample.append(recon_images)
+            #         target_images_sample.append(target_images)
+            #         input_images_sample.append(input_images)
             index = index + 1
 
         tqdm_batch.close()
@@ -355,16 +357,16 @@ class Agent(BasicAgent):
             self.summary_writer.add_scalar("epoch_validate/dis_normal_loss", dis_epoch_normal_loss.val, self.current_epoch)
             self.summary_writer.add_scalar("epoch_validate/dis_fake_loss", dis_epoch_fake_loss.val, self.current_epoch)
             # save reconstruct image to tensorboard
-            if self.current_epoch % config.deepspace.save_image_step == 0:
-                recon_images_sample = torch.cat(recon_images_sample).detach().cpu().numpy()
-                target_images_sample = torch.cat(target_images_sample).detach().cpu().numpy()
-                input_images_sample = torch.cat(input_images_sample).detach().cpu().numpy()
-                recon_canvas = make_grid(recon_images_sample)
-                self.summary_writer.add_image('recon_images', recon_canvas, self.current_epoch)
-                input_canvas = make_grid(target_images_sample)
-                self.summary_writer.add_image('target_images', input_canvas, self.current_epoch)
-                defect_canvas = make_grid(input_images_sample)
-                self.summary_writer.add_image('input_images', defect_canvas, self.current_epoch)
+            # if self.current_epoch % config.deepspace.save_image_step == 0:
+            #     recon_images_sample = torch.cat(recon_images_sample).detach().cpu().numpy()
+            #     target_images_sample = torch.cat(target_images_sample).detach().cpu().numpy()
+            #     input_images_sample = torch.cat(input_images_sample).detach().cpu().numpy()
+            #     recon_canvas = make_grid(recon_images_sample)
+            #     self.summary_writer.add_image('recon_images', recon_canvas, self.current_epoch)
+            #     input_canvas = make_grid(target_images_sample)
+            #     self.summary_writer.add_image('target_images', input_canvas, self.current_epoch)
+            #     defect_canvas = make_grid(input_images_sample)
+            #     self.summary_writer.add_image('input_images', defect_canvas, self.current_epoch)
             # print info
         xla_model.master_print("validate Results at epoch-" + str(self.current_epoch)
                                + "\n" + "--------------------------------"

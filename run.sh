@@ -99,6 +99,9 @@
 # python3 main.py --config configs/toml/bone/gan3d_test.toml
 # python main.py --config configs/toml/bone/tpu_sit3d.toml
 # XLA_USE_F16=0 python main.py --config configs/toml/bone/tpu_sit3d_test.toml
+# python3 main.py --config configs/toml/bone/tpu_gan3d.toml
+python3 main.py --config configs/toml/bone/tpu_gan3d.toml > /home/zhihua/temp/gan3d.log 2>&1 &
+
 
 # 2d
 # python3 main.py --config configs/toml/bone/tpu_vitae_2d3l1.toml
@@ -111,7 +114,7 @@
 # python3 main.py --config configs/toml/bone/tpu_gan2d_aug.toml
 # python3 main.py --config configs/toml/bone/tpu_gan2d_aug_test.toml
 # python3 main.py --config configs/toml/bone/tpu_gan2d_unspv.toml
-python3 main.py --config configs/toml/bone/tpu_gan2d_unspv_test.toml
+# python3 main.py --config configs/toml/bone/tpu_gan2d_unspv_test.toml
 # python3 main.py --config configs/toml/bone/tpu_gan2d_unspv.toml  > /home/zhihua/temp/tpu_gan2d_unspv.log 2>&1 &
 # python3 main.py --config configs/toml/bone/tpu_gan2d_aug.toml > /home/zhihua/temp/bone.log 2>&1 &
 # python3 main.py --config configs/toml/bone/tpu_vitae_2d.toml
