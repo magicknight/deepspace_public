@@ -1,8 +1,8 @@
 [summary]
     # name of this experiment
-    name = 'gan3d_tpu'
+    name = 'gan3d_tpu_usp'
     author = 'Zhihua Liang'
-    discription = 'Bone reconstruction on TPU'
+    discription = 'Bone reconstruction on TPU unsupervised'
     # root directory of the project (for saveing logs, models, temp files, etc...)
     project_root = '/home/zhihua/work'    
 [deepspace]
@@ -35,7 +35,7 @@
     ########### dataset ###########
     # dataset name
     train_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
-    target_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_HQ.npy'
+    target_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
     padding = false
     # load into memory before distributing
     shared_dataset = false    

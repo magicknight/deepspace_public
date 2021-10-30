@@ -10,7 +10,6 @@ torchinfo
 trimesh
 scipy
 accelerate
-torchvision
 scikit_image
 layer
 numpy
