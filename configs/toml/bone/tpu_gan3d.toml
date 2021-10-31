@@ -25,7 +25,7 @@
     lr_decay = 0.999
   
     # image loss and dis loss weight
-    loss_weight = 0.999999
+    loss_weight = 0.99999
     # max epoches to for training.
     max_epoch = 3000
     # mode = 'train', 'test', 'validate'
