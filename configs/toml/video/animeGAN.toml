@@ -1,0 +1,30 @@
+[summary]
+    # name of this experiment
+    name = 'AnimeGAN'
+    author = 'Zhihua Liang'
+    discription = 'AnimeGAN to transfer a video to anime'
+    # root directory of the project (for saveing logs, models, temp files, etc...)
+    project_root = '/home/zhihua/work'    
+[deepspace]
+    # Config
+    # 原始视频地址
+    original_video = '/home/zhihua/data/video/input/4k_new_york.mp4'
+    # 提取视频图像的存放地址
+    original_video_img = '/home/zhihua/data/video/image/4k_new_york_img/'
+    # 合成视频存放地址
+    img2video = '/home/zhihua/data/video/output/4k_new_york.mp4'
+    # 添加声音后的视频最终输出地址
+    output_video = '/home/zhihua/data/video/output/4k_new_york_audio.mp4'
+    # 预训练的模型名字 face_paint_512_v2, paprika, celeba_distill
+    pretrained = 'paprika'
+    # 使用的设备
+    device = 'cuda'
+    # batch
+    batch_size = 8
+
+[common]
+    distribute = false
+    # log level, can be INFO, WARNING, ERROR..., see python logging
+    log_level = 'WARNING'
+
+
