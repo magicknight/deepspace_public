@@ -23,17 +23,33 @@ from commontools.setup import config, logger
 # 从视频提取图片
 
 
-def video2img():
+def video_to_image():
     cap = cv2.VideoCapture(config.deepspace.original_video)
     i = 1
     while True:
         ret, frame = cap.read()
+        if 'resolution' in config.deepspace:
+            frame = cv2.resize(frame, config.deepspace.resolution)
         if frame is None:
             break
         else:
             cv2.imwrite(config.deepspace.original_video_img + str(i) + ".jpg", frame)
             i += 1
     return
+
+
+def image_to_video():
+    # 创建一个VideoWriter对象，并视频文件名，视频帧率，视频尺寸
+    video = cv2.VideoWriter(config.deepspace.output_video, cv2.VideoWriter_fourcc('m', 'p', '4', 'v'), config.deepspace.fps, config.deepspace.resolution)
+    # 获取图片总数
+    file_list = os.listdir(config.deepspace.original_video_img)
+    img_num = len(file_list)
+    for i in tqdm(range(img_num)):
+        f_name = str(i + 1) + '.jpg'
+        item = os.path.join(config.deepspace.original_video_img, f_name)
+        image = cv2.imread(item)
+        video.write(image)  # 把图片写进视频
+    video.release()
 
 
 # 把图片转动漫并合成视频
@@ -53,10 +69,10 @@ def ani2video():
     height = image.shape[0]
     width = image.shape[1]
 
-    fps = cap.get(cv2.CAP_PROP_FPS)  # 返回视频的fps--帧率
+    config.deepspace.fps = cap.get(cv2.CAP_PROP_FPS)  # 返回视频的fps--帧率
 
     # 把参数用到我们要创建的视频上
-    video = cv2.VideoWriter(config.deepspace.img2video, cv2.VideoWriter_fourcc('m', 'p', '4', 'v'), fps, (width, height))  # 创建视频流对象
+    video = cv2.VideoWriter(config.deepspace.img2video, cv2.VideoWriter_fourcc('m', 'p', '4', 'v'), config.deepspace.fps, (width, height))  # 创建视频流对象
     """
     参数1 即将保存的文件路径
     参数2 VideoWriter_fourcc为视频编解码器 cv2.VideoWriter_fourcc('m', 'p', '4', 'v') 文件名后缀为.mp4
@@ -99,7 +115,7 @@ if __name__ == '__main__':
     # 第一步：视频->图像
     if not os.path.exists(config.deepspace.original_video_img):
         os.mkdir(config.deepspace.original_video_img)
-    video2img()
+    video_to_image()
 
     # 第二步：转换为动漫效果并合成视频
 
