@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import numpy as np
 import torch
 from moviepy.editor import *
@@ -9,8 +8,8 @@ from pathlib import Path
 import shutil
 from pprint import pprint
 from imageio import imread, imwrite
-
 from basicsr.archs.rrdbnet_arch import RRDBNet
+from srgan import Generator
 
 from imagedataset import get_dataloader
 
@@ -106,8 +105,8 @@ def anime_to_high_resolution():
     """把低分辨率的动漫图片转换成高分辨率的动漫图片
     """
     # 获取图片总数
-    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=6, num_grow_ch=32, scale=config.deepspace.scale,)
-    model.load_state_dict(torch.load(config.deepspace.model_path)['params_ema'], strict=True)
+    model = Generator()
+    model.load_state_dict(torch.load(config.deepspace.model_path), strict=True)
     model.to(config.deepspace.device).eval()
     # 转换后的图片存在numpy array中
     result_array = []
@@ -131,16 +130,6 @@ def anime_to_high_resolution():
     # 保存图片
     # save_img(result_array, config.deepspace.high_video_img)
     return
-
-
-def cut_video():
-    """
-    # 截取视频中的一段时间
-    """
-    video_path = Path(config.deepspace.original_video)
-    video_clip = VideoFileClip(config.deepspace.original_video)
-    video_clip.subclip(config.deepspace.start_time,  config.deepspace.end_time).write_videofile(str(video_path.parent / (video_path.stem + '_cut.mp4')))
-    # config.deepspace.original_video = str(video_path.parent / (video_path.stem + '_cut.mp4'))
 
 
 if __name__ == '__main__':

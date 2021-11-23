@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import pyanime4k
 
 import numpy as np
 import torch
@@ -9,8 +10,6 @@ from pathlib import Path
 import shutil
 from pprint import pprint
 from imageio import imread, imwrite
-
-from basicsr.archs.rrdbnet_arch import RRDBNet
 
 from imagedataset import get_dataloader
 
@@ -105,42 +104,11 @@ def real_to_anime():
 def anime_to_high_resolution():
     """把低分辨率的动漫图片转换成高分辨率的动漫图片
     """
-    # 获取图片总数
-    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=6, num_grow_ch=32, scale=config.deepspace.scale,)
-    model.load_state_dict(torch.load(config.deepspace.model_path)['params_ema'], strict=True)
-    model.to(config.deepspace.device).eval()
-    # 转换后的图片存在numpy array中
-    result_array = []
-    # get data loader
-    data_loader = get_dataloader(Path(config.deepspace.anime_video_img), batch=config.deepspace.hs_batch, normalize_mode='torch')
-    # 开始转换
-    for images, index in tqdm(data_loader, desc="低分辨率的动漫图片转换成高分辨率"):
-        # 获取图片
-        images = images.to(config.deepspace.device)
-        # 转换图片
-        try:
-            result = model(images)
-        except Exception as e:
-            print(e)
-            continue
-        # 保存图片
-        save_img(result.permute(0, 2, 3, 1).cpu().numpy(), config.deepspace.high_video_img, index=index.cpu().numpy(), progress_bar=False, normalize_mode='torch')
-        # result_array.append(result.permute(0, 2, 3, 1).cpu().numpy())
-    # list to numpy array
-    # result_array = np.concatenate(result_array, axis=0)
-    # 保存图片
-    # save_img(result_array, config.deepspace.high_video_img)
-    return
-
-
-def cut_video():
-    """
-    # 截取视频中的一段时间
-    """
-    video_path = Path(config.deepspace.original_video)
-    video_clip = VideoFileClip(config.deepspace.original_video)
-    video_clip.subclip(config.deepspace.start_time,  config.deepspace.end_time).write_videofile(str(video_path.parent / (video_path.stem + '_cut.mp4')))
-    # config.deepspace.original_video = str(video_path.parent / (video_path.stem + '_cut.mp4'))
+    images = sorted(list(Path(config.deepspace.anime_video_img).glob('*.jpg')), key=lambda x: int(x.stem))
+    pyanime4k.upscale_images(
+        input_paths=images,
+        output_path=Path(config.deepspace.high_video_img)
+    )
 
 
 if __name__ == '__main__':

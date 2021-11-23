@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 
-
+import cv2
+from PIL import Image
+from cv2 import normalize
 import numpy as np
+import os
 import torch
 from moviepy.editor import *
+from torch import save
 from tqdm import tqdm
 from pathlib import Path
 import shutil
 from pprint import pprint
 from imageio import imread, imwrite
-
 from basicsr.archs.rrdbnet_arch import RRDBNet
 
 from imagedataset import get_dataloader
@@ -41,23 +44,33 @@ def save_img(img_array, root, index=None, progress_bar=True, color_mode=None, no
             result = ((img_array[i] + 1.) * 127.5).clip(0, 255).astype(np.uint8)
         elif normalize_mode == 'torch':
             result = ((img_array[i]) * 255).clip(0, 255).astype(np.uint8)
-        imwrite(Path(root) / (str(index[i]) + ".jpg"), result)
+        if color_mode == 'RGB':
+            result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(str(Path(root) / (str(index[i]) + ".jpg")), result)
+        else:
+            imwrite(Path(root) / (str(index[i]) + ".jpg"), result)
 
 
 # 从视频提取图片
 def video_to_image():
     """把视频转换成图片
     """
-    """
-    # 截取视频中的一段时间
-    """
-    clip = VideoFileClip(config.deepspace.original_video)
-
-    if config.deepspace.end_time != 0:
-        clip = clip.subclip(config.deepspace.start_time,  config.deepspace.end_time)
-    if 'resize' in config.deepspace:
-        clip = clip.resize(config.deepspace.resize)
-    clip.write_images_sequence(config.deepspace.original_video_img + '%03d.jpg', fps=config.deepspace.fps)
+    cap = cv2.VideoCapture(config.deepspace.original_video)
+    config.deepspace.fps = cap.get(cv2.CAP_PROP_FPS)  # 返回视频的fps--帧率
+    i = 1
+    while True:
+        ret, frame = cap.read()
+        if frame is None:
+            break
+        else:
+            if 'resolution' in config.deepspace:
+                frame = cv2.resize(frame, tuple(config.deepspace.resolution))
+            if 'resize' in config.deepspace:
+                frame = cv2.resize(frame, (0, 0), fx=config.deepspace.resize, fy=config.deepspace.resize)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            cv2.imwrite(config.deepspace.original_video_img + str(i) + ".jpg", frame)
+            i += 1
+    return
 
 
 def image_to_video():
@@ -70,14 +83,13 @@ def image_to_video():
     # 获取图片
     images = sorted(list(Path(config.deepspace.high_video_img).glob('*.jpg')), key=lambda x: int(x.stem))
     images = [str(i) for i in images]
-    video_clip = ImageSequenceClip(images, fps=config.deepspace.fps)
+    video_clip = ImageSequenceClip(images, fps=config.deepspace.fps, load_images=False)
     # 指向新生成视频的音频部分
     video_clip = video_clip.set_audio(audio_o)
     # 修改音频部分并输出最终视频
     video_clip.write_videofile(config.deepspace.output_video)
 
 
-@ torch.no_grad()
 def real_to_anime():
     """把真实图片转换成动漫图片
     """
@@ -91,17 +103,17 @@ def real_to_anime():
         # 获取图片
         images = images.to(config.deepspace.device)
         # 转换图片
-        try:
-            result = model(images, False)  # 转换动漫风格
-        except Exception as e:
-            print(e)
-            continue
+        with torch.no_grad():
+            try:
+                result = model(images, False)  # 转换动漫风格
+            except Exception as e:
+                print(e)
+                continue
         # 保存图片
         save_img(result.permute(0, 2, 3, 1).cpu().numpy(), config.deepspace.anime_video_img, index=index.cpu().numpy(), progress_bar=False, color_mode='RGB', normalize_mode='tensorflow')
     return
 
 
-@ torch.no_grad()
 def anime_to_high_resolution():
     """把低分辨率的动漫图片转换成高分辨率的动漫图片
     """
@@ -118,11 +130,12 @@ def anime_to_high_resolution():
         # 获取图片
         images = images.to(config.deepspace.device)
         # 转换图片
-        try:
-            result = model(images)
-        except Exception as e:
-            print(e)
-            continue
+        with torch.no_grad():
+            try:
+                result = model(images)
+            except Exception as e:
+                print(e)
+                continue
         # 保存图片
         save_img(result.permute(0, 2, 3, 1).cpu().numpy(), config.deepspace.high_video_img, index=index.cpu().numpy(), progress_bar=False, normalize_mode='torch')
         # result_array.append(result.permute(0, 2, 3, 1).cpu().numpy())
@@ -145,18 +158,22 @@ def cut_video():
 
 if __name__ == '__main__':
 
+    # 第零步：截取视频中的一段时间
+    if config.deepspace.end_time != 0:
+        # cut_video()
+        config.deepspace.original_video = str(Path(config.deepspace.original_video).parent / (Path(config.deepspace.original_video).stem + '_cut.mp4'))
     # 第一步：视频->图像
     Path(config.deepspace.original_video_img).mkdir(parents=True, exist_ok=True)
-    video_to_image()
+    # video_to_image()
 
     # 第二步：转换为动漫效果
     Path(config.deepspace.anime_video_img).mkdir(parents=True, exist_ok=True)
-    real_to_anime()
+    # real_to_anime()
 
     # 第三步：转换为高分辨率图片
     if 'scale' in config.deepspace and config.deepspace.scale > 1:
         Path(config.deepspace.high_video_img).mkdir(parents=True, exist_ok=True)
-        anime_to_high_resolution()
+        # anime_to_high_resolution()
     else:
         config.deepspace.high_video_img = config.deepspace.anime_video_img
 

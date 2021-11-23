@@ -18,16 +18,11 @@
     # 合成视频存放地址
     img2video = '/home/zhihua/data/video/output/video.mp4'
     # 添加声音后的视频最终输出地址
-    output_video = '/home/zhihua/data/video/output/video.mp4'
-    # 分辨率 [960, 540], [480, 270], [1920, 1080], [1280, 720] [1269, 540]
-    # resolution = [1269, 540]
-    # resize
-    resize = 0.5
+    output_video = '/home/zhihua/data/video/output/video_audio.mp4'
+    # 分辨率 [960, 540], [480, 270]
+    resolution = [960, 540]
     # # 目标视频的帧率 实际用不到
     fps = 25
-    # 目标视频的起始时间和结束时间
-    start_time = 0
-    end_time = 0
     # 目标视频的分辨率 [3840, 2160], [1920, 1080], [960, 540], [480, 270]
     # target_resolution = [1920, 1080]
     # 模型的路径
@@ -40,7 +35,7 @@
     device = 'cuda'
     # device = 'cpu'
     # batch for anime
-    anime_batch = 16
+    anime_batch = 32
     # batch for high resolution
     hs_batch = 4
     # shuffle
