@@ -382,6 +382,9 @@ class Agent(BasicAgent):
 
     @torch.no_grad()
     def test(self):
+        """a test on the model run on CPU
+        """
+        # recon_data = torch.zeros(self.test_loader.input_shape, dtype=torch.float32, device=self.device)
         recon_data = []
         tqdm_batch = tqdm(self.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.generator.eval()
@@ -391,15 +394,26 @@ class Agent(BasicAgent):
             recon_images = self.generator(input_images)
 
             # save the  images
-            recon_images = recon_images.squeeze().detach().cpu().numpy()
+            recon_images = recon_images.squeeze().detach().cpu()
             recon_data += [*recon_images]
         tqdm_batch.close()
         end_time = timeit.default_timer()
         logger.info("test time: {}".format(end_time - start_time))
         logger.info("test data size: {}".format(len(recon_data)))
-        logger.info("test time on each image: {}".format((end_time - start_time) / len(recon_data)))
+        logger.info("test time on each sample: {}".format((end_time - start_time) / len(recon_data)))
+        logger.info("test time on each 2D image: {}".format((end_time - start_time) / self.test_loader.input_shape[0]))
         # data.shape should be (N, w, d)
-        recon_data = np.stack(recon_data)
+        # recon_data = np.stack(recon_data)
+        # list of tensor to tensor
+        recon_data = torch.stack(recon_data)
+        # rearange the data to (w, d, N)
+        recon_data = rearrange(
+            recon_data, '(n1 n2 n3) b1 b2 b3 -> (n1 b1) (n2 b2) (n3 b3)',
+            n1=self.test_loader.input_shape[0] / config.deepspace.image_size[0],
+            n2=self.test_loader.input_shape[1] / config.deepspace.image_size[1],
+            n3=self.test_loader.input_shape[2] / config.deepspace.image_size[2])
+        # save the reconstructed image
+        recon_data = recon_data.squeeze().detach().cpu().numpy()
         np.save(Path(config.deepspace.test_output_dir) / 'recon.npy', recon_data)
         # logging
         tqdm_batch.close()

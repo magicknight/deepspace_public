@@ -4,7 +4,7 @@ Defect images Data loader, for training on normal images
 from tokenize import generate_tokens
 import numpy as np
 from numpy.lib.arraysetops import isin
-
+import math
 from einops import rearrange
 
 import torch
@@ -107,7 +107,11 @@ class TestDataset(object):
         # get all the image paths
         if shared_array is None:
             self.input_data = np.load(config.deepspace.test_dataset, allow_pickle=True)
+        # patch the input data to size of integer times of patch_size
+        self.input_data = np.pad(self.input_data, ((0, math.ceil(self.input_data.shape[0] / config.deepspace.image_size[0]) * config.deepspace.image_size[0] - self.input_data.shape[0]), (0, 0), (0, 0)), 'constant', constant_values=0)
+        self.input_shape = self.input_data.shape
         self.input_transform = transform
+        # 分解成多个patch
         with torch.no_grad():
             self.input_data = rearrange(self.input_data, '(n1 b1) (n2 b2) (n3 b3) -> (n1 n2 n3) b1 b2 b3', b1=config.deepspace.image_size[0], b2=config.deepspace.image_size[1], b3=config.deepspace.image_size[2])
 
@@ -194,6 +198,7 @@ class Loader:
             test_set = TestDataset(transform=self.test_transform, shared_array=None)
             self.test_loader = DataLoader(test_set, batch_size=config.deepspace.test_batch, shuffle=False, num_workers=config.deepspace.data_loader_workers)
             self.test_iterations = len(test_set) // config.deepspace.test_batch
+            self.input_shape = test_set.input_shape
             # self.test_data = test_set.data
             # self.data_shape = test_set.data_shape
 
