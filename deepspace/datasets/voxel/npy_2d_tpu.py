@@ -96,6 +96,11 @@ class TestDataset(object):
         if shared_array is None:
             self.input_data = np.load(config.deepspace.test_dataset, allow_pickle=True)
             # self.input_data = np.pad(self.input_data, [(0, 0), (0, config.deepspace.image_size[0] - self.input_data[1]), (0, config.deepspace.image_size[1] - self.input_data[2])])
+        # take just a part of the input data if image_range set in config
+        print('input data shape', self.input_data.shape)
+        if 'image_range' in config.deepspace:
+            self.input_data = self.input_data[config.deepspace.image_range[0]:config.deepspace.image_range[1], :, :]
+            print('input data shape', self.input_data.shape)
         self.input_transform = transform
 
     def __getitem__(self, index):

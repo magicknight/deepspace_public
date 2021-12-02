@@ -58,5 +58,24 @@ def get_dataloader(root, batch, normalize_mode=None):
     elif normalize_mode is 'tensorflow':
         normalize = Normalize(mean=[127.5, 127.5, 127.5], std=[127.5, 127.5, 127.5])
     dataset = ImageDataset(root, transforms=normalize)
-    dataloader = DataLoader(dataset, batch_size=batch, shuffle=config.deepspace.shuffle, num_workers=config.deepspace.num_workers)
+    # if train on tpu
+    if config.common.distribute:
+        from torch_xla.core import xla_model
+        from torch.utils.data.distributed import DistributedSampler
+        train_sampler = DistributedSampler(
+            dataset,
+            num_replicas=xla_model.xrt_world_size(),
+            rank=xla_model.get_ordinal(),
+            shuffle=config.deepspace.shuffle,
+        )
+    else:
+        train_sampler = None
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch,
+        shuffle=config.deepspace.shuffle,
+        sampler=train_sampler,
+        drop_last=config.deepspace.drop_last,
+        num_workers=config.deepspace.num_workers,
+    )
     return dataloader

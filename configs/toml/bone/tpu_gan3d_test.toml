@@ -85,11 +85,11 @@
     ##### test ######
     test_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
     test_batch = 16
-    test_output_dir = '/home/zhihua/work/gan3d_tpu/test_output'
+    test_output_dir = '/home/zhihua/work/gan3d_tpu/out'
 
 [common]
     distribute = false
     # log level, can be INFO, WARNING, ERROR..., see python logging
-    log_level = 'WARNING'
+    log_level = 'INFO'
 
 

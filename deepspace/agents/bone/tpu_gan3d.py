@@ -390,6 +390,8 @@ class Agent(BasicAgent):
         self.generator.eval()
         self.discriminator.eval()
         start_time = timeit.default_timer()
+        # for i in range(3600):
+        #     recon_data.append(torch.zeros(config.deepspace.image_size))
         for input_images, index in tqdm_batch:
             recon_images = self.generator(input_images)
 
@@ -401,7 +403,7 @@ class Agent(BasicAgent):
         logger.info("test time: {}".format(end_time - start_time))
         logger.info("test data size: {}".format(len(recon_data)))
         logger.info("test time on each sample: {}".format((end_time - start_time) / len(recon_data)))
-        logger.info("test time on each 2D image: {}".format((end_time - start_time) / self.test_loader.input_shape[0]))
+        logger.info("test time on each 2D image: {}".format((end_time - start_time) / self.data_loader.input_shape[0]))
         # data.shape should be (N, w, d)
         # recon_data = np.stack(recon_data)
         # list of tensor to tensor
@@ -409,9 +411,9 @@ class Agent(BasicAgent):
         # rearange the data to (w, d, N)
         recon_data = rearrange(
             recon_data, '(n1 n2 n3) b1 b2 b3 -> (n1 b1) (n2 b2) (n3 b3)',
-            n1=self.test_loader.input_shape[0] / config.deepspace.image_size[0],
-            n2=self.test_loader.input_shape[1] / config.deepspace.image_size[1],
-            n3=self.test_loader.input_shape[2] / config.deepspace.image_size[2])
+            n1=self.data_loader.input_shape[0] // config.deepspace.image_size[0],
+            n2=self.data_loader.input_shape[1] // config.deepspace.image_size[1],
+            n3=self.data_loader.input_shape[2] // config.deepspace.image_size[2])
         # save the reconstructed image
         recon_data = recon_data.squeeze().detach().cpu().numpy()
         np.save(Path(config.deepspace.test_output_dir) / 'recon.npy', recon_data)

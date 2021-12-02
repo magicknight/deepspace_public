@@ -12,7 +12,6 @@ from tensorboardX import SummaryWriter
 from torchinfo import summary
 
 from deepspace.agents.base import BasicAgent
-from deepspace.graphs.models.autoencoder.ae2dn import ResidualAE
 from deepspace.graphs.models.gan.dis2dn import Discriminator
 from deepspace.graphs.layers.misc.wrapper import Wrapper
 from deepspace.datasets.voxel.npy_2d_tpu import Loader
@@ -29,6 +28,11 @@ if config.deepspace.device == 'tpu':
     from torch_xla.core import xla_model
     from torch_xla.distributed import parallel_loader, xla_multiprocessing
     from torch_xla.test import test_utils
+
+if config.deepspace.mode == 'train':
+    from deepspace.graphs.models.autoencoder.ae2dn import ResidualAE
+else:
+    from deepspace.graphs.models.autoencoder.ae2dn_test import ResidualAE
 
 
 class Agent(BasicAgent):
@@ -379,17 +383,25 @@ class Agent(BasicAgent):
 
     @torch.no_grad()
     def test(self):
+        features = []
         recon_data = []
         tqdm_batch = tqdm(self.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
         self.generator.eval()
         self.discriminator.eval()
         start_time = timeit.default_timer()
         for input_images, index in tqdm_batch:
-            recon_images = self.generator(input_images)
+            recon_images, feature = self.generator(input_images)
 
             # save the  images
             recon_images = recon_images.squeeze().detach().cpu().numpy()
             recon_data += [*recon_images]
+            # tqdm_batch.set_postfix({"recon_images": recon_images[0]})
+            # save the features
+            feature = [f.squeeze().detach().cpu().numpy() for f in feature]
+            features.append(feature)
+            print(len(feature), feature[0].shape, feature[-1].shape)
+            # features += [*feature]
+
         tqdm_batch.close()
         end_time = timeit.default_timer()
         logger.info("test time: {}".format(end_time - start_time))
@@ -398,6 +410,16 @@ class Agent(BasicAgent):
         # data.shape should be (N, w, d)
         recon_data = np.stack(recon_data)
         np.save(Path(config.deepspace.test_output_dir) / 'recon.npy', recon_data)
+        # save features
+        for index in range(len(features[0])):
+            this_feature = [f[index] for f in features]
+            print(this_feature[0].shape)
+            feature_data = []
+            for i in range(len(this_feature)):
+                feature_data += [*this_feature[i]]
+            print(feature_data[0].shape)
+            feature_data = np.stack(feature_data)
+            np.save(Path(config.deepspace.test_output_dir) / 'feature_{}.npy'.format(index), feature_data)
         # logging
         tqdm_batch.close()
 
