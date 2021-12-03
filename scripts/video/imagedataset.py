@@ -21,12 +21,13 @@
 #     writer.close()
 #     cv2.destroyAllWindows()
 #     return
+from imageio import imread
+from matplotlib import transforms
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from torchvision.io import read_image
-from torchvision.transforms import ToTensor, Normalize
-from torchvision.transforms import ToPILImage
+from torchvision.transforms import ToPILImage, ToTensor, Normalize, Compose
 
 from commontools.setup import config, logger
 
@@ -43,7 +44,8 @@ class ImageDataset(Dataset):
         self.logger.info('ImageDataset: {}'.format(self.length))
 
     def __getitem__(self, index):
-        img = read_image(str(self.imgs[index])).to(torch.float32)
+        # img = read_image(str(self.imgs[index])).to(torch.float32)
+        img = imread(str(self.imgs[index]))
         if self.transforms is not None:
             img = self.transforms(img)
         return img, index
@@ -54,10 +56,13 @@ class ImageDataset(Dataset):
 
 def get_dataloader(root, batch, normalize_mode=None):
     if normalize_mode is 'torch':
-        normalize = Normalize(mean=[0, 0, 0], std=[255, 255, 255])
+        # normalize = Normalize(mean=[0, 0, 0], std=[255, 255, 255])
+        normalize = Normalize(mean=[0, 0, 0], std=[1, 1, 1])
     elif normalize_mode is 'tensorflow':
-        normalize = Normalize(mean=[127.5, 127.5, 127.5], std=[127.5, 127.5, 127.5])
-    dataset = ImageDataset(root, transforms=normalize)
+        # normalize = Normalize(mean=[127.5, 127.5, 127.5], std=[127.5, 127.5, 127.5])
+        normalize = Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    transforms = Compose([ToTensor(), normalize, ])
+    dataset = ImageDataset(root, transforms=transforms)
     # if train on tpu
     if config.common.distribute:
         from torch_xla.core import xla_model

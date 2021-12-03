@@ -22,7 +22,7 @@
     # 分辨率 [960, 540], [480, 270], [1920, 1080], [1280, 720] [1269, 540]
     # resolution = [1269, 540]
     # resize
-    resize = 0.5
+    resize = 540
     # # 目标视频的帧率 实际用不到
     fps = 25
     # 目标视频的起始时间和结束时间
@@ -46,7 +46,7 @@
     # shuffle
     shuffle = false
     # number of workers
-    num_workers = 1
+    num_workers = 8
     # seed
     seed = 999
     # drop last

@@ -21,7 +21,7 @@ import torch_xla.distributed.xla_multiprocessing as xmp
 
 from commontools.setup import config, logger
 
-pprint(config)
+# pprint(config)
 # Config
 # 原始视频地址
 # config.deepspace.original_video = '../data/高中教师.mp4'
@@ -61,7 +61,7 @@ def video_to_image():
     if config.deepspace.end_time != 0:
         clip = clip.subclip(config.deepspace.start_time,  config.deepspace.end_time)
     if 'resize' in config.deepspace:
-        clip = clip.resize(config.deepspace.resize)
+        clip = clip.resize(height=config.deepspace.resize)
     clip.write_images_sequence(config.deepspace.original_video_img + '%03d.jpg', fps=config.deepspace.fps)
 
 
@@ -90,34 +90,35 @@ def real_to_anime(index, ):
     torch.manual_seed(config.deepspace.seed)
     # Acquires the (unique) Cloud TPU core corresponding to this process's index
     device = xm.xla_device()
-    print("Process", index, "is using", xm.xla_real_devices([str(device)])[0])
+    logger.info("Process", index, "is using", xm.xla_real_devices([str(device)])[0])
     # Downloads model
     # Note: master goes first and downloads the model only once (xm.rendezvous)
     #   all the other workers wait for the master to be done downloading.
-    if not xm.is_master_ordinal():
-        xm.rendezvous('download_only_once')
+    # if not xm.is_master_ordinal():
+    #     xm.rendezvous('download_only_once')
     model = torch.hub.load("bryandlee/animegan2-pytorch:main", "generator", pretrained=config.deepspace.pretrained)
-    if xm.is_master_ordinal():
-        xm.rendezvous('download_only_once')
+    # if xm.is_master_ordinal():
+    #     xm.rendezvous('download_only_once')
 
     model.to(device).eval()
 
     # 转换后的图片存在numpy array中
     # get data loader
-    # data_loader = get_dataloader(Path(config.deepspace.original_video_img), batch=config.deepspace.anime_batch, normalize_mode='tensorflow')
+    data_loader = get_dataloader(Path(config.deepspace.original_video_img), batch=config.deepspace.anime_batch, normalize_mode='tensorflow')
 
-    # # 开始转换
-    # for images, index in tqdm(data_loader, desc="真实图片转换成动漫图片"):
-    #     # 获取图片
-    #     images = images.to(device)
-    #     # 转换图片
-    #     try:
-    #         result = model(images, False)  # 转换动漫风格
-    #     except Exception as e:
-    #         print(e)
-    #         continue
-    #     # 保存图片
-    #     save_img(result.permute(0, 2, 3, 1).cpu().numpy(), config.deepspace.anime_video_img, index=index.cpu().numpy(), progress_bar=False, color_mode='RGB', normalize_mode='tensorflow')
+    # 开始转换
+    for images, index in tqdm(data_loader, desc="真实图片转换成动漫图片"):
+        # 获取图片
+        images = images.to(device)
+        # 转换图片
+        try:
+            result = model(images, False)  # 转换动漫风格
+        except Exception as e:
+            print(e)
+            continue
+        # 保存图片
+        save_img(result.permute(0, 2, 3, 1).cpu().numpy(), config.deepspace.anime_video_img, index=index.cpu().numpy(), progress_bar=False, color_mode='RGB', normalize_mode='tensorflow')
+    xm.rendezvous('finish_real_to_anime')
     return
 
 
@@ -156,6 +157,7 @@ def anime_to_high_resolution(index):
     # result_array = np.concatenate(result_array, axis=0)
     # 保存图片
     # save_img(result_array, config.deepspace.high_video_img)
+    xm.rendezvous('finish_anime_to_high_resolution')
     return
 
 
@@ -173,7 +175,7 @@ if __name__ == '__main__':
 
     # 第一步：视频->图像
     Path(config.deepspace.original_video_img).mkdir(parents=True, exist_ok=True)
-    # video_to_image()
+    video_to_image()
 
     # 第二步：转换为动漫效果
     Path(config.deepspace.anime_video_img).mkdir(parents=True, exist_ok=True)
