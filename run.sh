@@ -103,7 +103,12 @@
 # python3 main.py --config configs/toml/bone/tpu_gan3d_test.toml
 # python3 main.py --config configs/toml/bone/tpu_gan3d.toml > /home/zhihua/temp/gan3d.log 2>&1 &
 # python3 main.py --config configs/toml/bone/tpu_gan3d_usp.toml > /home/zhihua/temp/gan3d_usp.log 2>&1 &
-
+# python main.py --config configs/toml/bone/tpu_gan3d_break.toml
+# python main.py --config configs/toml/bone/tpu_gan3d_break_test.toml
+# python main.py --config configs/toml/bone/tpu_gan3d_break_aug.toml
+# python main.py --config configs/toml/bone/tpu_gan3d_break_aug_test.toml
+# python main.py --config configs/toml/bone/tpu_ae3d.toml
+# python main.py --config configs/toml/bone/tpu_ae3d_test.toml
 
 # 2d
 # python3 main.py --config configs/toml/bone/tpu_vitae_2d3l1.toml
@@ -115,7 +120,7 @@
 # python3 main.py --config configs/toml/bone/gpu_gan2d.toml
 # python3 main.py --config configs/toml/bone/tpu_gan2d_aug.toml
 
-# python3 main.py --config configs/toml/bone/tpu_gan2d_aug_test.toml
+python3 main.py --config configs/toml/bone/tpu_gan2d_aug_test.toml
 
 # python3 main.py --config configs/toml/bone/tpu_gan2d_unspv.toml
 # python3 main.py --config configs/toml/bone/tpu_gan2d_unspv_test.toml
@@ -127,12 +132,7 @@
 # python main.py --config configs/toml/bone/tpu_sit2d.toml > /home/zhihua/temp/train_sit2d.logs 2>&1 &
 # python main.py --config configs/toml/bone/gan2d.toml
 # python main.py --config configs/toml/bone/gan2d_test.toml
-# python main.py --config configs/toml/bone/tpu_gan3d_break.toml
-# python main.py --config configs/toml/bone/tpu_gan3d_break_test.toml
-# python main.py --config configs/toml/bone/tpu_gan3d_break_aug.toml
-# python main.py --config configs/toml/bone/tpu_gan3d_break_aug_test.toml
-# python main.py --config configs/toml/bone/tpu_ae3d.toml
-# python main.py --config configs/toml/bone/tpu_ae3d_test.toml
+
 # bone data
 # python experiments/bone/tif_to_npy.py --config configs/toml/bone/data_tif_npy.toml 
 
@@ -161,4 +161,4 @@
 
 # video
 # python3 scripts/video/animeGAN.py --config configs/toml/video/animeGAN.toml
-python3 scripts/video/animeGAN_TPU.py --config configs/toml/video/animeGAN_TPU.toml
+# python3 scripts/video/animeGAN_TPU.py --config configs/toml/video/animeGAN_TPU.toml

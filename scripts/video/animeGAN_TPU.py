@@ -7,7 +7,6 @@ import torch
 from moviepy.editor import *
 from tqdm import tqdm
 from pathlib import Path
-import shutil
 from pprint import pprint
 from imageio import imread, imwrite
 
@@ -57,7 +56,7 @@ def video_to_image():
     # 截取视频中的一段时间
     """
     clip = VideoFileClip(config.deepspace.original_video)
-
+    config.deepspace.fps = clip.fps
     if config.deepspace.end_time != 0:
         clip = clip.subclip(config.deepspace.start_time,  config.deepspace.end_time)
     if 'resize' in config.deepspace:
@@ -132,7 +131,10 @@ def anime_to_high_resolution(index):
     device = xm.xla_device()
 
     # Downloads model
+    # 动画模型
     model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=6, num_grow_ch=32, scale=config.deepspace.scale,)
+    # 通用模型
+    # model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=config.deepspace.scale,)
     model.load_state_dict(torch.load(config.deepspace.model_path)['params_ema'], strict=True)
     model.to(device).eval()
 
@@ -179,10 +181,13 @@ if __name__ == '__main__':
 
     # 第二步：转换为动漫效果
     Path(config.deepspace.anime_video_img).mkdir(parents=True, exist_ok=True)
-    xmp.spawn(real_to_anime, args=(), nprocs=8, start_method='fork')
+    if config.deepspace.anime:
+        xmp.spawn(real_to_anime, args=(), nprocs=8, start_method='fork')
+    else:
+        config.deepspace.anime_video_img = config.deepspace.original_video_img
 
     # 第三步：转换为高分辨率图片
-    if 'scale' in config.deepspace and config.deepspace.scale > 1:
+    if config.deepspace.high_resolution and config.deepspace.scale > 1:
         Path(config.deepspace.high_video_img).mkdir(parents=True, exist_ok=True)
         xmp.spawn(anime_to_high_resolution, args=(), nprocs=8, start_method='fork')
     else:
@@ -192,6 +197,6 @@ if __name__ == '__main__':
     image_to_video()
 
     # 第五步：删除临时文件
-    # shutil.rmtree(config.deepspace.original_video_img)
-    # shutil.rmtree(config.deepspace.anime_video_img)
-    # shutil.rmtree(config.deepspace.high_video_img)
+    Path(config.deepspace.original_video_img).unlink(missing_ok=True)
+    Path(config.deepspace.anime_video_img).unlink(missing_ok=True)
+    Path(config.deepspace.high_video_img).unlink(missing_ok=True)
