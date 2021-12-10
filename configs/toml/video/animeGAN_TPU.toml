@@ -7,18 +7,20 @@
     project_root = '/home/zhihua/work'    
 [deepspace]
     # Config
-    # 原始视频地址
-    original_video = '/home/zhihua/data/video/input/video.mp4'
+    # input path
+    input_path = '/home/zhihua/data/video/input/'
+    # 原始视频的路径
+    original_video = ''
     # 提取视频图像的存放地址
     original_video_img = '/home/zhihua/data/video/image/video_img/'
     # 动漫化的图像存放地址
     anime_video_img = '/home/zhihua/data/video/image/video_anime_img/'
     # 高清化的图像存放地址
     high_video_img = '/home/zhihua/data/video/image/video_high_img/'
-    # 合成视频存放地址
-    img2video = '/home/zhihua/data/video/output/video.mp4'
-    # 添加声音后的视频最终输出地址
-    output_video = '/home/zhihua/data/video/output/video.mp4'
+    # output path
+    output_path = '/home/zhihua/data/video/output/'
+    # 视频最终输出的路径
+    output_video = ''
     # 分辨率 [960, 540], [480, 270], [1920, 1080], [1280, 720] [1269, 540]
     # resolution = [1269, 540]
     # resize

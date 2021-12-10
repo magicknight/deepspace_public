@@ -23,4 +23,5 @@
  # @FilePath: /dxray/home/zhihua/framework/deepspace/run.sh
 ###
 
-python3 scripts/video/animeGAN_TPU.py --config configs/toml/video/animeGAN_TPU.toml
+python3 scripts/video/animeGAN_TPU.py --config configs/toml/video/animeGAN_TPU.toml > /home/zhihua/temp/video.log 2>&1&
+
