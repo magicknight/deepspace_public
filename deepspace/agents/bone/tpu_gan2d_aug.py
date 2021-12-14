@@ -1,4 +1,3 @@
-
 import numpy as np
 from tqdm import tqdm
 from pathlib import Path
@@ -18,18 +17,20 @@ from deepspace.datasets.voxel.npy_2d_tpu import Loader
 from deepspace.graphs.weights_initializer import xavier_weights
 from deepspace.utils.metrics import AverageMeter
 from deepspace.utils.data import save_npy
+
 # from deepspace.augmentation.diff_aug_simple import DiffAugment
 from deepspace.graphs.scheduler.scheduler import wrap_optimizer_with_scheduler
 from deepspace.graphs.losses.ssim import SSIM_Loss, SSIM
 
 
 from commontools.setup import config, logger
-if config.deepspace.device == 'tpu':
+
+if config.deepspace.device == "tpu":
     from torch_xla.core import xla_model
     from torch_xla.distributed import parallel_loader, xla_multiprocessing
     from torch_xla.test import test_utils
 
-if config.deepspace.mode == 'train':
+if config.deepspace.mode == "train":
     from deepspace.graphs.models.autoencoder.ae2dn import ResidualAE
 else:
     from deepspace.graphs.models.autoencoder.ae2dn_test import ResidualAE
@@ -40,7 +41,7 @@ class Agent(BasicAgent):
         super().__init__(**kwargs)
 
         # distribute: is master process?
-        if config.deepspace.device == 'tpu':
+        if config.deepspace.device == "tpu":
             self.master = xla_model.is_master_ordinal()
         else:
             self.master = None
@@ -59,7 +60,7 @@ class Agent(BasicAgent):
             fc_sizes=config.deepspace.dis_fc_sizes,
             temporal_strides=config.deepspace.dis_temporal_strides,
             color_channels=config.deepspace.image_channels,
-            latent_activation=nn.Sigmoid()
+            latent_activation=nn.Sigmoid(),
         )
         self.generator = self.generator.to(self.device)
         self.discriminator = self.discriminator.to(self.device)
@@ -74,7 +75,7 @@ class Agent(BasicAgent):
         # define data_loader
         # load dataset with parallel data loader
         self.data_loader = Loader(shared_array=self.shared_array)
-        if config.deepspace.mode == 'train':
+        if config.deepspace.mode == "train":
             self.train_loader = parallel_loader.MpDeviceLoader(
                 loader=self.data_loader.train_loader,
                 device=self.device,
@@ -91,7 +92,7 @@ class Agent(BasicAgent):
                 device_prefetch_size=config.deepspace.device_prefetch_size,
             )
             self.valid_iterations = self.data_loader.valid_iterations
-        elif config.deepspace.mode == 'test':
+        elif config.deepspace.mode == "test":
             if config.common.distribute:
                 self.test_loader = parallel_loader.MpDeviceLoader(
                     loader=self.data_loader.test_loader,
@@ -110,8 +111,16 @@ class Agent(BasicAgent):
         # def lambda1(epoch): return pow(1 - epoch / config.deepspace.max_epoch, config.deepspace.lr_decay)
         # self.scheduler_gen = lr_scheduler.ExponentialLR(self.optimizer_gen, gamma=config.deepspace.lr_decay)
         # self.scheduler_dis = lr_scheduler.ExponentialLR(self.optimizer_dis, gamma=config.deepspace.lr_decay)
-        self.scheduler_gen = lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer_gen, T_0=config.deepspace.T_0, T_mult=config.deepspace.T_mult, )
-        self.scheduler_dis = lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer_dis, T_0=config.deepspace.T_0, T_mult=config.deepspace.T_mult, )
+        self.scheduler_gen = lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer_gen,
+            T_0=config.deepspace.T_0,
+            T_mult=config.deepspace.T_mult,
+        )
+        self.scheduler_dis = lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer_dis,
+            T_0=config.deepspace.T_0,
+            T_mult=config.deepspace.T_mult,
+        )
         # self.scheduler_gen = wrap_optimizer_with_scheduler(
         #     self.optimizer_gen,
         #     scheduler_type=config.deepspace.scheduler,
@@ -146,10 +155,20 @@ class Agent(BasicAgent):
 
         if self.master:
             # Tensorboard Writer
-            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment='bone gan2d npy on tpu')
+            self.summary_writer = SummaryWriter(log_dir=config.swap.summary_dir, comment="bone gan2d npy on tpu")
             # add model to tensorboard and print parameter to screen
-            summary(self.generator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
-            summary(self.discriminator, (1, config.deepspace.image_channels, *config.deepspace.image_size), device=self.device, depth=6)
+            summary(
+                self.generator,
+                (1, config.deepspace.image_channels, *config.deepspace.image_size),
+                device=self.device,
+                depth=6,
+            )
+            summary(
+                self.discriminator,
+                (1, config.deepspace.image_channels, *config.deepspace.image_size),
+                device=self.device,
+                depth=6,
+            )
             # add graph to tensorboard only if at epoch 0
             if self.current_epoch == 0:
                 dummy_input = torch.randn(1, config.deepspace.image_channels, *config.deepspace.image_size).to(self.device)
@@ -157,8 +176,14 @@ class Agent(BasicAgent):
                 self.summary_writer.add_graph(wrapper, (dummy_input), verbose=False)
 
         self.checkpoint = [
-            'current_epoch', 'current_iteration', 'generator.state_dict',  'discriminator.state_dict',
-            'optimizer_gen.state_dict', 'optimizer_dis.state_dict', 'scheduler_gen.state_dict', 'scheduler_dis.state_dict'
+            "current_epoch",
+            "current_iteration",
+            "generator.state_dict",
+            "discriminator.state_dict",
+            "optimizer_gen.state_dict",
+            "optimizer_dis.state_dict",
+            "scheduler_gen.state_dict",
+            "scheduler_dis.state_dict",
         ]
 
         # Model Loading from the latest checkpoint if not found start from scratch.
@@ -170,11 +195,11 @@ class Agent(BasicAgent):
         :return:
         """
         for epoch in range(self.current_epoch, config.deepspace.max_epoch):
-            xla_model.master_print('Epoch {} train begin {}'.format(epoch, test_utils.now()))
+            xla_model.master_print("Epoch {} train begin {}".format(epoch, test_utils.now()))
             self.current_epoch = epoch
             train_gen_loss, train_dis_loss = self.train_one_epoch()
-            xla_model.master_print('Epoch {} train end {}'.format(epoch, test_utils.now()))
-            if 'validate_step' in config.deepspace and self.current_epoch % config.deepspace.validate_step != 0:
+            xla_model.master_print("Epoch {} train end {}".format(epoch, test_utils.now()))
+            if "validate_step" in config.deepspace and self.current_epoch % config.deepspace.validate_step != 0:
                 continue
             valid_gen_loss, valid_dis_loss = self.validate()
             self.scheduler_gen.step()
@@ -188,7 +213,11 @@ class Agent(BasicAgent):
             if self.current_epoch % config.deepspace.backup_model_step == 0:
                 backup_checkpoint = True
             if self.current_epoch % config.deepspace.save_model_step == 0:
-                self.save_checkpoint(config.deepspace.checkpoint_file,  is_best=is_best, backup_checkpoint=backup_checkpoint)
+                self.save_checkpoint(
+                    config.deepspace.checkpoint_file,
+                    is_best=is_best,
+                    backup_checkpoint=backup_checkpoint,
+                )
 
     def train_one_epoch(self):
         """
@@ -201,7 +230,7 @@ class Agent(BasicAgent):
         tqdm_batch = tqdm(
             self.train_loader,
             total=self.train_iterations // xla_model.xrt_world_size(),
-            desc="train on Epoch-{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
+            desc="train on Epoch-{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch),
         )
         # Set the model to be in training mode (for batchnorm)
         self.generator.train()
@@ -224,13 +253,13 @@ class Agent(BasicAgent):
             self.optimizer_dis.zero_grad()
             # out_labels_normal = self.discriminator(DiffAugment(target_images, policy=config.deepspace.policy))
             out_labels_normal = self.discriminator(target_images)
-            dis_loss_normal = self.dis_loss(out_labels_normal, self.real_labels[0:target_images.shape[0]])
+            dis_loss_normal = self.dis_loss(out_labels_normal, self.real_labels[0 : target_images.shape[0]])
 
             # 1.2 train the discriminator with fake data---
             fake_images = self.generator(input_images)
             # out_labels_fake = self.discriminator(DiffAugment(fake_images, policy=config.deepspace.policy))
             out_labels_fake = self.discriminator(fake_images)
-            dis_loss_fake = self.dis_loss(out_labels_fake, self.fake_labels[0:input_images.shape[0]])
+            dis_loss_fake = self.dis_loss(out_labels_fake, self.fake_labels[0 : input_images.shape[0]])
 
             # calculate total loss
             dis_loss = dis_loss_normal + dis_loss_fake
@@ -249,7 +278,7 @@ class Agent(BasicAgent):
             # out_labels = self.discriminator(DiffAugment(fake_images, policy=config.deepspace.policy))
             out_labels = self.discriminator(fake_images)
             # fake labels are real for generator cost
-            gen_dis_loss = self.dis_loss(out_labels, self.real_labels[0:input_images.shape[0]])
+            gen_dis_loss = self.dis_loss(out_labels, self.real_labels[0 : input_images.shape[0]])
             gen_loss = (1 - config.deepspace.loss_weight) * gen_dis_loss + config.deepspace.loss_weight * gen_image_loss
             gen_loss.backward()
             # Update weights with gradients: optimizer step and update loss to averager
@@ -276,22 +305,65 @@ class Agent(BasicAgent):
         # logging
         if self.master:
             self.summary_writer.add_scalar("epoch_training/gen_loss", gen_epoch_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_training/gen_dis_loss", gen_epoch_dis_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_training/gen_image_loss", gen_epoch_image_loss.val, self.current_epoch)
+            self.summary_writer.add_scalar(
+                "epoch_training/gen_dis_loss",
+                gen_epoch_dis_loss.val,
+                self.current_epoch,
+            )
+            self.summary_writer.add_scalar(
+                "epoch_training/gen_image_loss",
+                gen_epoch_image_loss.val,
+                self.current_epoch,
+            )
             self.summary_writer.add_scalar("epoch_training/dis_loss", dis_epoch_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_training/dis_normal_loss", dis_epoch_normal_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_training/dis_fake_loss", dis_epoch_fake_loss.val, self.current_epoch)
+            self.summary_writer.add_scalar(
+                "epoch_training/dis_normal_loss",
+                dis_epoch_normal_loss.val,
+                self.current_epoch,
+            )
+            self.summary_writer.add_scalar(
+                "epoch_training/dis_fake_loss",
+                dis_epoch_fake_loss.val,
+                self.current_epoch,
+            )
         # print info
-        xla_model.master_print("Training Results at epoch-" + str(self.current_epoch)
-                               + "\n" + "--------------------------------"
-                               + "\n" + "gen_loss: " + str(gen_epoch_loss.val)
-                               + "\n" + "- gen_image_loss: " + str(gen_epoch_image_loss.val)
-                               + "\n" + "- gen_dis_loss: " + str(gen_epoch_dis_loss.val)
-                               + "\n" + "--------------------------------"
-                               + "\n" + "dis_loss: " + str(dis_epoch_loss.val)
-                               + "\n" + "- dis_normal_loss: " + str(dis_epoch_normal_loss.val)
-                               + "\n" + "- dis_fake_loss: " + str(dis_epoch_fake_loss.val))
-        xla_model.add_step_closure(self.train_update, args=(self.device, self.current_iteration, gen_epoch_loss, tracker, self.current_epoch, self.summary_writer))
+        xla_model.master_print(
+            "Training Results at epoch-"
+            + str(self.current_epoch)
+            + "\n"
+            + "--------------------------------"
+            + "\n"
+            + "gen_loss: "
+            + str(gen_epoch_loss.val)
+            + "\n"
+            + "- gen_image_loss: "
+            + str(gen_epoch_image_loss.val)
+            + "\n"
+            + "- gen_dis_loss: "
+            + str(gen_epoch_dis_loss.val)
+            + "\n"
+            + "--------------------------------"
+            + "\n"
+            + "dis_loss: "
+            + str(dis_epoch_loss.val)
+            + "\n"
+            + "- dis_normal_loss: "
+            + str(dis_epoch_normal_loss.val)
+            + "\n"
+            + "- dis_fake_loss: "
+            + str(dis_epoch_fake_loss.val)
+        )
+        xla_model.add_step_closure(
+            self.train_update,
+            args=(
+                self.device,
+                self.current_iteration,
+                gen_epoch_loss,
+                tracker,
+                self.current_epoch,
+                self.summary_writer,
+            ),
+        )
         if torch.isnan(gen_epoch_loss.avg) or torch.isnan(dis_epoch_loss.avg):
             raise ValueError("NaN detected!")
         return gen_epoch_loss.val, dis_epoch_loss.val
@@ -303,7 +375,7 @@ class Agent(BasicAgent):
             self.valid_loader,
             total=self.valid_iterations // xla_model.xrt_world_size(),
             # desc="validate at -{epoch}- on device- {device}/{ordinal}".format(epoch=self.current_epoch, device=self.device, ordinal=xla_model.get_ordinal())
-            desc="validate at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch)
+            desc="validate at -{epoch}/{max_epoch}-".format(epoch=self.current_epoch, max_epoch=config.deepspace.max_epoch),
         )
         self.generator.eval()
         self.discriminator.eval()
@@ -322,15 +394,15 @@ class Agent(BasicAgent):
             # test discriminator
             recon_images = self.generator(input_images)
             fake_labels = self.discriminator(recon_images)
-            dis_fake_loss = self.dis_loss(fake_labels, self.fake_labels[0:input_images.shape[0]])
+            dis_fake_loss = self.dis_loss(fake_labels, self.fake_labels[0 : input_images.shape[0]])
             normal_labels = self.discriminator(target_images)
-            dis_normal_loss = self.dis_loss(normal_labels, self.real_labels[0:input_images.shape[0]])
+            dis_normal_loss = self.dis_loss(normal_labels, self.real_labels[0 : input_images.shape[0]])
             dis_loss = dis_fake_loss + dis_normal_loss
             dis_epoch_fake_loss.update(dis_fake_loss)
             dis_epoch_normal_loss.update(dis_normal_loss)
             dis_epoch_loss.update(dis_loss)
             # test generator
-            gen_dis_loss = self.dis_loss(fake_labels, self.real_labels[0:input_images.shape[0]])
+            gen_dis_loss = self.dis_loss(fake_labels, self.real_labels[0 : input_images.shape[0]])
             gen_image_loss = self.image_loss(recon_images, target_images)
             gen_epoch_dis_loss.update(gen_dis_loss)
             gen_epoch_image_loss.update(gen_image_loss)
@@ -352,54 +424,103 @@ class Agent(BasicAgent):
         # logging
         if self.master:
             self.summary_writer.add_scalar("epoch_validate/gen_loss", gen_epoch_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_validate/gen_dis_loss", gen_epoch_dis_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_validate/gen_image_loss", gen_epoch_image_loss.val, self.current_epoch)
+            self.summary_writer.add_scalar(
+                "epoch_validate/gen_dis_loss",
+                gen_epoch_dis_loss.val,
+                self.current_epoch,
+            )
+            self.summary_writer.add_scalar(
+                "epoch_validate/gen_image_loss",
+                gen_epoch_image_loss.val,
+                self.current_epoch,
+            )
             self.summary_writer.add_scalar("epoch_validate/dis_loss", dis_epoch_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_validate/dis_normal_loss", dis_epoch_normal_loss.val, self.current_epoch)
-            self.summary_writer.add_scalar("epoch_validate/dis_fake_loss", dis_epoch_fake_loss.val, self.current_epoch)
+            self.summary_writer.add_scalar(
+                "epoch_validate/dis_normal_loss",
+                dis_epoch_normal_loss.val,
+                self.current_epoch,
+            )
+            self.summary_writer.add_scalar(
+                "epoch_validate/dis_fake_loss",
+                dis_epoch_fake_loss.val,
+                self.current_epoch,
+            )
             # save reconstruct image to tensorboard
             if self.current_epoch % config.deepspace.save_image_step == 0:
                 recon_images_sample = torch.cat(recon_images_sample).detach().cpu().numpy()
                 target_images_sample = torch.cat(target_images_sample).detach().cpu().numpy()
                 input_images_sample = torch.cat(input_images_sample).detach().cpu().numpy()
                 recon_canvas = make_grid(recon_images_sample)
-                self.summary_writer.add_image('recon_images', recon_canvas, self.current_epoch)
+                self.summary_writer.add_image("recon_images", recon_canvas, self.current_epoch)
                 input_canvas = make_grid(target_images_sample)
-                self.summary_writer.add_image('target_images', input_canvas, self.current_epoch)
+                self.summary_writer.add_image("target_images", input_canvas, self.current_epoch)
                 defect_canvas = make_grid(input_images_sample)
-                self.summary_writer.add_image('input_images', defect_canvas, self.current_epoch)
+                self.summary_writer.add_image("input_images", defect_canvas, self.current_epoch)
             # print info
-        xla_model.master_print("validate Results at epoch-" + str(self.current_epoch)
-                               + "\n" + "--------------------------------"
-                               + "\n" + ' gen_loss: ' + str(gen_epoch_loss.val)
-                               + "\n" + '- gen_image_loss: ' + str(gen_epoch_image_loss.val)
-                               + "\n" + '- gen_dis_loss: ' + str(gen_epoch_dis_loss.val)
-                               + "\n" + "--------------------------------"
-                               + "\n" + ' dis_loss: ' + str(dis_epoch_loss.val)
-                               + "\n" + '- dis_normal_loss: ' + str(dis_epoch_normal_loss.val)
-                               + "\n" + '- dis_fake_loss: ' + str(dis_epoch_fake_loss.val))
-        xla_model.add_step_closure(self.test_update, args=(self.device, self.current_iteration, gen_epoch_loss, self.current_epoch))
+        xla_model.master_print(
+            "validate Results at epoch-"
+            + str(self.current_epoch)
+            + "\n"
+            + "--------------------------------"
+            + "\n"
+            + " gen_loss: "
+            + str(gen_epoch_loss.val)
+            + "\n"
+            + "- gen_image_loss: "
+            + str(gen_epoch_image_loss.val)
+            + "\n"
+            + "- gen_dis_loss: "
+            + str(gen_epoch_dis_loss.val)
+            + "\n"
+            + "--------------------------------"
+            + "\n"
+            + " dis_loss: "
+            + str(dis_epoch_loss.val)
+            + "\n"
+            + "- dis_normal_loss: "
+            + str(dis_epoch_normal_loss.val)
+            + "\n"
+            + "- dis_fake_loss: "
+            + str(dis_epoch_fake_loss.val)
+        )
+        xla_model.add_step_closure(
+            self.test_update,
+            args=(
+                self.device,
+                self.current_iteration,
+                gen_epoch_loss,
+                self.current_epoch,
+            ),
+        )
         return gen_epoch_loss.val, dis_epoch_loss.val
 
     @torch.no_grad()
     def test(self):
-        features = []
+        features_encode = []
+        features_decode = []
         recon_data = []
-        tqdm_batch = tqdm(self.test_loader, total=self.data_loader.test_iterations, desc="test at -{}-".format(self.current_epoch))
+        tqdm_batch = tqdm(
+            self.test_loader,
+            total=self.data_loader.test_iterations,
+            desc="test at -{}-".format(self.current_epoch),
+        )
         self.generator.eval()
         self.discriminator.eval()
         start_time = timeit.default_timer()
         for input_images, index in tqdm_batch:
-            recon_images, feature = self.generator(input_images)
+            recon_images, feature_encode, feature_decode = self.generator(input_images)
 
             # save the  images
             recon_images = recon_images.squeeze().detach().cpu().numpy()
             recon_data += [*recon_images]
             # tqdm_batch.set_postfix({"recon_images": recon_images[0]})
             # save the features
-            feature = [f.squeeze().detach().cpu().numpy() for f in feature]
-            features.append(feature)
-            print(len(feature), feature[0].shape, feature[-1].shape)
+            feature_encode = [f.squeeze().detach().cpu().numpy() for f in feature_encode]
+            feature_decode = [f.squeeze().detach().cpu().numpy() for f in feature_decode]
+            features_encode.append(feature_encode)
+            features_decode.append(feature_decode)
+            print(len(feature_encode), feature_encode[0].shape, feature_encode[-1].shape)
+            print(len(feature_decode), feature_decode[0].shape, feature_decode[-1].shape)
             # features += [*feature]
 
         tqdm_batch.close()
@@ -409,17 +530,10 @@ class Agent(BasicAgent):
         logger.info("test time on each image: {}".format((end_time - start_time) / len(recon_data)))
         # data.shape should be (N, w, d)
         recon_data = np.stack(recon_data)
-        np.save(Path(config.deepspace.test_output_dir) / 'recon.npy', recon_data)
+        np.save(Path(config.deepspace.test_output_dir) / "recon.npy", recon_data)
         # save features
-        for index in range(len(features[0])):
-            this_feature = [f[index] for f in features]
-            print(this_feature[0].shape)
-            feature_data = []
-            for i in range(len(this_feature)):
-                feature_data += [*this_feature[i]]
-            print(feature_data[0].shape)
-            feature_data = np.stack(feature_data)
-            np.save(Path(config.deepspace.test_output_dir) / 'feature_{}.npy'.format(index), feature_data)
+        self.save_features(features_encode, "encode")
+        self.save_features(features_decode, "decode")
         # logging
         tqdm_batch.close()
 
@@ -431,11 +545,24 @@ class Agent(BasicAgent):
             tracker.rate(),
             tracker.global_rate(),
             epoch,
-            summary_writer=writer)
+            summary_writer=writer,
+        )
 
     def test_update(self, device, step, loss, epoch):
-        test_utils.print_test_update(
-            device,
-            1.0 - loss.val,
-            epoch,
-            step)
+        test_utils.print_test_update(device, 1.0 - loss.val, epoch, step)
+
+    @torch.no_grad()
+    def save_features(features, name):
+        """save features to files"""
+        for index in range(len(features[0])):
+            this_feature = [f[index] for f in features]
+            print(this_feature[0].shape)
+            feature_data = []
+            for i in range(len(this_feature)):
+                feature_data += [*this_feature[i]]
+            print(feature_data[0].shape)
+            feature_data = np.stack(feature_data)
+            np.save(
+                Path(config.deepspace.test_output_dir) / "feature_{}_{}.npy".format(index, name),
+                feature_data,
+            )

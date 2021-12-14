@@ -12,7 +12,7 @@
     # which device to use, can be 'gpu', 'tpu', or 'cpu'
     device = 'cpu'     
     # distribute setting
-    world_size = 8
+    world_size = 1
     # random seed
     seed = 999
     # Learning rate, can be a float number like 0.001 or a list, like [0.1, 0.001, 1e-6]
@@ -84,8 +84,10 @@
 
     ##### test ######
     test_dataset = '/home/zhihua/gcs/deepspace/bone/npy/aligned_LQ.npy'
-    test_batch = 16
+    test_batch = 128
     test_output_dir = '/home/zhihua/work/gan3d_tpu/out'
+    # select part of the data
+    image_range = [1000, 1128]
 
 [common]
     distribute = false

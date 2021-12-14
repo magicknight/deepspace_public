@@ -8,7 +8,8 @@
 [deepspace]
     # Config
     # input path
-    input_path = '/home/zhihua/data/video/input/'
+    # input_path = '/home/zhihua/data/video/input/'
+    input_path = '/home/zhihua/data/video/temp/'
     # 原始视频的路径
     original_video = ''
     # 提取视频图像的存放地址
@@ -18,7 +19,8 @@
     # 高清化的图像存放地址
     high_video_img = '/home/zhihua/data/video/image/video_high_img/'
     # output path
-    output_path = '/home/zhihua/data/video/output/'
+    # output_path = '/home/zhihua/data/video/output/'
+    output_path = '/home/zhihua/data/video/temp/'
     # 视频最终输出的路径
     output_video = ''
     # 分辨率 [960, 540], [480, 270], [1920, 1080], [1280, 720] [1269, 540]
@@ -46,7 +48,7 @@
     # batch for anime
     anime_batch = 16
     # batch for high resolution
-    hs_batch = 2
+    hs_batch = 1
     # shuffle
     shuffle = false
     # number of workers
@@ -62,6 +64,11 @@
     high_resolution = true
     # 放大倍数
     scale = 4
+
+    # 是否添加水印
+    watermark = true
+    # 水印的路径
+    watermark_path = '/home/zhihua/data/video/assets/logo.png'
 
 [common]
     distribute = true

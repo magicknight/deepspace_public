@@ -25,4 +25,4 @@
 ###
 
 
-rsync -Pav --delete -e "ssh -i $HOME/.ssh/google_compute_engine" . zhihua@10.164.0.18:/home/zhihua/framework/deepspace
+rsync -Pav --delete -e "ssh -i $HOME/.ssh/google_compute_engine" . zhihua@10.164.0.41:/home/zhihua/framework/deepspace/

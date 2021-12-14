@@ -200,8 +200,8 @@ def anime_to_high_resolution(index):
     # result_array = np.concatenate(result_array, axis=0)
     # 保存图片
     # save_img(result_array, config.deepspace.high_video_img)
-    # xm.rendezvous("finish_anime_to_high_resolution")
-    xm.rendezvous(config.deepspace.original_video)
+    xm.rendezvous("finish_anime_to_high_resolution")
+    # xm.rendezvous(Path(config.deepspace.original_video).stem)
     return
 
 
@@ -217,39 +217,64 @@ def cut_video():
     # config.deepspace.original_video = str(video_path.parent / (video_path.stem + '_cut.mp4'))
 
 
+def watermark():
+    """
+    # 添加水印
+    """
+    video_path = Path(config.deepspace.output_video)
+    video_clip = VideoFileClip(config.deepspace.output_video)
+    watermark_clip = (
+        ImageClip(config.deepspace.watermark_path, transparent=True)
+        .set_duration(video_clip.duration)
+        .resize(height=video_clip.size[1] // 8, width=video_clip.size[0] // 8)
+        .margin(left=int(video_clip.size[0] * 0.91), opacity=0)
+    )
+    video_clip = CompositeVideoClip([video_clip, watermark_clip])
+    video_clip.write_videofile(str(video_path.parent / (video_path.stem + "_wm.mp4")))
+    # config.deepspace.original_video = str(video_path.parent / (video_path.stem + '_wm.mp4'))
+
+
 def process_video():
-    """process video"""
-    # 第一步：视频->图像
-    Path(config.deepspace.original_video_img).mkdir(parents=True, exist_ok=True)
-    video_to_image()
-    logger.info("视频->图像完成")
+    # """process video"""
+    # # 第一步：视频->图像
+    # Path(config.deepspace.original_video_img).mkdir(parents=True, exist_ok=True)
+    # video_to_image()
+    # logger.info("视频->图像完成")
 
-    # 第二步：转换为动漫效果
-    Path(config.deepspace.anime_video_img).mkdir(parents=True, exist_ok=True)
-    if config.deepspace.anime:
-        xmp.spawn(real_to_anime, args=(), nprocs=8, start_method="fork")
-    else:
-        config.deepspace.anime_video_img = config.deepspace.original_video_img
-    logger.info("转换为动漫效果完成")
+    # # 第二步：转换为动漫效果
+    # Path(config.deepspace.anime_video_img).mkdir(parents=True, exist_ok=True)
+    # if config.deepspace.anime:
+    #     xmp.spawn(real_to_anime, args=(), nprocs=8, start_method="fork")
+    # else:
+    #     config.deepspace.anime_video_img = config.deepspace.original_video_img
+    # logger.info("转换为动漫效果完成")
 
-    # 第三步：转换为高分辨率图片
-    if config.deepspace.high_resolution and config.deepspace.scale > 1:
-        Path(config.deepspace.high_video_img).mkdir(parents=True, exist_ok=True)
-        xmp.spawn(anime_to_high_resolution, args=(), nprocs=8, start_method="fork")
-    else:
-        config.deepspace.high_video_img = config.deepspace.anime_video_img
-    logger.info("转换为高分辨率图片完成")
+    # # 第三步：转换为高分辨率图片
+    # if config.deepspace.high_resolution and config.deepspace.scale > 1:
+    #     Path(config.deepspace.high_video_img).mkdir(parents=True, exist_ok=True)
+    #     xmp.spawn(anime_to_high_resolution, args=(), nprocs=8, start_method="fork")
+    # else:
+    #     config.deepspace.high_video_img = config.deepspace.anime_video_img
+    # logger.info("转换为高分辨率图片完成")
 
-    # 第四步：合成视频
-    image_to_video()
-    logger.info("合成视频完成")
+    # # 第四步：合成视频
+    # image_to_video()
+    # logger.info("合成视频完成")
+
+    # 第五步：添加水印
+    if config.deepspace.watermark:
+        watermark()
+        logger.info("添加水印完成")
 
     # 第五步：删除临时文件
-    shutil.rmtree(Path(config.deepspace.original_video_img))
-    if config.deepspace.anime:
-        shutil.rmtree(Path(config.deepspace.anime_video_img))
-    shutil.rmtree(Path(config.deepspace.high_video_img))
-    logger.info("删除临时文件完成")
+    # try:
+    #     shutil.rmtree(Path(config.deepspace.original_video_img))
+    #     if config.deepspace.anime:
+    #         shutil.rmtree(Path(config.deepspace.anime_video_img))
+    #     shutil.rmtree(Path(config.deepspace.high_video_img))
+    # except Exception as e:
+    #     logger.error(e)
+    # logger.info("删除临时文件完成")
 
 
 if __name__ == "__main__":

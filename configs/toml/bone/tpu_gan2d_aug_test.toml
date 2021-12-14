@@ -24,9 +24,7 @@
     T_0 = 8
     T_mult = 2
     lr_decay = 0.999
-    scheduler = 'WarmupAndExponentialDecayScheduler'
-    scheduler_divisor = 5
-    scheduler_divide_every_n_epochs = 20  
+    
     # image loss and dis loss weight
     loss_weight = 0.999999
     # max epoches to for training.
