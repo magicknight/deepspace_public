@@ -100,7 +100,9 @@
 # python main.py --config configs/toml/bone/tpu_sit3d.toml
 # XLA_USE_F16=0 python main.py --config configs/toml/bone/tpu_sit3d_test.toml
 # python3 main.py --config configs/toml/bone/tpu_gan3d.toml
+
 # python3 main.py --config configs/toml/bone/tpu_gan3d_test.toml
+
 # python3 main.py --config configs/toml/bone/tpu_gan3d.toml > /home/zhihua/temp/gan3d.log 2>&1 &
 # python3 main.py --config configs/toml/bone/tpu_gan3d_usp.toml > /home/zhihua/temp/gan3d_usp.log 2>&1 &
 # python main.py --config configs/toml/bone/tpu_gan3d_break.toml

@@ -87,7 +87,7 @@
     test_batch = 128
     test_output_dir = '/home/zhihua/work/gan3d_tpu/out'
     # select part of the data
-    image_range = [1000, 1128]
+    image_range = [500, 628]
 
 [common]
     distribute = false

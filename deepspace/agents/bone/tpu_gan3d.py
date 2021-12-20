@@ -568,7 +568,7 @@ class Agent(BasicAgent):
         test_utils.print_test_update(device, 1.0 - loss.val, epoch, step)
 
     @torch.no_grad()
-    def save_features(features, name):
+    def save_features(self, features, name):
         """save features to files"""
         for index in range(len(features[0])):
             this_feature = [f[index] for f in features]
@@ -576,7 +576,7 @@ class Agent(BasicAgent):
             feature_data = []
             for i in range(len(this_feature)):
                 feature_data += [*this_feature[i]]
-            print(feature_data[0].shape)
+            print(name, feature_data[0].shape)
             feature_data = np.stack(feature_data)
             np.save(
                 Path(config.deepspace.test_output_dir) / "feature_{}_{}.npy".format(index, name),

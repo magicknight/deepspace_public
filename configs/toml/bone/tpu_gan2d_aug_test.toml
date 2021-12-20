@@ -98,7 +98,7 @@
     test_batch = 128
     test_output_dir = '/home/zhihua/work/tpu_gan2d_aug_npy/out'
     # select part of the data
-    image_range = [1000, 1128]
+    image_range = [100, 228]
 
 
 [common]

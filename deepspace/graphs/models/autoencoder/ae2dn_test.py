@@ -2,6 +2,7 @@
 This is a test version of the autoencoder.
 This version returns the output of each encoder layer.
 """
+from pyexpat import features
 import torch
 from torch import nn
 from einops import rearrange
@@ -75,14 +76,10 @@ class DecoderBlock(nn.Module):
             ),
             nn.BatchNorm2d(out_channels),
             nn.GELU(),
-            nn.ConvTranspose2d(
-                out_channels, out_channels, kernel_size=3, stride=1, padding=1
-            ),
+            nn.ConvTranspose2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.GELU(),
-            nn.ConvTranspose2d(
-                out_channels, out_channels, kernel_size=3, stride=1, padding=1
-            ),
+            nn.ConvTranspose2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             # nn.Tanh()
         )
@@ -108,34 +105,15 @@ def fc_layer(in_features, out_features, activation=None, batchnorm=True):
 
 
 class ResidualAE(nn.Module):
-    def __init__(
-        self,
-        input_shape,
-        encoder_sizes,
-        fc_sizes,
-        *,
-        temporal_strides,
-        color_channels=1,
-        latent_activation=None,
-        decoder_sizes=None
-    ):
+    def __init__(self, input_shape, encoder_sizes, fc_sizes, *, temporal_strides, color_channels=1, latent_activation=None, decoder_sizes=None):
         super().__init__()
 
-        decoder_sizes = (
-            list(decoder_sizes)
-            if decoder_sizes is not None
-            else list(reversed(encoder_sizes))
-        )
+        decoder_sizes = list(decoder_sizes) if decoder_sizes is not None else list(reversed(encoder_sizes))
 
         conv_dims = list(zip([color_channels, *encoder_sizes], encoder_sizes))
         temporal_strides = list(temporal_strides)
         assert len(temporal_strides) == len(conv_dims)
-        self.conv_encoder = nn.Sequential(
-            *[
-                EncoderBlock(d_in, d_out, temporal_stride=ts)
-                for (d_in, d_out), ts in zip(conv_dims, temporal_strides)
-            ]
-        )
+        self.conv_encoder = nn.Sequential(*[EncoderBlock(d_in, d_out, temporal_stride=ts) for (d_in, d_out), ts in zip(conv_dims, temporal_strides)])
 
         self.input_shape = (color_channels, *input_shape)
         with torch.no_grad():
@@ -147,26 +125,12 @@ class ResidualAE(nn.Module):
         self.first_fc_size = c * w * h
 
         fc_dims = list(zip([self.first_fc_size, *fc_sizes], fc_sizes))
-        self.fc_encoder = nn.Sequential(
-            *[fc_layer(*d, activation=nn.GELU()) for d in fc_dims[:-1]],
-            fc_layer(*fc_dims[-1], activation=latent_activation, batchnorm=False)
-        )
+        self.fc_encoder = nn.Sequential(*[fc_layer(*d, activation=nn.GELU()) for d in fc_dims[:-1]], fc_layer(*fc_dims[-1], activation=latent_activation, batchnorm=False))
         # self.embedding_dim = fc_sizes[-1]
 
-        self.fc_decoder = nn.Sequential(
-            *[
-                fc_layer(d_out, d_in, activation=nn.GELU())
-                for d_in, d_out in reversed(fc_dims)
-            ]
-        )
+        self.fc_decoder = nn.Sequential(*[fc_layer(d_out, d_in, activation=nn.GELU()) for d_in, d_out in reversed(fc_dims)])
         conv_dims = list(zip(decoder_sizes, [*(decoder_sizes[1:]), color_channels]))
-        self.conv_decoder = nn.Sequential(
-            *[
-                DecoderBlock(d_in, d_out, temporal_stride=ts)
-                for (d_in, d_out), ts in zip(conv_dims, reversed(temporal_strides))
-            ],
-            nn.Sigmoid()
-        )
+        self.conv_decoder = nn.Sequential(*[DecoderBlock(d_in, d_out, temporal_stride=ts) for (d_in, d_out), ts in zip(conv_dims, reversed(temporal_strides))], nn.Sigmoid())
 
     def encode(self, x):
         features = []
@@ -178,16 +142,20 @@ class ResidualAE(nn.Module):
         return x, features
 
     def decode(self, x):
-        y = self.fc_decoder(x)
-        y = rearrange(
-            y,
+        features = []
+        x = self.fc_decoder(x)
+        x = rearrange(
+            x,
             "b (c w h) -> b c w h",
             c=self.intermediate_size[0],
             w=self.intermediate_size[1],
             h=self.intermediate_size[2],
         )
-        y = self.conv_decoder(y)
-        return y
+        # x = self.conv_decoder(x)
+        for layer in self.conv_decoder:
+            x = layer(x)
+            features.append(x)
+        return x, features
 
     def forward(self, x):
         """
@@ -197,9 +165,9 @@ class ResidualAE(nn.Module):
         >>> tuple(y.shape)
         (2, 4, 64, 64)
         """
-        x, features = self.encode(x)
-        x = self.decode(x)
-        return x, features
+        x, features_encode = self.encode(x)
+        x, features_decode = self.decode(x)
+        return x, features_encode, features_decode
 
 
 if __name__ == "__main__":
