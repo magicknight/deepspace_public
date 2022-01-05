@@ -136,8 +136,8 @@ if __name__ == "__main__":
     rel_dim = 1
 
     eff_dim = 100
-    hidden_obj_dim = 100
-    hidden_rel_dim = 100
+    hidden_obj_dim = 128
+    hidden_rel_dim = 128
 
     # generate orbiting planets data
     # data = gen(n_objects, True)  # shape of data = (ts, n_objects, object_dim)
